@@ -47,6 +47,9 @@ function link()
     ## tpm
     git submodule update --remote
     rm -drf "$HOME/.tmux/plugins/tpm"
+    if [ ! -d "$HOME/.tmux/plugins" ]; then
+        mkdir -p "$HOME/.tmux/plugins"
+    fi
     ln -s "$DOTFILES_DIR/tmux/tpm" "$HOME/.tmux/plugins/tpm"
 
     # vim
