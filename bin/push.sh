@@ -19,7 +19,7 @@ else
     return
 fi
 
-if git commit -m "$(date +"%Y.%m.%d-%H:%M:%S") ... Dotfiles Pushed"; then
+if git commit -m "$(date +"%Y.%m.%d-%H:%M:%S") ~ Dotfiles Pushed 🚀"; then
     echo "Dotfiles committed successfully."
 else
     echo "Failed to commit dotfiles."
