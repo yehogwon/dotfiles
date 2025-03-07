@@ -132,6 +132,9 @@ if [ -x "$HOME/miniconda3/bin/conda" ]; then
 fi
 # <<< conda initialize <<<
 
+alias dot-push='source ~/.dotfiles/bin/push'
+alias dot-pull='source ~/.dotfiles/bin/pull'
+
 alias gs='git status'
 alias gp='git push'
 alias gc='git commit'
