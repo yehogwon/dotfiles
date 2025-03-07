@@ -10,8 +10,11 @@ function return() {
     cd "$CWD"
 }
 
-echo "Adding dotfiles to GitHub and committing..."
+echo "Updating submodules..."
 cd "$DOTFILES_DIR"
+git submodule update --remote
+
+echo "Adding dotfiles to GitHub and committing..."
 if git add .; then
     echo "Dotfiles added successfully."
 else
