@@ -41,7 +41,6 @@ function link()
     ln -s "$DOTFILES_DIR/bash/inputrc" "$HOME/.inputrc"
 
     # zsh
-    # zshrc, zprofile, zlogin, zlogout, zshenv
     rm -f "$HOME/.zshrc"
     ln -s "$DOTFILES_DIR/zsh/zshrc" "$HOME/.zshrc"
 
