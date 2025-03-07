@@ -139,10 +139,6 @@ alias gd='git diff'
 
 alias gpu='gpustat -cpui --no-header -i 0.5'
 
-if [ -n "$TMUX" ]; then
-  export TERM="tmux-256color"
-fi
-
 alias vi='vim'
 
 alias tls='tmux ls'
