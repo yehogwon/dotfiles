@@ -28,10 +28,10 @@ The following dotfiles are included:
 To download the dotfiles from the remote repository and apply them to the local machine, run the following command:
 
 > [!CAUTION]
-> You should not execute `pull.sh` without `source`-ing. In other words, you should not execute something like `./bin/pull.sh` or `bash bin/pull.sh`. Also, this only supports `bash` and `zsh`.
+> You should not execute `pull` without `source`-ing. In other words, you should not execute something like `./bin/pull` or `bash bin/pull`. Also, this only supports `bash` and `zsh`.
 
 ```bash
-source bin/pull.sh
+source bin/pull
 ```
 
 ### Upload dotfiles (i.e., `push`)
@@ -39,5 +39,5 @@ source bin/pull.sh
 To upload the dotfiles to the remote repository, run the following command:
 
 ```bash
-source bin/push.sh
+source bin/push
 ```
