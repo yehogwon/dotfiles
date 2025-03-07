@@ -40,6 +40,23 @@ function link()
     rm -f "$HOME/.inputrc"
     ln -s "$DOTFILES_DIR/bash/inputrc" "$HOME/.inputrc"
 
+    # zsh
+    # zshrc, zprofile, zlogin, zlogout, zshenv
+    rm -f "$HOME/.zshrc"
+    ln -s "$DOTFILES_DIR/zsh/zshrc" "$HOME/.zshrc"
+
+    rm -f "$HOME/.zlogin"
+    ln -s "$DOTFILES_DIR/zsh/zlogin" "$HOME/.zlogin"
+
+    rm -f "$HOME/.zlogout"
+    ln -s "$DOTFILES_DIR/zsh/zlogout" "$HOME/.zlogout"
+
+    rm -f "$HOME/.zprofile"
+    ln -s "$DOTFILES_DIR/zsh/zprofile" "$HOME/.zprofile"
+
+    rm -f "$HOME/.zshenv"
+    ln -s "$DOTFILES_DIR/zsh/zshenv" "$HOME/.zshenv"
+
     # tmux
     rm -f "$HOME/.tmux.conf"
     ln -s "$DOTFILES_DIR/tmux/tmux.conf" "$HOME/.tmux.conf"
@@ -78,10 +95,17 @@ echo -e "\e[1;31mLinking dotfiles...\e[0m"
 link
 echo -e "\e[1;31mDotfiles linked successfully.\e[0m"
 
+#########################################################
 echo -e "\e[1;31mSourcing changes...\e[0m"
-source $HOME/.bashrc 1> /dev/null 2>&1
+source $HOME/.bashrc 1> /dev/null
 bind -f $HOME/.inputrc
-tmux source $HOME/.tmux.conf 1> /dev/null 2>&1
+
+source $HOME/.zshrc 1> /dev/null
+source $HOME/.zprofile 1> /dev/null
+source $HOME/.zshenv 1> /dev/null
+
+tmux source $HOME/.tmux.conf 1> /dev/null
+#########################################################
 
 echo -e "\e[1;31mChanges sourced successfully.\e[0m"
 return
