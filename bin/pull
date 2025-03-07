@@ -44,6 +44,11 @@ function link()
     rm -f "$HOME/.tmux.conf"
     ln -s "$DOTFILES_DIR/tmux/tmux.conf" "$HOME/.tmux.conf"
 
+    ## tpm
+    git submodule update --remote
+    rm -drf "$HOME/.tmux/plugins/tpm"
+    ln -s "$DOTFILES_DIR/tmux/tpm" "$HOME/.tmux/plugins/tpm"
+
     # vim
     rm -f "$HOME/.vimrc"
     ln -s "$DOTFILES_DIR/vim/vimrc" "$HOME/.vimrc"
