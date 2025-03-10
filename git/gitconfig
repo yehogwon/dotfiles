@@ -1,3 +1,5 @@
 [user]
 	email = yeho.gwon@postech.ac.kr
 	name = Yeho Gwon
+[core]
+	editor = vim
