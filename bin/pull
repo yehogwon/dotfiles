@@ -77,35 +77,30 @@ function link()
     ln -s "$DOTFILES_DIR/git/gitconfig" "$HOME/.gitconfig"
 }
 
-function restore_return() {
-    cd "$CWD"
-    return $1
-}
-
 echo -e "\e[1;31mDownloading dotfiles from GitHub...\e[0m"
 cd "$DOTFILES_DIR"
 if git pull; then
     echo -e "\e[1;31mDotfiles downloaded successfully.\e[0m"
+
+    echo -e "\e[1;31mLinking dotfiles...\e[0m"
+    link
+    echo -e "\e[1;31mDotfiles linked successfully.\e[0m"
+
+    #########################################################
+    echo -e "\e[1;31mSourcing changes...\e[0m"
+    source $HOME/.bashrc 1> /dev/null
+    bind -f $HOME/.inputrc
+
+    source $HOME/.zshrc 1> /dev/null
+    source $HOME/.zprofile 1> /dev/null
+    source $HOME/.zshenv 1> /dev/null
+
+    tmux source $HOME/.tmux.conf 1> /dev/null
+    #########################################################
+
+    echo -e "\e[1;31mChanges sourced successfully.\e[0m"
 else
     echo -e "\e[1;31mFailed to download dotfiles.\e[0m"
-    restore_return 1
 fi
 
-echo -e "\e[1;31mLinking dotfiles...\e[0m"
-link
-echo -e "\e[1;31mDotfiles linked successfully.\e[0m"
-
-#########################################################
-echo -e "\e[1;31mSourcing changes...\e[0m"
-source $HOME/.bashrc 1> /dev/null
-bind -f $HOME/.inputrc
-
-source $HOME/.zshrc 1> /dev/null
-source $HOME/.zprofile 1> /dev/null
-source $HOME/.zshenv 1> /dev/null
-
-tmux source $HOME/.tmux.conf 1> /dev/null
-#########################################################
-
-echo -e "\e[1;31mChanges sourced successfully.\e[0m"
-restore_return 0
+cd "$CWD"
