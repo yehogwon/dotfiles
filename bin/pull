@@ -77,8 +77,9 @@ function link()
     ln -s "$DOTFILES_DIR/git/gitconfig" "$HOME/.gitconfig"
 }
 
-function return() {
+function restore_return() {
     cd "$CWD"
+    return $1
 }
 
 echo -e "\e[1;31mDownloading dotfiles from GitHub...\e[0m"
@@ -87,7 +88,7 @@ if git pull; then
     echo -e "\e[1;31mDotfiles downloaded successfully.\e[0m"
 else
     echo -e "\e[1;31mFailed to download dotfiles.\e[0m"
-    return
+    restore_return 1
 fi
 
 echo -e "\e[1;31mLinking dotfiles...\e[0m"
@@ -107,4 +108,4 @@ tmux source $HOME/.tmux.conf 1> /dev/null
 #########################################################
 
 echo -e "\e[1;31mChanges sourced successfully.\e[0m"
-return
+restore_return 0
