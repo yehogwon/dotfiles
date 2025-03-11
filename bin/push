@@ -29,6 +29,8 @@ else
     return
 fi
 
+echo ">>>$DOTFILES_DIR  <<<"
+
 if git push origin main; then
     echo "Dotfiles pushed successfully."
 else
