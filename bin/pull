@@ -104,7 +104,8 @@ if git pull > /tmp/git_pull_output 2>&1; then
         echo -e "\e[1;31mChanges sourced successfully.\e[0m"
     fi
 else
-    echo -e "\e[1;31mFailed to download dotfiles.\e[0m"
+    echo -e "\e[1;31mFailed to download dotfiles.\nRefer to the following output:\e[0m"
+    cat /tmp/git_pull_output
 fi
 
 cd "$CWD"
