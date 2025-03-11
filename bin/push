@@ -6,32 +6,25 @@ SCRIPT_PATH="$(realpath "${BASH_SOURCE[0]:-$0}")"
 SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
 DOTFILES_DIR="$(realpath "$SCRIPT_DIR/..")" # does not end with a slash
 
-alias restore_return="cd $CWD; return 0"
-
-echo "Updating submodules..."
+echo -e "\e[1;31mUpdating submodules...\e[0m"
 cd "$DOTFILES_DIR"
 git submodule update --remote
 
-echo "Adding dotfiles to GitHub and committing..."
+echo -e "\e[1;31mAdding dotfiles to GitHub and committing...\e[0m"
 if git add .; then
-    echo "Dotfiles added successfully."
+    echo -e "\e[1;31mDotfiles added successfully.\e[0m"
+    if git commit -m "$(date +"%Y.%m.%d-%H:%M:%S") ~ Dotfiles Pushed 🚀"; then
+        echo -e "\e[1;31mDotfiles committed successfully.\e[0m"
+        if git push origin main; then
+            echo -e "\e[1;31mDotfiles pushed successfully.\e[0m"
+        else
+            echo -e "\e[1;31mFailed to push dotfiles.\e[0m"
+        fi
+    else
+        echo -e "\e[1;31mFailed to commit dotfiles.\e[0m"
+    fi
 else
-    echo "Failed to add dotfiles."
-    restore_return
+    echo -e "\e[1;31mFailed to add dotfiles.\e[0m"
 fi
 
-if git commit -m "$(date +"%Y.%m.%d-%H:%M:%S") ~ Dotfiles Pushed 🚀"; then
-    echo "Dotfiles committed successfully."
-else
-    echo "Failed to commit dotfiles."
-    restore_return
-fi
-
-if git push origin main; then
-    echo "Dotfiles pushed successfully."
-else
-    echo "Failed to push dotfiles."
-    restore_return
-fi
-
-restore_return
+cd $CWD;
