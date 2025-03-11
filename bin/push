@@ -6,7 +6,7 @@ SCRIPT_PATH="$(realpath "${BASH_SOURCE[0]:-$0}")"
 SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
 DOTFILES_DIR="$(realpath "$SCRIPT_DIR/..")" # does not end with a slash
 
-alias restore_return="cd $CWD; return"
+alias restore_return="cd $CWD; return 0"
 
 echo "Updating submodules..."
 cd "$DOTFILES_DIR"
@@ -24,8 +24,7 @@ if git commit -m "$(date +"%Y.%m.%d-%H:%M:%S") ~ Dotfiles Pushed 🚀"; then
     echo "Dotfiles committed successfully."
 else
     echo "Failed to commit dotfiles."
-    # restore_return
-    return
+    restore_return
 fi
 
 if git push origin main; then
