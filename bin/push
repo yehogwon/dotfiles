@@ -24,7 +24,8 @@ if git commit -m "$(date +"%Y.%m.%d-%H:%M:%S") ~ Dotfiles Pushed 🚀"; then
     echo "Dotfiles committed successfully."
 else
     echo "Failed to commit dotfiles."
-    restore_return
+    # restore_return
+    return
 fi
 
 if git push origin main; then
