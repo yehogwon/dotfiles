@@ -29,7 +29,7 @@ else
     return
 fi
 
-echo ">>>$DOTFILES_DIR  <<<"
+echo ">>> $(pwd)  <<<"
 
 if git push origin main; then
     echo "Dotfiles pushed successfully."
