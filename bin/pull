@@ -59,6 +59,8 @@ function link()
     # tmux
     rm -f "$HOME/.tmux.conf"
     ln -s "$DOTFILES_DIR/tmux/tmux.conf" "$HOME/.tmux.conf"
+    
+    ln -s "$DOTFILES_DIR/scripts/get_pane_gpus.sh" "$HOME/.tmux/get_pane_gpus.sh"
 
     ## tpm
     git submodule update --remote
