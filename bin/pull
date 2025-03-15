@@ -33,6 +33,14 @@ DOTFILES_DIR="$(realpath "$SCRIPT_DIR/..")" # does not end with a slash
 
 function link()
 {
+    git submodule update --remote
+
+    # fzf <- this should be done prior to bash and zsh
+    rm -drf "$HOME/.fzf"
+    ln -s "$DOTFILES_DIR/modules/fzf" "$HOME/.fzf"
+
+    "$DOTFILES_DIR/modules/fzf/install" --bin # This does nothing if fzf is already installed (also sanity-checks binary)
+
     # bash
     rm -f "$HOME/.bashrc"
     ln -s "$DOTFILES_DIR/bash/bashrc" "$HOME/.bashrc"
@@ -64,7 +72,6 @@ function link()
     ln -s "$DOTFILES_DIR/scripts/get_pane_gpus.sh" "$HOME/.tmux/get_pane_gpus.sh"
 
     ## tpm
-    git submodule update --remote
     rm -drf "$HOME/.tmux/plugins/tpm"
     if [ ! -d "$HOME/.tmux/plugins" ]; then
         mkdir -p "$HOME/.tmux/plugins"
@@ -95,12 +102,16 @@ if git pull > /tmp/git_pull_output 2>&1; then
 
     #########################################################
     echo -e "\e[1;31mSourcing changes...\e[0m"
-    source $HOME/.bashrc 1> /dev/null
     bind -f $HOME/.inputrc
+    if [ -n "$BASH_VERSION" ]; then
+        source $HOME/.bashrc 1> /dev/null
+    fi
 
-    source $HOME/.zshrc 1> /dev/null
-    source $HOME/.zprofile 1> /dev/null
-    source $HOME/.zshenv 1> /dev/null
+    if [ -n "$ZSH_VERSION" ]; then
+        source $HOME/.zshrc 1> /dev/null
+        source $HOME/.zprofile 1> /dev/null
+        source $HOME/.zshenv 1> /dev/null
+    fi
 
     tmux source $HOME/.tmux.conf 1> /dev/null
     #########################################################

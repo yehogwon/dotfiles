@@ -1,0 +1,16 @@
+# Setup fzf
+if [[ ! "$PATH" == *$HOME/.fzf/bin* ]]; then
+  PATH="${PATH:+${PATH}:}$HOME/.fzf/bin"
+fi
+
+if which fzf > /dev/null; then
+  source <(fzf --zsh)
+fi
+
+if [ -f "$HOME/.fzf/shell/completion.zsh" ]; then
+  : # source "$HOME/.fzf/shell/completion.zsh"
+fi
+
+if [ -f "$HOME/.fzf/shell/key-bindings.zsh" ]; then
+  : # source "$HOME/.fzf/shell/key-bindings.zsh"
+fi

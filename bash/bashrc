@@ -132,6 +132,23 @@ if [ -x "$HOME/miniconda3/bin/conda" ]; then
 fi
 # <<< conda initialize <<<
 
+# Setup fzf
+if [[ ! "$PATH" == *$HOME/.fzf/bin* ]]; then
+  PATH="${PATH:+${PATH}:}$HOME/.fzf/bin"
+fi
+
+if which fzf > /dev/null; then
+    eval "$(fzf --bash)"
+fi
+
+if [ -f "$HOME/.fzf/shell/completion.bash" ]; then
+    : # source "$HOME/.fzf/shell/completion.bash"
+fi
+
+if [ -f "$HOME/.fzf/shell/key-bindings.bash" ]; then
+    : # source "$HOME/.fzf/shell/key-bindings.bash"
+fi
+
 alias dot-push='source ~/.dotfiles/bin/push'
 alias dot-pull='source ~/.dotfiles/bin/pull'
 
