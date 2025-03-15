@@ -8,8 +8,15 @@ if ! child_pids_tmp=$(pgrep -P $pane_pid 2>/dev/null); then
     echo "NoGPU"
     exit 0
 fi
-# child_pids=$(echo "$child_pids_tmp" | xargs pgrep -P 2>/dev/null | tr '\n' ' ')
-child_pids=$(echo "$child_pids_tmp" | tr '\n' ' ')
+child_pids=""
+while read -r pid; do
+    child_pids+="$pid "
+    grandchild_pids=$(pgrep -P "$pid" 2>/dev/null)
+    if [ -n "$grandchild_pids" ]; then
+        child_pids+="$(echo "$grandchild_pids" | tr '\n' ' ')"
+    fi
+done <<< "$child_pids_tmp"
+child_pids="${child_pids% }"
 
 # Parse nvidia-smi output into arrays
 gpu_pids=()
