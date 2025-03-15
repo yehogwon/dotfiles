@@ -84,25 +84,25 @@ if git pull > /tmp/git_pull_output 2>&1; then
         echo -e "\e[1;31mDotfiles already up to date.\e[0m"
     else
         echo -e "\e[1;31mDotfiles downloaded successfully.\e[0m"
-
-        echo -e "\e[1;31mLinking dotfiles...\e[0m"
-        link
-        echo -e "\e[1;31mDotfiles linked successfully.\e[0m"
-
-        #########################################################
-        echo -e "\e[1;31mSourcing changes...\e[0m"
-        source $HOME/.bashrc 1> /dev/null
-        bind -f $HOME/.inputrc
-
-        source $HOME/.zshrc 1> /dev/null
-        source $HOME/.zprofile 1> /dev/null
-        source $HOME/.zshenv 1> /dev/null
-
-        tmux source $HOME/.tmux.conf 1> /dev/null
-        #########################################################
-
-        echo -e "\e[1;31mChanges sourced successfully.\e[0m"
     fi
+
+    echo -e "\e[1;31mLinking dotfiles...\e[0m"
+    link
+    echo -e "\e[1;31mDotfiles linked successfully.\e[0m"
+
+    #########################################################
+    echo -e "\e[1;31mSourcing changes...\e[0m"
+    source $HOME/.bashrc 1> /dev/null
+    bind -f $HOME/.inputrc
+
+    source $HOME/.zshrc 1> /dev/null
+    source $HOME/.zprofile 1> /dev/null
+    source $HOME/.zshenv 1> /dev/null
+
+    tmux source $HOME/.tmux.conf 1> /dev/null
+    #########################################################
+
+    echo -e "\e[1;31mChanges sourced successfully.\e[0m"
 else
     echo -e "\e[1;31mFailed to download dotfiles.\nRefer to the following output:\e[0m"
     cat /tmp/git_pull_output
