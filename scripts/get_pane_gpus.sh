@@ -1,5 +1,10 @@
 #!/bin/bash
 
+# Only supports NVIDIA GPUs
+if ! command -v nvidia-smi &> /dev/null; then
+    exit 1
+fi
+
 pane_id=$1 # e.g., %1
 
 pane_pid=$(tmux list-panes -F "#{pane_id} #{pane_pid}" | grep "$pane_id" | cut -d ' ' -f2)
