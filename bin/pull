@@ -65,9 +65,12 @@ function link()
     ln -s "$DOTFILES_DIR/zsh/zshenv" "$HOME/.zshenv"
 
     # tmux
+    rm -f "$HOME/.tmux/tmux.keybinding.conf"
+    ln -s "$DOTFILES_DIR/tmux/tmux.keybinding.conf" "$HOME/.tmux/tmux.keybinding.conf"
+
     rm -f "$HOME/.tmux.conf"
     ln -s "$DOTFILES_DIR/tmux/tmux.conf" "$HOME/.tmux.conf"
-    
+
     rm -drf "$HOME/.tmux/scripts"
     ln -s "$DOTFILES_DIR/tmux/scripts" "$HOME/.tmux/scripts"
 
