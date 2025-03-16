@@ -68,8 +68,8 @@ function link()
     rm -f "$HOME/.tmux.conf"
     ln -s "$DOTFILES_DIR/tmux/tmux.conf" "$HOME/.tmux.conf"
     
-    rm -f "$HOME/.tmux/get_pane_gpus.sh"
-    ln -s "$DOTFILES_DIR/scripts/get_pane_gpus.sh" "$HOME/.tmux/get_pane_gpus.sh"
+    rm -drf "$HOME/.tmux/scripts"
+    ln -s "$DOTFILES_DIR/tmux/scripts" "$HOME/.tmux/scripts"
 
     ## tpm
     rm -drf "$HOME/.tmux/plugins/tpm"
