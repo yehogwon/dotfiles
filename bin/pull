@@ -68,6 +68,9 @@ function link()
     rm -f "$HOME/.tmux/tmux.keybinding.conf"
     ln -s "$DOTFILES_DIR/tmux/tmux.keybinding.conf" "$HOME/.tmux/tmux.keybinding.conf"
 
+    rm -f "$HOME/.tmux/statusbar.tmux"
+    ln -s "$DOTFILES_DIR/tmux/statusbar.tmux" "$HOME/.tmux/statusbar.tmux"
+
     rm -f "$HOME/.tmux.conf"
     ln -s "$DOTFILES_DIR/tmux/tmux.conf" "$HOME/.tmux.conf"
 

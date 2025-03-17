@@ -138,7 +138,7 @@ if [[ ! "$PATH" == *$HOME/.fzf/bin* ]]; then
 fi
 
 if which fzf > /dev/null; then
-    eval "$(fzf --bash)"
+    eval "$(fzf --bash)" # This does keybindings and completion. Below not needed.
 fi
 
 if [ -f "$HOME/.fzf/shell/completion.bash" ]; then
