@@ -149,6 +149,13 @@ if [ -f "$HOME/.fzf/shell/key-bindings.bash" ]; then
     : # source "$HOME/.fzf/shell/key-bindings.bash"
 fi
 
+# Setup neovim
+export PATH="$HOME/nvim/bin:$PATH"
+if which nvim > /dev/null; then
+    alias vim='nvim'
+    alias vi='nvim'
+fi
+
 alias dot-push='source ~/.dotfiles/bin/push'
 alias dot-pull='source ~/.dotfiles/bin/pull'
 
@@ -159,8 +166,6 @@ alias ga='git add'
 alias gd='git diff'
 
 alias gpu='gpustat -cpui --no-header -i 0.5'
-
-alias vi='vim'
 
 alias tls='tmux ls'
 alias ta='tmux attach'

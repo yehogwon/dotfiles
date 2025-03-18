@@ -1,0 +1,57 @@
+#!/bin/bash
+
+function neovim() {
+    if [ -d "$HOME/nvim" ]; then
+        echo -e "\e[1;31m$HOME/nvim already exists\e[0m"
+        exit 1
+    fi
+
+    curl -L https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.tar.gz > $HOME/.nvim-linux-x86_64.tar.gz.tmp
+    tar -C $HOME -xzf $HOME/.nvim-linux-x86_64.tar.gz.tmp
+    rm $HOME/.nvim-linux-x86_64.tar.gz.tmp
+    mv $HOME/nvim-linux-x86_64 $HOME/nvim
+
+    echo -e "\e[1;33mInstalled neovim. Add the following to your \$PATH:\e[0m"
+    echo -e "$HOME/nvim/bin"
+    echo -e "alias vim='nvim'"
+    echo -e "alias vi='nvim'"
+    echo -e "\e[1;33mNote: This dotsync will do this on behalf of you!\e[0m"
+
+    return 0
+}
+
+function git() {
+    echo -e "\e[1;31mInstalling git is not supported yet.\e[0m"
+    return 1
+}
+
+function tmux() {
+    echo -e "\e[1;31mInstalling tmux is not supported yet.\e[0m"
+    return 1
+}
+
+packages=$@
+# for each package, check if corresponding function exists
+unknown_packages=()
+for package in $packages; do
+    if ! declare -f $package > /dev/null; then
+        unknown_packages+=($package)
+    fi
+done
+
+if [ ${#unknown_packages[@]} -gt 0 ]; then
+    echo -e "\e[1;31mUnknown packages: ${unknown_packages[@]}\e[0m"
+    exit 1
+fi
+
+for package in $packages; do
+    case $package in
+        neovim) neovim ;;
+        git) git ;;
+        tmux) tmux ;;
+    esac
+    if [ $? -ne 0 ]; then
+        echo -e "\e[1;31mFailed to install $package\e[0m"
+    fi
+    echo -e "\e[1;33mInstalled $package\e[0m"
+done
