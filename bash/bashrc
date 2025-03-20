@@ -167,6 +167,7 @@ alias gd='git diff'
 
 alias gpu='gpustat -cpui --no-header -i 0.5'
 
+alias t='tmux'
 alias tls='tmux ls'
 alias ta='tmux attach'
 alias tat='tmux attach -t'
