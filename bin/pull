@@ -65,6 +65,9 @@ function link()
     ln -s "$DOTFILES_DIR/zsh/zshenv" "$HOME/.zshenv"
 
     # tmux
+    rm -drf "$HOME/.config/tmux-powerline"
+    ln -s "$DOTFILES_DIR/tmux/powerline/" "$HOME/.config/tmux-powerline"
+    
     rm -f "$HOME/.tmux/tmux.keybinding.conf"
     ln -s "$DOTFILES_DIR/tmux/tmux.keybinding.conf" "$HOME/.tmux/tmux.keybinding.conf"
 
