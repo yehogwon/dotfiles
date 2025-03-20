@@ -116,22 +116,6 @@ if ! shopt -oq posix; then
   fi
 fi
 
-# >>> conda initialize >>>
-if [ -x "$HOME/miniconda3/bin/conda" ]; then
-    __conda_setup="$("$HOME/miniconda3/bin/conda" 'shell.bash' 'hook' 2> /dev/null)"
-    if [ $? -eq 0 ]; then
-        eval "$__conda_setup"
-    else
-        if [ -f "$HOME/miniconda3/etc/profile.d/conda.sh" ]; then
-            . "$HOME/miniconda3/etc/profile.d/conda.sh"
-        else
-            export PATH="$HOME/miniconda3/bin:$PATH"
-        fi
-    fi
-    unset __conda_setup
-fi
-# <<< conda initialize <<<
-
 # Setup fzf
 if [[ ! "$PATH" == *$HOME/.fzf/bin* ]]; then
   PATH="${PATH:+${PATH}:}$HOME/.fzf/bin"
@@ -151,7 +135,7 @@ fi
 
 # Setup neovim
 export PATH="$HOME/nvim/bin:$PATH"
-if which nvim > /dev/null; then
+if which nvim > /dev/null 2>&1; then
     alias vim='nvim'
     alias vi='nvim'
 fi
@@ -180,3 +164,48 @@ alias t='tmux'
 alias tls='tmux ls'
 alias ta='tmux attach'
 alias tat='tmux attach -t'
+
+# if squeue found
+if command -v squeue > /dev/null; then
+    alias squeue='squeue -o   "%6i %35j  %9T %12u %8g %15P %4D %20R %4C %13b %8m %11l %11L %p"'
+    alias sq='squeue'
+    alias sqyh='squeue -u yehok117'
+    alias sqw='squeue -w'
+
+    alias sq2080ti='squeue -p 2080ti'
+    alias sq3090='squeue -p 3090'
+    alias sqa5000='squeue -p A5000'
+    alias sqa6000='squeue -p A6000'
+    alias sqa100p='squeue -p A100-pci'
+    alias sq4a100='squeue -p 4A100'
+    alias sqa10040='squeue -p A100-40GB'
+    alias sqa10080='squeue -p A100-80GB'
+    alias sql40s='squeue -p L40S'
+fi
+
+# >>> conda initialize >>>
+if [[ "$HOSTNAME" == kwak* ]]; then
+    CONDA_INSTALLED_PATH="$HOME/miniconda3"
+elif [[ "$HOSTNAME" == gsai* || "$HOSTNAME" == cse* ]]; then
+    CONDA_INSTALLED_PATH="/opt/ohpc/pub/apps/anaconda3"
+fi
+
+# if CONDA_INSTALLED_PATH is set, activate conda
+if [ -n "$CONDA_INSTALLED_PATH" ]; then
+    if [ -x "$CONDA_INSTALLED_PATH/bin/conda" ]; then
+        __conda_setup="$("$CONDA_INSTALLED_PATH/bin/conda" 'shell.bash' 'hook' 2> /dev/null)"
+        if [ $? -eq 0 ]; then
+            eval "$__conda_setup"
+        else
+            if [ -f "$CONDA_INSTALLED_PATH/etc/profile.d/conda.sh" ]; then
+                . "$CONDA_INSTALLED_PATH/etc/profile.d/conda.sh"
+            else
+                export PATH="$CONDA_INSTALLED_PATH/bin:$PATH"
+            fi
+        fi
+        unset __conda_setup
+    fi
+else
+    echo "Automatic conda search failed. Please set CONDA_INSTALLED_PATH manually."
+fi
+# <<< conda initialize <<<
