@@ -38,6 +38,10 @@ if [ -z "$sync_modules" ]; then
     sync_modules="all"
 fi
 
+if [[ "$sync_modules" == *"none"* ]]; then
+    sync_modules=""
+fi
+
 function source_exists() {
     file_path=$1
     if [ -f "$file_path" ]; then

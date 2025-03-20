@@ -156,8 +156,17 @@ if which nvim > /dev/null; then
     alias vi='nvim'
 fi
 
-alias dot-push='source ~/.dotfiles/bin/push'
-alias dot-pull='source ~/.dotfiles/bin/pull'
+DOTSYNC_FILES=""
+if [[ "$HOSTNAME" == kwak* ]]; then
+    DOTSYNC_FILES="all"
+else if [[ "$HOSTNAME" == gsai* || "$HOSTNAME" == cse* ]]; then
+    DOTSYNC_FILES="tmux fzf vim git"
+else
+    DOTSYNC_FILES="none"
+fi
+
+alias dot-push="source ~/.dotfiles/bin/push $DOTSYNC_FILES"
+alias dot-pull="source ~/.dotfiles/bin/pull $DOTSYNC_FILES"
 
 alias gs='git status'
 alias gp='git push'
