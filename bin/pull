@@ -37,12 +37,33 @@ if [ -z "$sync_modules" ]; then
     sync_modules="all"
 fi
 
-function submodules() {
+function source_exists() {
+    file_path=$1
+    if [ -f "$file_path" ]; then
+        source "$file_path" 1> /dev/null
+    fi
+}
+
+function bind_exists() {
+    bind_name=$1
+    if [ -f "$bind_name" ]; then
+        bind -f "$bind_name" 1> /dev/null
+    fi
+}
+
+function tmux_source_exists() {
+    tmux_source=$1
+    if [ -f "$tmux_source" ]; then
+        tmux source "$tmux_source" 1> /dev/null
+    fi
+}
+
+function load_submodules() {
     echo -e "\e[1;31m[Working] submodules\e[0m"
     git submodule update --remote
 }
 
-function fzf() {
+function load_fzf() {
     # This should be done prior to bash and zsh
     echo -e "\e[1;31m[Working] fzf\e[0m"
     rm -drf "$HOME/.fzf"
@@ -51,7 +72,7 @@ function fzf() {
     "$DOTFILES_DIR/modules/fzf/install" --bin # This does nothing if fzf is already installed (also sanity-checks binary)
 }
 
-function bash() {
+function load_bash() {
     echo -e "\e[1;31m[Working] bash\e[0m"
     rm -f "$HOME/.bashrc"
     ln -s "$DOTFILES_DIR/bash/bashrc" "$HOME/.bashrc"
@@ -60,7 +81,7 @@ function bash() {
     ln -s "$DOTFILES_DIR/bash/inputrc" "$HOME/.inputrc"
 }
 
-function zsh() {
+function load_zsh() {
     echo -e "\e[1;31m[Working] zsh\e[0m"
     rm -f "$HOME/.zshrc"
     ln -s "$DOTFILES_DIR/zsh/zshrc" "$HOME/.zshrc"
@@ -78,7 +99,7 @@ function zsh() {
     ln -s "$DOTFILES_DIR/zsh/zshenv" "$HOME/.zshenv"
 }
 
-function tmux() {
+function load_tmux() {
     rm -drf "$HOME/.config/tmux-powerline"
     ln -s "$DOTFILES_DIR/tmux/powerline/" "$HOME/.config/tmux-powerline"
     
@@ -99,12 +120,12 @@ function tmux() {
     ln -s "$DOTFILES_DIR/tmux/tpm" "$HOME/.tmux/plugins/tpm"
 }
 
-function vim() {
+function load_vim() {
     rm -f "$HOME/.vimrc"
     ln -s "$DOTFILES_DIR/vim/vimrc" "$HOME/.vimrc"
 }
 
-function git() {
+function load_git() {
     echo -e "\e[1;31m[Working] git\e[0m"
     rm -f "$HOME/.gitconfig"
     ln -s "$DOTFILES_DIR/git/gitconfig" "$HOME/.gitconfig"
@@ -112,49 +133,28 @@ function git() {
 
 function link()
 {
-    submodules
+    load_submodules
 
     for module in $sync_modules; do
         case $module in
             "all")
-                fzf
-                bash
-                zsh
-                tmux
-                vim
-                git
+                load_fzf
+                load_bash
+                load_zsh
+                load_tmux
+                load_vim
+                load_git
                 break
                 ;;
-            "fzf") fzf ;;
-            "bash") bash ;;
-            "zsh") zsh ;;
-            "tmux") tmux ;;
-            "vim") vim ;;
-            "git") git ;;
+            "fzf") load_fzf ;;
+            "bash") load_bash ;;
+            "zsh") load_zsh ;;
+            "tmux") load_tmux ;;
+            "vim") load_vim ;;
+            "git") load_git ;;
             *) echo -e "\e[1;31mUnknown module: $module\e[0m" ;;
         esac
     done
-}
-
-function source_exists() {
-    file_path=$1
-    if [ -f "$file_path" ]; then
-        source "$file_path" 1> /dev/null
-    fi
-}
-
-function bind_exists() {
-    bind_name=$1
-    if [ -f "$bind_name" ]; then
-        bind -f "$bind_name" 1> /dev/null
-    fi
-}
-
-function tmux_source_exists() {
-    tmux_source=$1
-    if [ -f "$tmux_source" ]; then
-        tmux source "$tmux_source" 1> /dev/null
-    fi
 }
 
 echo -e "\e[1;31mDownloading dotfiles from GitHub...\e[0m"
