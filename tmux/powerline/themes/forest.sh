@@ -103,8 +103,8 @@ fi
 if [ -z "$TMUX_POWERLINE_LEFT_STATUS_SEGMENTS" ]; then
 	TMUX_POWERLINE_LEFT_STATUS_SEGMENTS=(
 		# "tmux_session_info 148 234"
-		"hostname 33 0"
-		"mode_indicator 165 0"
+		"hostname 104 0"
+		"mode_indicator 153 0"
 		#"ifstat 30 255"
 		#"ifstat_sys 30 255"
 		# "lan_ip 24 255 ${TMUX_POWERLINE_SEPARATOR_RIGHT_THIN}"
