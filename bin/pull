@@ -79,6 +79,11 @@ function load_bash() {
 
     rm -f "$HOME/.inputrc"
     ln -s "$DOTFILES_DIR/bash/inputrc" "$HOME/.inputrc"
+    
+    bind_exists $HOME/.inputrc
+    if [ -n "$BASH_VERSION" ]; then
+        source_exists $HOME/.bashrc
+    fi
 }
 
 function load_zsh() {
@@ -97,6 +102,12 @@ function load_zsh() {
 
     rm -f "$HOME/.zshenv"
     ln -s "$DOTFILES_DIR/zsh/zshenv" "$HOME/.zshenv"
+
+    if [ -n "$ZSH_VERSION" ]; then
+        source_exists $HOME/.zshrc
+        source_exists $HOME/.zprofile
+        source_exists $HOME/.zshenv
+    fi
 }
 
 function load_tmux() {
@@ -118,6 +129,8 @@ function load_tmux() {
         mkdir -p "$HOME/.tmux/plugins"
     fi
     ln -s "$DOTFILES_DIR/tmux/tpm" "$HOME/.tmux/plugins/tpm"
+
+    tmux_source_exists $HOME/.tmux.conf
 }
 
 function load_vim() {
@@ -131,7 +144,7 @@ function load_git() {
     ln -s "$DOTFILES_DIR/git/gitconfig" "$HOME/.gitconfig"
 }
 
-function link()
+function load_dotfiles()
 {
     load_submodules
 
@@ -166,27 +179,9 @@ if git pull > /tmp/git_pull_output 2>&1; then
         echo -e "\e[1;31mDotfiles downloaded successfully.\e[0m"
     fi
 
-    echo -e "\e[1;31mLinking dotfiles...\e[0m"
-    link
-    echo -e "\e[1;31mDotfiles linked successfully.\e[0m"
-
-    #########################################################
-    echo -e "\e[1;31mSourcing changes...\e[0m"
-    bind_exists $HOME/.inputrc
-    if [ -n "$BASH_VERSION" ]; then
-        source_exists $HOME/.bashrc
-    fi
-
-    if [ -n "$ZSH_VERSION" ]; then
-        source_exists $HOME/.zshrc
-        source_exists $HOME/.zprofile
-        source_exists $HOME/.zshenv
-    fi
-
-    tmux_source_exists $HOME/.tmux.conf
-    #########################################################
-
-    echo -e "\e[1;31mChanges sourced successfully.\e[0m"
+    echo -e "\e[1;31mLinking & sourcing dotfiles...\e[0m"
+    load_dotfiles
+    echo -e "\e[1;31mDotfiles linked & sourced successfully.\e[0m"
 else
     echo -e "\e[1;31mFailed to download dotfiles.\nRefer to the following output:\e[0m"
     cat /tmp/git_pull_output
