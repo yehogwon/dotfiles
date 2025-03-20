@@ -6,36 +6,25 @@ SCRIPT_PATH="$(realpath "${BASH_SOURCE[0]:-$0}")"
 SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
 DOTFILES_DIR="$(realpath "$SCRIPT_DIR/..")" # does not end with a slash
 
-if [ ! -f "$DOTFILES_DIR/config.sh" ]; then
-    echo -e "\e[1;31mConfig file not found. Copying default config...\e[0m"
-    cp "$DOTFILES_DIR/config.default.sh" "$DOTFILES_DIR/config.sh"
-fi
+echo -e "\e[1;31mUpdating submodules...\e[0m"
+cd "$DOTFILES_DIR"
+git submodule update --remote
 
-source "$DOTFILES_DIR/config.sh"
-
-if [ "$SYNC_TYPES" != "all" ]; then
-    echo -e "\e[1;31mPushing dotfiles only supported on node with all enabled.\e[0m"
-else
-    echo -e "\e[1;31mUpdating submodules...\e[0m"
-    cd "$DOTFILES_DIR"
-    git submodule update --remote
-
-    echo -e "\e[1;31mAdding dotfiles to GitHub and committing...\e[0m"
-    if git add .; then
-        echo -e "\e[1;31mDotfiles added successfully.\e[0m"
-        if git commit -m "$(date +"%Y.%m.%d-%H:%M:%S") ~ Dotfiles Pushed 🚀"; then
-            echo -e "\e[1;31mDotfiles committed successfully.\e[0m"
-            if git push origin main; then
-                echo -e "\e[1;31mDotfiles pushed successfully.\e[0m"
-            else
-                echo -e "\e[1;31mFailed to push dotfiles.\e[0m"
-            fi
+echo -e "\e[1;31mAdding dotfiles to GitHub and committing...\e[0m"
+if git add .; then
+    echo -e "\e[1;31mDotfiles added successfully.\e[0m"
+    if git commit -m "$(date +"%Y.%m.%d-%H:%M:%S") ~ Dotfiles Pushed 🚀"; then
+        echo -e "\e[1;31mDotfiles committed successfully.\e[0m"
+        if git push origin main; then
+            echo -e "\e[1;31mDotfiles pushed successfully.\e[0m"
         else
-            echo -e "\e[1;31mFailed to commit dotfiles.\e[0m"
+            echo -e "\e[1;31mFailed to push dotfiles.\e[0m"
         fi
     else
-        echo -e "\e[1;31mFailed to add dotfiles.\e[0m"
+        echo -e "\e[1;31mFailed to commit dotfiles.\e[0m"
     fi
+else
+    echo -e "\e[1;31mFailed to add dotfiles.\e[0m"
 fi
 
 cd $CWD;

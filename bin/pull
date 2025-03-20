@@ -31,24 +31,37 @@ SCRIPT_PATH="$(realpath "${BASH_SOURCE[0]:-$0}")"
 SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
 DOTFILES_DIR="$(realpath "$SCRIPT_DIR/..")" # does not end with a slash
 
-function link()
-{
-    git submodule update --remote
+sync_modules=$@
 
-    # fzf <- this should be done prior to bash and zsh
+if [ -z "$sync_modules" ]; then
+    sync_modules="all"
+fi
+
+function submodules() {
+    echo -e "\e[1;31m[Working] submodules\e[0m"
+    git submodule update --remote
+}
+
+function fzf() {
+    # This should be done prior to bash and zsh
+    echo -e "\e[1;31m[Working] fzf\e[0m"
     rm -drf "$HOME/.fzf"
     ln -s "$DOTFILES_DIR/modules/fzf" "$HOME/.fzf"
 
     "$DOTFILES_DIR/modules/fzf/install" --bin # This does nothing if fzf is already installed (also sanity-checks binary)
+}
 
-    # bash
+function bash() {
+    echo -e "\e[1;31m[Working] bash\e[0m"
     rm -f "$HOME/.bashrc"
     ln -s "$DOTFILES_DIR/bash/bashrc" "$HOME/.bashrc"
 
     rm -f "$HOME/.inputrc"
     ln -s "$DOTFILES_DIR/bash/inputrc" "$HOME/.inputrc"
+}
 
-    # zsh
+function zsh() {
+    echo -e "\e[1;31m[Working] zsh\e[0m"
     rm -f "$HOME/.zshrc"
     ln -s "$DOTFILES_DIR/zsh/zshrc" "$HOME/.zshrc"
 
@@ -63,8 +76,9 @@ function link()
 
     rm -f "$HOME/.zshenv"
     ln -s "$DOTFILES_DIR/zsh/zshenv" "$HOME/.zshenv"
+}
 
-    # tmux
+function tmux() {
     rm -drf "$HOME/.config/tmux-powerline"
     ln -s "$DOTFILES_DIR/tmux/powerline/" "$HOME/.config/tmux-powerline"
     
@@ -77,20 +91,70 @@ function link()
     rm -drf "$HOME/.tmux/scripts"
     ln -s "$DOTFILES_DIR/tmux/scripts" "$HOME/.tmux/scripts"
 
-    ## tpm
+    # tpm
     rm -drf "$HOME/.tmux/plugins/tpm"
     if [ ! -d "$HOME/.tmux/plugins" ]; then
         mkdir -p "$HOME/.tmux/plugins"
     fi
     ln -s "$DOTFILES_DIR/tmux/tpm" "$HOME/.tmux/plugins/tpm"
+}
 
-    # vim
+function vim() {
     rm -f "$HOME/.vimrc"
     ln -s "$DOTFILES_DIR/vim/vimrc" "$HOME/.vimrc"
+}
 
-    # git
+function git() {
+    echo -e "\e[1;31m[Working] git\e[0m"
     rm -f "$HOME/.gitconfig"
     ln -s "$DOTFILES_DIR/git/gitconfig" "$HOME/.gitconfig"
+}
+
+function link()
+{
+    submodules
+
+    for module in $sync_modules; do
+        case $module in
+            "all")
+                fzf
+                bash
+                zsh
+                tmux
+                vim
+                git
+                break
+                ;;
+            "fzf") fzf ;;
+            "bash") bash ;;
+            "zsh") zsh ;;
+            "tmux") tmux ;;
+            "vim") vim ;;
+            "git") git ;;
+            *) echo -e "\e[1;31mUnknown module: $module\e[0m" ;;
+        esac
+    done
+}
+
+function source_exists() {
+    file_path=$1
+    if [ -f "$file_path" ]; then
+        source "$file_path" 1> /dev/null
+    fi
+}
+
+function bind_exists() {
+    bind_name=$1
+    if [ -f "$bind_name" ]; then
+        bind -f "$bind_name" 1> /dev/null
+    fi
+}
+
+function tmux_source_exists() {
+    tmux_source=$1
+    if [ -f "$tmux_source" ]; then
+        tmux source "$tmux_source" 1> /dev/null
+    fi
 }
 
 echo -e "\e[1;31mDownloading dotfiles from GitHub...\e[0m"
@@ -108,18 +172,18 @@ if git pull > /tmp/git_pull_output 2>&1; then
 
     #########################################################
     echo -e "\e[1;31mSourcing changes...\e[0m"
-    bind -f $HOME/.inputrc
+    bind_exists $HOME/.inputrc
     if [ -n "$BASH_VERSION" ]; then
-        source $HOME/.bashrc 1> /dev/null
+        source_exists $HOME/.bashrc
     fi
 
     if [ -n "$ZSH_VERSION" ]; then
-        source $HOME/.zshrc 1> /dev/null
-        source $HOME/.zprofile 1> /dev/null
-        source $HOME/.zshenv 1> /dev/null
+        source_exists $HOME/.zshrc
+        source_exists $HOME/.zprofile
+        source_exists $HOME/.zshenv
     fi
 
-    tmux source $HOME/.tmux.conf 1> /dev/null
+    tmux_source_exists $HOME/.tmux.conf
     #########################################################
 
     echo -e "\e[1;31mChanges sourced successfully.\e[0m"
