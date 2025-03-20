@@ -159,7 +159,7 @@ fi
 DOTSYNC_FILES=""
 if [[ "$HOSTNAME" == kwak* ]]; then
     DOTSYNC_FILES="all"
-else if [[ "$HOSTNAME" == gsai* || "$HOSTNAME" == cse* ]]; then
+elif [[ "$HOSTNAME" == gsai* || "$HOSTNAME" == cse* ]]; then
     DOTSYNC_FILES="tmux fzf vim git"
 else
     DOTSYNC_FILES="none"
