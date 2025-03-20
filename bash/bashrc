@@ -144,7 +144,8 @@ DOTSYNC_FILES=""
 if [[ "$HOSTNAME" == kwak* ]]; then
     DOTSYNC_FILES="all"
 elif [[ "$HOSTNAME" == gsai* || "$HOSTNAME" == cse* ]]; then
-    DOTSYNC_FILES="tmux fzf vim git"
+    DOTSYNC_FILES="all"
+    # DOTSYNC_FILES="tmux fzf vim git" # NOTE: dotsync is fully supported for POSTECH clusters
 else
     DOTSYNC_FILES="none"
 fi
@@ -157,8 +158,6 @@ alias gp='git push'
 alias gc='git commit'
 alias ga='git add'
 alias gd='git diff'
-
-alias gpu='gpustat -cpui --no-header -i 0.5'
 
 alias t='tmux'
 alias tls='tmux ls'
