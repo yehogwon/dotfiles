@@ -163,6 +163,7 @@ function load_dotfiles()
         case $module in
             "all")
                 load_fzf
+                load_conda
                 load_bash
                 load_zsh
                 load_tmux
