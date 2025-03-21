@@ -182,14 +182,13 @@ if command -v squeue > /dev/null; then
     alias sql40s='squeue -p L40S'
 fi
 
-# >>> conda initialize >>>
-if [[ "$HOSTNAME" == kwak* ]]; then
+# <<< conda initialize <<<
+if [ -x "$HOME/miniconda3/bin/conda" ]; then
     CONDA_INSTALLED_PATH="$HOME/miniconda3"
-elif [[ "$HOSTNAME" == gsai* || "$HOSTNAME" == cse* ]]; then
+elif [ -x "/opt/ohpc/pub/apps/anaconda3/bin/conda" ]; then
     CONDA_INSTALLED_PATH="/opt/ohpc/pub/apps/anaconda3"
 fi
 
-# if CONDA_INSTALLED_PATH is set, activate conda
 if [ -n "$CONDA_INSTALLED_PATH" ]; then
     if [ -x "$CONDA_INSTALLED_PATH/bin/conda" ]; then
         __conda_setup="$("$CONDA_INSTALLED_PATH/bin/conda" 'shell.bash' 'hook' 2> /dev/null)"
