@@ -149,6 +149,12 @@ function load_git() {
     ln -s "$DOTFILES_DIR/git/gitconfig" "$HOME/.gitconfig"
 }
 
+function load_conda() {
+    echo -e "\e[1;31m[Working] conda\e[0m"
+    rm -f "$HOME/.conda_init.sh"
+    ln -s "$DOTFILES_DIR/scripts/conda_init.sh" "$HOME/.conda_init.sh"
+}
+
 function load_dotfiles()
 {
     load_submodules
@@ -165,6 +171,7 @@ function load_dotfiles()
                 break
                 ;;
             "fzf") load_fzf ;;
+            "conda") load_conda ;;
             "bash") load_bash ;;
             "zsh") load_zsh ;;
             "tmux") load_tmux ;;

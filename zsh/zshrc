@@ -14,3 +14,8 @@ fi
 if [ -f "$HOME/.fzf/shell/key-bindings.zsh" ]; then
   : # source "$HOME/.fzf/shell/key-bindings.zsh"
 fi
+
+# conda
+if [ -f "$HOME/.conda_init.sh" ]; then
+  source ~/.conda_init.sh
+fi
