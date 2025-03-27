@@ -52,7 +52,9 @@ function source_exists() {
 function bind_exists() {
     bind_name=$1
     if [ -f "$bind_name" ]; then
-        bind -f "$bind_name" 1> /dev/null
+        if [ -x "$(command -v bind)" ]; then
+            bind -f "$bind_name" 1> /dev/null
+        fi
     fi
 }
 
