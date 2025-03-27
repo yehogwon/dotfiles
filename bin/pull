@@ -74,9 +74,6 @@ function load_common_rc() {
     echo -e "\e[1;31m[Working] common_rc\e[0m"
     rm -f "$HOME/.common_rc.sh"
     ln -s "$DOTFILES_DIR/scripts/common_rc.sh" "$HOME/.common_rc.sh"
-
-    rm -f "$HOME/.local_envs.sh"
-    ln -s "$DOTFILES_DIR/scripts/local_envs.sh" "$HOME/.local_envs.sh"
 }
 
 function load_fzf() {

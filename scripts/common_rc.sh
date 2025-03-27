@@ -1,6 +1,8 @@
 shell_name=$(basename $SHELL)
 
-source ~/.local_envs.sh
+if [ -f ~/.local_envs.sh ]; then
+    source ~/.local_envs.sh
+fi
 
 # Setup fzf
 if [[ ! "$PATH" == *$HOME/.fzf/bin* ]]; then
