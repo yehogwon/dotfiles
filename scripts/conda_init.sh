@@ -4,6 +4,7 @@ shell_name=$(basename $SHELL)
 _CANDIDATE_PATHS=(
     "$HOME/miniconda3" # linux
     "/usr/local/Caskroom/miniconda/base" # macos (homebrew)
+    "/opt/homebrew/Caskroom/miniconda/base" # macos (homebrew)
     "/opt/ohpc/pub/apps/anaconda3" # linux (ohpc)
 )
 
