@@ -47,6 +47,8 @@ if [ "$ONLY_NECESSARY" = 1 ]; then
     if [ -f "$HOME/.conda_init.sh" ]; then
         source ~/.conda_init.sh
     fi
+
+    return 0
 fi
 
 # Setup fzf
