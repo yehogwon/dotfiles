@@ -18,7 +18,15 @@ unset _CANDIDATE_PATHS
 
 if [ -n "$CONDA_INSTALLED_PATH" ]; then
     if [ -x "$CONDA_INSTALLED_PATH/bin/conda" ]; then
-        __conda_setup="$("$CONDA_INSTALLED_PATH/bin/conda" 'shell.${shell_name}' 'hook' 2> /dev/null)"
+        if [[ "$shell_name" = "bash" ]]; then
+            __conda_setup="$("$CONDA_INSTALLED_PATH/bin/conda" 'shell.bash' 'hook' 2> /dev/null)"
+        elif [[ "$shell_name" = "zsh" ]]; then
+            __conda_setup="$("$CONDA_INSTALLED_PATH/bin/conda" 'shell.zsh' 'hook' 2> /dev/null)"
+        else
+            echo "Unsupported shell: $shell_name"
+            return 1
+        fi
+
         if [ $? -eq 0 ]; then
             eval "$__conda_setup"
         else
