@@ -1,4 +1,13 @@
-shell_name=$(basename $SHELL)
+if [ -f ~/.tools.sh ]; then
+    source ~/.tools.sh
+fi
+
+shell_name="none"
+if is_bash; then
+    shell_name="bash"
+elif is_zsh; then
+    shell_name="zsh"
+fi
 
 if [ -f ~/.local_envs ]; then
     source ~/.local_envs
@@ -43,9 +52,12 @@ alias sqa10080='squeue -p A100-80GB'
 alias sql40s='squeue -p L40S'
 
 # conda
+_shell_name_bak="$shell_name"
 if [ -f "$HOME/.conda_init.sh" ]; then
     source ~/.conda_init.sh
 fi
+shell_name="$_shell_name_bak"
+unset _shell_name_bak
 
 if [ "$ONLY_NECESSARY" = 1 ]; then
     return 0
@@ -93,5 +105,3 @@ fi
 if [ -n "${FLUTTER_HOME}" ]; then
     export PATH="$FLUTTER_HOME/bin:$PATH"
 fi
-
-unset shell_name

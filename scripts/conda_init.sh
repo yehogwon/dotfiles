@@ -1,4 +1,13 @@
-shell_name=$(basename $SHELL)
+if [ -f ~/.tools.sh ]; then
+    source ~/.tools.sh
+fi
+
+shell_name="none"
+if is_bash; then
+    shell_name="bash"
+elif is_zsh; then
+    shell_name="zsh"
+fi
 
 # >>> conda initialize >>>
 _CANDIDATE_PATHS=(
