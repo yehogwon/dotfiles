@@ -8,14 +8,17 @@ The following dotfiles are included:
 
 - [x] `~/.bashrc`
 - [x] `~/.inputrc`
-- [x] `~/.tmux.conf`
+- [x] `~/.tmux.conf` (and other `tmux` configs and plugins)
 - [x] `~/.vimrc`
 - [x] `~/.gitconfig`
 - [x] `~/.ssh/authorized_keys`
+- [x] `oh-my-zsh`
+- [x] `~/.zshrc` (and other `zsh` configs)
+- [x] `conda`
+- [x] `fzf`
 
 *To be added:*
 
-- [ ] `zsh`
 - [ ] `nvim`
 
 ## How to sync
@@ -31,7 +34,13 @@ To download the dotfiles from the remote repository and apply them to the local 
 > You should not execute `pull` without `source`-ing. In other words, you should not execute something like `./bin/pull` or `bash bin/pull`. Also, this only supports `bash` and `zsh`.
 
 ```bash
-source bin/pull
+$ source bin/pull
+```
+
+Once you pull the dotfiles for the first time, you can run `dot-pull` to pull the dotfiles.
+
+```bash
+$ dot-pull
 ```
 
 ### Upload dotfiles (i.e., `push`)
@@ -39,5 +48,17 @@ source bin/pull
 To upload the dotfiles to the remote repository, run the following command:
 
 ```bash
-source bin/push
+$ source bin/push
 ```
+
+Similarly, once you pull the dotfiles, you can run `dot-push` to push the dotfiles.
+
+```bash
+$ dot-push
+```
+
+## Local environment variables
+
+To set local environment variables, add them to the `~/.local_envs` file directly.
+
+
