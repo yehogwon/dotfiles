@@ -104,30 +104,8 @@ alias tat='tmux attach -t'
   eval "$(rbenv init -)"
 # <<< Ruby <<<
 
-# Setup fzf
-if [[ ! "$PATH" == *$HOME/.fzf/bin* ]]; then
-  PATH="${PATH:+${PATH}:}$HOME/.fzf/bin"
-fi
-
-if which fzf > /dev/null; then
-  source <(fzf --zsh)
-fi
-
-if [ -f "$HOME/.fzf/shell/completion.zsh" ]; then
-  : # source "$HOME/.fzf/shell/completion.zsh"
-fi
-
-if [ -f "$HOME/.fzf/shell/key-bindings.zsh" ]; then
-  : # source "$HOME/.fzf/shell/key-bindings.zsh"
-fi
-
-# conda
-if [ -f "$HOME/.conda_init.sh" ]; then
-  source ~/.conda_init.sh
+if [ -f "$HOME/.common_rc.sh" ]; then
+  source "$HOME/.common_rc.sh"
 fi
 
 export LC_ALL=en_US.UTF-8
-
-if grep -q "^Host c2-1" ~/.ssh/config 2>/dev/null; then
-  alias serverstat="ssh c2-1 -L 33425:localhost:48109"
-fi

@@ -23,7 +23,7 @@ if [ -n "$CONDA_INSTALLED_PATH" ]; then
         elif [[ "$shell_name" = "zsh" ]]; then
             __conda_setup="$("$CONDA_INSTALLED_PATH/bin/conda" 'shell.zsh' 'hook' 2> /dev/null)"
         else
-            echo "Unsupported shell: $shell_name"
+            echo "Conda unsupported shell: $shell_name"
             return 1
         fi
 
@@ -42,3 +42,6 @@ else
     echo "Automatic conda search failed. Please set CONDA_INSTALLED_PATH manually."
 fi
 # <<< conda initialize <<<
+
+unset CONDA_INSTALLED_PATH
+unset shell_name

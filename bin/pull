@@ -70,6 +70,12 @@ function load_submodules() {
     git submodule update --remote
 }
 
+function load_common_rc() {
+    echo -e "\e[1;31m[Working] common_rc\e[0m"
+    rm -f "$HOME/.common_rc.sh"
+    ln -s "$DOTFILES_DIR/scripts/common_rc.sh" "$HOME/.common_rc.sh"
+}
+
 function load_fzf() {
     # This should be done prior to bash and zsh
     echo -e "\e[1;31m[Working] fzf\e[0m"
@@ -166,6 +172,7 @@ function load_conda() {
 function load_dotfiles()
 {
     load_submodules
+    load_common_rc
 
     for module in $sync_modules; do
         case $module in
@@ -201,6 +208,8 @@ if git pull > /tmp/git_pull_output 2>&1; then
     else
         echo -e "\e[1;31mDotfiles downloaded successfully.\e[0m"
     fi
+
+    touch "$DOTFILES_DIR/scripts/local_envs.sh"
 
     echo -e "\e[1;31mLinking & sourcing dotfiles...\e[0m"
     load_dotfiles
