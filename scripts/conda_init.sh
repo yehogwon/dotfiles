@@ -3,7 +3,7 @@ shell_name=$(basename $SHELL)
 # >>> conda initialize >>>
 _CANDIDATE_PATHS=(
     "$HOME/miniconda3" # linux
-    "/usr/local/Caskroom/miniconda" # macos (homebrew)
+    "/usr/local/Caskroom/miniconda/base" # macos (homebrew)
     "/opt/ohpc/pub/apps/anaconda3" # linux (ohpc)
 )
 
@@ -33,4 +33,4 @@ if [ -n "$CONDA_INSTALLED_PATH" ]; then
 else
     echo "Automatic conda search failed. Please set CONDA_INSTALLED_PATH manually."
 fi
-# >>> conda initialize >>>
+# <<< conda initialize <<<
