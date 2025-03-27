@@ -1,7 +1,7 @@
 shell_name=$(basename $SHELL)
 
-if [ -f ~/.local_envs.sh ]; then
-    source ~/.local_envs.sh
+if [ -f ~/.local_envs ]; then
+    source ~/.local_envs
 fi
 
 # Setup fzf
