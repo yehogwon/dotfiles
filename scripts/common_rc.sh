@@ -1,5 +1,6 @@
 shell_name=$(basename $SHELL)
 
+source ~/.local_envs.sh
 
 # Setup fzf
 if [[ ! "$PATH" == *$HOME/.fzf/bin* ]]; then
@@ -83,11 +84,16 @@ alias sql40s='squeue -p L40S'
 
 # conda
 if [ -f "$HOME/.conda_init.sh" ]; then
-  source ~/.conda_init.sh
+    source ~/.conda_init.sh
 fi
 
 if grep -q "^Host c2-1" ~/.ssh/config 2>/dev/null; then
-  alias serverstat="ssh c2-1 -L 33425:localhost:48109"
+    alias serverstat="ssh c2-1 -L 33425:localhost:48109"
+fi
+
+# flutter
+if [ -n "${FLUTTER_HOME}" ]; then
+    export PATH="$FLUTTER_HOME/bin:$PATH"
 fi
 
 unset shell_name
