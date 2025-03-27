@@ -9,7 +9,7 @@ if [[ ! "$PATH" == *$HOME/.fzf/bin* ]]; then
   PATH="${PATH:+${PATH}:}$HOME/.fzf/bin"
 fi
 
-if [[ "$shell_name" = "bash" ]]; then
+if [ "$shell_name" = "bash" ]; then
     if which fzf > /dev/null; then
         eval "$(fzf --bash)" # This does keybindings and completion. Below not needed.
     fi
@@ -21,7 +21,7 @@ if [[ "$shell_name" = "bash" ]]; then
     if [ -f "$HOME/.fzf/shell/key-bindings.bash" ]; then
         : # source "$HOME/.fzf/shell/key-bindings.bash"
     fi
-elif [[ "$shell_name" = "zsh" ]]; then
+elif [ "$shell_name" = "zsh" ]; then
     if which fzf > /dev/null; then
         source <(fzf --zsh)
     fi
