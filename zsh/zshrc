@@ -84,6 +84,20 @@ alias gc='git commit'
 alias ga='git add'
 alias gd='git diff'
 
+alias dot-push="source ~/.dotfiles/bin/push $DOTSYNC_FILES"
+alias dot-pull="source ~/.dotfiles/bin/pull $DOTSYNC_FILES"
+
+alias gs='git status'
+alias gp='git push'
+alias gc='git commit'
+alias ga='git add'
+alias gd='git diff'
+
+alias t='tmux'
+alias tls='tmux ls'
+alias ta='tmux attach'
+alias tat='tmux attach -t'
+
 # >>> Ruby >>>
 [[ -d ~/.rbenv  ]] && \
   export PATH=${HOME}/.rbenv/bin:${PATH} && \

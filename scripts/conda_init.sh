@@ -2,8 +2,8 @@ shell_name=$(basename $SHELL)
 
 # >>> conda initialize >>>
 _CANDIDATE_PATHS=(
-    "/usr/local/Caskroom/miniconda" # macos (homebrew)
     "$HOME/miniconda3" # linux
+    "/usr/local/Caskroom/miniconda" # macos (homebrew)
     "/opt/ohpc/pub/apps/anaconda3" # linux (ohpc)
 )
 
