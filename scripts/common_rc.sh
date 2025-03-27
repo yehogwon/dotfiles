@@ -45,15 +45,8 @@ if which nvim > /dev/null 2>&1; then
     alias vi='nvim'
 fi
 
-DOTSYNC_FILES=""
-if [[ "$HOSTNAME" == kwak* ]]; then
-    DOTSYNC_FILES="all"
-elif [[ "$HOSTNAME" == gsai* || "$HOSTNAME" == cse* ]]; then
-    DOTSYNC_FILES="all"
-    # DOTSYNC_FILES="tmux fzf vim git" # NOTE: dotsync is fully supported for POSTECH clusters
-else
-    DOTSYNC_FILES="none"
-fi
+# Now this dotfiles supports all machines!
+DOTSYNC_FILES="all"
 
 alias dot-push="source ~/.dotfiles/bin/push $DOTSYNC_FILES"
 alias dot-pull="source ~/.dotfiles/bin/pull $DOTSYNC_FILES"
