@@ -51,6 +51,20 @@ alias sqa10040='squeue -p A100-40GB'
 alias sqa10080='squeue -p A100-80GB'
 alias sql40s='squeue -p L40S'
 
+function wwatch() {
+    if [ -z "$1" ]; then
+        echo -e "\e[1;31mwwatch: no command provided\e[0m"
+        return 1
+    fi
+
+    while [[ 0 -eq 0 ]]; do
+        clear
+        echo -e "\e[1;33mwwatch: $(date)\e[0m"
+        eval "$@"
+        sleep 1
+    done
+}
+
 # conda
 _shell_name_bak="$shell_name"
 if [ -f "$HOME/.conda_init.sh" ]; then
