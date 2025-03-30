@@ -57,7 +57,27 @@ function wwatch() {
         return 1
     fi
 
-    while [[ 0 -eq 0 ]]; do
+    # Use alternate screen buffer
+    echo -e "\e[?1049h"
+
+    # Internal flag to break the loop
+    interrupted=false
+
+    # Cleanup handler
+    cleanup() {
+        interrupted=true
+        echo -e "\e[?1049l"
+        stty sane
+    }
+
+    # Set traps
+    trap cleanup INT EXIT HUP
+
+    # Main loop
+    while true; do
+        if $interrupted; then
+            break
+        fi
         clear
         echo -e "\e[1;33mwwatch: $(date)\e[0m"
         eval "$@"
