@@ -28,7 +28,7 @@ function get_commit_message() {
         >&2 echo $_gen_message
     fi
 
-    echo "$message ~ Dotfiles Pushed 🚀"
+    echo "$message 🚀"
 }
 
 echo -e "\e[1;31mAdding dotfiles to GitHub and committing...\e[0m"
