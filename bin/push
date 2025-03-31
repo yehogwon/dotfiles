@@ -10,6 +10,14 @@ echo -e "\e[1;31mUpdating submodules...\e[0m"
 cd "$DOTFILES_DIR"
 git submodule update --remote
 
+function get_commit_message() {
+    message=$(date +"%Y.%m.%d-%H:%M:%S")
+    if [ -f "$DOTFILES_DIR/modules/llm-auto-commit/run" ]; then
+        message="$($DOTFILES_DIR/modules/llm-auto-commit/run)"
+    fi
+    echo "$message ~ Dotfiles Pushed 🚀"
+}
+
 echo -e "\e[1;31mAdding dotfiles to GitHub and committing...\e[0m"
 if git add .; then
     echo -e "\e[1;31mDotfiles added successfully.\e[0m"

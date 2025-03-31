@@ -20,10 +20,10 @@ if which nvim > /dev/null 2>&1; then
     alias vi='nvim'
 fi
 
-# Now this dotfiles supports all machines!
+export DOTFILES_DIR="$(realpath "$(dirname "$0")/..")"
 DOTSYNC_FILES="all"
-alias dot-push="source ~/.dotfiles/bin/push $DOTSYNC_FILES"
-alias dot-pull="source ~/.dotfiles/bin/pull $DOTSYNC_FILES"
+alias dot-push="source $DOTFILES_DIR/bin/push $DOTSYNC_FILES"
+alias dot-pull="source $DOTFILES_DIR/bin/pull $DOTSYNC_FILES"
 
 alias gs='git status'
 alias gp='git push'
