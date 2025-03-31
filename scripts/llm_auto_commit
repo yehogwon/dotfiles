@@ -1,0 +1,76 @@
+#!/bin/bash
+
+if [ -z "$LLM_AC_API_KEY" ]; then
+    echo "LLM_AC_API_KEY is not set"
+    exit 1
+fi
+
+# if no python
+if ! command -v python &> /dev/null; then
+    echo "python could not be found"
+    exit 1
+fi
+
+# if no `requests` package
+if ! python -c "import requests" &> /dev/null; then
+    echo "requests package could not be found"
+    exit 1
+fi
+
+if [ -z "$LLM_AC_GIT_ROOT" ]; then
+    LLM_AC_GIT_ROOT=$(pwd)
+fi
+
+# home expansion
+LLM_AC_GIT_ROOT=$(eval echo "$LLM_AC_GIT_ROOT")
+
+if ! git -C $LLM_AC_GIT_ROOT rev-parse --is-inside-work-tree > /dev/null 2>&1; then
+    echo "Git is not initialized in $LLM_AC_GIT_ROOT"
+    exit 1
+fi
+
+_diff=$(git -C $LLM_AC_GIT_ROOT diff)
+_diff_names=$(git -C $LLM_AC_GIT_ROOT diff --name-only)
+_readme_candidates=('README.md' 'README' 'readme.md' 'readme')
+_readme=''
+for candidate in $_readme_candidates; do
+    if [ -f "$LLM_AC_GIT_ROOT/$candidate" ]; then
+        _readme=$(cat $LLM_AC_GIT_ROOT/$candidate)
+        break
+    fi
+done
+
+_log=$(git -C $LLM_AC_GIT_ROOT log --pretty=oneline -n 80)
+
+summary=()
+if [ -n "$_diff" ]; then
+    summary+=("git diff:\n""$_diff")
+fi
+
+if [ -n "$_diff_names" ]; then
+    summary+=("git diff --name-only:\n""$_diff_names")
+fi
+
+if [ -n "$_readme" ]; then
+    : # summary+=("README contents:\n""$_readme")
+fi
+
+if [ -n "$_log" ]; then
+    : # summary+=("git log:\n""$_log")
+fi
+
+proc_summary=$(echo -e "${summary[@]}")
+
+if git -C $LLM_AC_GIT_ROOT diff --quiet; then
+    echo "No changes to commit"
+    exit 0
+fi
+
+instruction="Please write a git commit description given the following information. Keep your output clear and written in English. It will be used as a git commit message without any modification, so it should contain a commmit message only."
+double_quoted_summary=$(echo \"$proc_summary\")
+
+python_file_path=$(dirname $0)/llm_auto_commit_helper.py
+response=$(python $python_file_path "$instruction" "$double_quoted_summary" "LLM_AC_API_KEY")
+
+echo $response
+exit 0

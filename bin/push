@@ -12,17 +12,21 @@ git submodule update --remote
 
 function get_commit_message() {
     message=$(date +"%Y.%m.%d-%H:%M:%S")
-    if [ -f "$DOTFILES_DIR/modules/llm-auto-commit/run" ]; then
-        echo -e "\e[1;31mGenerating commit message...\e[0m"
-        _gen_message="$($DOTFILES_DIR/modules/llm-auto-commit/run)"
-        if [ $? -eq 0 ]; then
-            echo -e "\e[1;31mCommit message generated successfully.\e[0m"
-            message="$_gen_message"
-        else
-            echo -e "\e[1;31mFailed to generate commit message.\e[0m"
-            echo $_gen_message
-        fi
+    # check LLM_AC_API_KEY is declared
+    if [ -z "$LLM_AC_API_KEY" ]; then
+        >&2 echo -e "You can set LLM_AC_API_KEY to use commit message generator."
     fi
+
+    >&2 echo -e "\e[1;31mGenerating commit message...\e[0m"
+    _gen_message="$($DOTFILES_DIR/scripts/llm_auto_commit)"
+    if [ $? -eq 0 ]; then
+        >&2 echo -e "\e[1;31mCommit message generated successfully.\e[0m"
+        message="$_gen_message"
+    else
+        >&2 echo -e "\e[1;31mFailed to generate commit message.\e[0m"
+        >&2 echo $_gen_message
+    fi
+
     echo "$message ~ Dotfiles Pushed 🚀"
 }
 
