@@ -6,9 +6,27 @@ function neovim() {
         exit 1
     fi
 
-    curl -L https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.tar.gz > $HOME/.nvim-linux-x86_64.tar.gz.tmp
-    tar -C $HOME -xzf $HOME/.nvim-linux-x86_64.tar.gz.tmp
-    rm $HOME/.nvim-linux-x86_64.tar.gz.tmp
+    _output_tmp="$HOME/.nvim-macos-arm64.tar.gz.tmp"
+    if [ "$(uname)" == "Darwin" ]; then
+        if [ "$(uname -m)" == "arm64" ]; then
+            _url="https://github.com/neovim/neovim/releases/download/v0.11.0/nvim-macos-arm64.tar.gz"
+        else
+            _url="https://github.com/neovim/neovim/releases/download/v0.11.0/nvim-macos-x86_64.tar.gz"
+        fi
+    elif [ "$(uname)" == "Linux" ]; then
+        if [ "$(uname -m)" == "arm64" ]; then
+            _url="https://github.com/neovim/neovim/releases/download/v0.11.0/nvim-linux-arm64.tar.gz"
+        else
+            _url="https://github.com/neovim/neovim/releases/download/v0.11.0/nvim-linux-x86_64.tar.gz"
+        fi
+    else
+        echo -e "\e[1;31mUnsupported platform: $(uname) :: $(uname -m)\e[0m"
+        exit 1
+    fi
+
+    curl -L $_url > $_output_tmp
+    tar -C $HOME -xzf $_output_tmp
+    rm $_output_tmp
     mv $HOME/nvim-linux-x86_64 $HOME/nvim
 
     echo -e "\e[1;33mInstalled neovim. Add the following to your \$PATH:\e[0m"
