@@ -68,6 +68,9 @@ function tmux_source_exists() {
 function load_submodules() {
     echo -e "\e[1;31m[Working] submodules\e[0m"
     git submodule update --remote
+
+    rm -drf "$HOME/llm-auto-commit"
+    ln -s "$DOTFILES_DIR/modules/llm-auto-commit" "$HOME/llm-auto-commit"
 }
 
 function load_common_rc() {

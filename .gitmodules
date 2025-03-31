@@ -7,3 +7,6 @@
 [submodule "modules/oh-my-zsh"]
 	path = modules/oh-my-zsh
 	url = https://github.com/ohmyzsh/ohmyzsh
+[submodule "modules/llm-auto-commit"]
+	path = modules/llm-auto-commit
+	url = https://github.com/yehogwon/llm-auto-commit
