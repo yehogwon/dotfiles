@@ -20,7 +20,8 @@ if which nvim > /dev/null 2>&1; then
     alias vi='nvim'
 fi
 
-export DOTFILES_DIR="$(realpath "$(dirname "$0")/..")"
+SCRIPT_PATH="$(realpath "${BASH_SOURCE[0]:-$0}")"
+export DOTFILES_DIR="$(realpath "$(dirname "$SCRIPT_PATH")/..")"
 DOTSYNC_FILES="all"
 alias dot-push="source $DOTFILES_DIR/bin/push $DOTSYNC_FILES"
 alias dot-pull="source $DOTFILES_DIR/bin/pull $DOTSYNC_FILES"
