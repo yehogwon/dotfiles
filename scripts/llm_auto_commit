@@ -52,11 +52,11 @@ if [ -n "$_diff_names" ]; then
 fi
 
 if [ -n "$_readme" ]; then
-    : # summary+=("README contents:\n""$_readme")
+    summary+=("README contents:\n""$_readme")
 fi
 
 if [ -n "$_log" ]; then
-    : # summary+=("git log:\n""$_log")
+    summary+=("git log:\n""$_log")
 fi
 
 proc_summary=$(echo -e "${summary[@]}")
