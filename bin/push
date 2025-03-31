@@ -13,7 +13,6 @@ git submodule update --remote
 function get_commit_message() {
     message=$(date +"%Y.%m.%d-%H:%M:%S")
     
-    # User is required to set in ~/.local_envs
     if [ -z "$LLM_AC_API_KEY" ]; then
         >&2 echo -e "You can set LLM_AC_API_KEY to use commit message generator."
     fi

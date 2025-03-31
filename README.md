@@ -57,6 +57,8 @@ Similarly, once you pull the dotfiles, you can run `dot-push` to push the dotfil
 $ dot-push
 ```
 
+This writes a commit message automatically using an LLM.
+
 ## Local environment variables
 
 To set local environment variables, add them to the `~/.local_envs` file directly.
