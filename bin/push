@@ -12,7 +12,8 @@ git submodule update --remote
 
 function get_commit_message() {
     message=$(date +"%Y.%m.%d-%H:%M:%S")
-    # check LLM_AC_API_KEY is declared
+    
+    # User is required to set in ~/.local_envs
     if [ -z "$LLM_AC_API_KEY" ]; then
         >&2 echo -e "You can set LLM_AC_API_KEY to use commit message generator."
     fi
@@ -33,7 +34,7 @@ function get_commit_message() {
 echo -e "\e[1;31mAdding dotfiles to GitHub and committing...\e[0m"
 if git add .; then
     echo -e "\e[1;31mDotfiles added successfully.\e[0m"
-    if git commit -m "$(get_commit_message) --allow-empty"; then
+    if git commit -m "$(get_commit_message)"; then
         echo -e "\e[1;31mDotfiles committed successfully.\e[0m"
         if git push origin main; then
             echo -e "\e[1;31mDotfiles pushed successfully.\e[0m"
