@@ -8,13 +8,17 @@ DOTFILES_DIR="$(realpath "$SCRIPT_DIR/..")" # does not end with a slash
 
 echo -e "\e[1;31mUpdating submodules...\e[0m"
 cd "$DOTFILES_DIR"
-echo $(pwd)
 git submodule update --remote
 
 function get_commit_message() {
     message=$(date +"%Y.%m.%d-%H:%M:%S")
     if [ -f "$DOTFILES_DIR/modules/llm-auto-commit/run" ]; then
-        message="$($DOTFILES_DIR/modules/llm-auto-commit/run)"
+        echo -e "\e[1;31mGenerating commit message...\e[0m"
+        _gen_message="$($DOTFILES_DIR/modules/llm-auto-commit/run)"
+        if [ $? -eq 0 ]; then
+            message="$_gen_message"
+        fi
+        echo -e "\e[1;31mCommit message: $message\e[0m"
     fi
     echo "$message ~ Dotfiles Pushed 🚀"
 }
@@ -22,7 +26,7 @@ function get_commit_message() {
 echo -e "\e[1;31mAdding dotfiles to GitHub and committing...\e[0m"
 if git add .; then
     echo -e "\e[1;31mDotfiles added successfully.\e[0m"
-    if git commit -m "$(date +"%Y.%m.%d-%H:%M:%S") ~ Dotfiles Pushed 🚀"; then
+    if git commit -m "$(get_commit_message)"; then
         echo -e "\e[1;31mDotfiles committed successfully.\e[0m"
         if git push origin main; then
             echo -e "\e[1;31mDotfiles pushed successfully.\e[0m"
