@@ -29,7 +29,7 @@ function get_commit_message() {
 echo -e "\e[1;31mAdding dotfiles to GitHub and committing...\e[0m"
 if git add .; then
     echo -e "\e[1;31mDotfiles added successfully.\e[0m"
-    if git commit -m "$(get_commit_message)"; then
+    if git commit -m "$(get_commit_message) --allow-empty"; then
         echo -e "\e[1;31mDotfiles committed successfully.\e[0m"
         if git push origin main; then
             echo -e "\e[1;31mDotfiles pushed successfully.\e[0m"
