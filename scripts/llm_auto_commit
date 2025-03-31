@@ -23,7 +23,6 @@ fi
 
 # home expansion
 LLM_AC_GIT_ROOT=$(eval echo "$LLM_AC_GIT_ROOT")
-echo $LLM_AC_GIT_ROOT
 
 if ! git -C $LLM_AC_GIT_ROOT rev-parse --is-inside-work-tree > /dev/null 2>&1; then
     echo "Git is not initialized in $LLM_AC_GIT_ROOT"
@@ -62,7 +61,7 @@ fi
 
 proc_summary=$(echo -e "${summary[@]}")
 
-if git -C $LLM_AC_GIT_ROOT diff --quiet; then
+if git -C $LLM_AC_GIT_ROOT diff --quiet && git -C $LLM_AC_GIT_ROOT diff --cached --quiet; then
     echo "No changes to commit"
     exit 0
 fi
