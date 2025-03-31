@@ -8,6 +8,7 @@ DOTFILES_DIR="$(realpath "$SCRIPT_DIR/..")" # does not end with a slash
 
 echo -e "\e[1;31mUpdating submodules...\e[0m"
 cd "$DOTFILES_DIR"
+echo $(pwd)
 git submodule update --remote
 
 function get_commit_message() {
