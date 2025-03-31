@@ -16,9 +16,12 @@ function get_commit_message() {
         echo -e "\e[1;31mGenerating commit message...\e[0m"
         _gen_message="$($DOTFILES_DIR/modules/llm-auto-commit/run)"
         if [ $? -eq 0 ]; then
+            echo -e "\e[1;31mCommit message generated successfully.\e[0m"
             message="$_gen_message"
+        else
+            echo -e "\e[1;31mFailed to generate commit message.\e[0m"
+            echo $_gen_message
         fi
-        echo -e "\e[1;31mCommit message: $message\e[0m"
     fi
     echo "$message ~ Dotfiles Pushed 🚀"
 }
