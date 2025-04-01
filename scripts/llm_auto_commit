@@ -66,7 +66,14 @@ if git -C $LLM_AC_GIT_ROOT diff --quiet && git -C $LLM_AC_GIT_ROOT diff --cached
     exit 0
 fi
 
-instruction="Please write a git commit description given the following information. Keep your output clear and written in English. It will be used as a git commit message without any modification, so it should contain a commmit message only."
+instruction_split=(
+    "Please write a git commit description given the following information."
+    "Keep your output clear and written in English."
+    "It will be used as a git commit message without any modification,"
+    "so it should contain a commmit message only."
+    "As a final note, please focus only on the changes."
+)
+instruction=$(echo "${instruction_split[@]}")
 double_quoted_summary=$(echo \"$proc_summary\")
 
 python_file_path=$(dirname $0)/llm_auto_commit_helper.py
