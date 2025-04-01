@@ -30,6 +30,11 @@ if ! git -C $LLM_AC_GIT_ROOT rev-parse --is-inside-work-tree > /dev/null 2>&1; t
     exit 1
 fi
 
+if git -C $LLM_AC_GIT_ROOT diff --quiet && git -C $LLM_AC_GIT_ROOT diff --cached --quiet; then
+    echo "No changes to commit"
+    exit 0
+fi
+
 _diff=$(git -C $LLM_AC_GIT_ROOT diff)
 _diff_names=$(git -C $LLM_AC_GIT_ROOT diff --name-only)
 _readme_candidates=('README.md' 'README' 'readme.md' 'readme')
@@ -82,11 +87,6 @@ message+=("- The message must be concise and clearly describe the main purpose o
 message+=("- Output *only* the commit message text, without any introductory phrases, explanations, code blocks, backticks, or emojis. The output should be ready for direct use with \`git commit -m \"<output>\"\`.\n")
 
 proc_message=$(echo -e "${message[@]}")
-
-if git -C $LLM_AC_GIT_ROOT diff --quiet && git -C $LLM_AC_GIT_ROOT diff --cached --quiet; then
-    echo "No changes to commit"
-    exit 0
-fi
 
 double_quoted_message=$(echo \"$proc_message\")
 
