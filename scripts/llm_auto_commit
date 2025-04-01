@@ -17,12 +17,13 @@ if ! python -c "import requests" &> /dev/null; then
     exit 1
 fi
 
-if [ -z "$LLM_AC_GIT_ROOT" ]; then
-    LLM_AC_GIT_ROOT=$(pwd)
+if [ -z "$1" ]; then
+    echo "Git root is not provided"
+    exit 1
 fi
 
 # home expansion
-LLM_AC_GIT_ROOT=$(eval echo "$LLM_AC_GIT_ROOT")
+LLM_AC_GIT_ROOT=$(eval echo "$1")
 
 if ! git -C $LLM_AC_GIT_ROOT rev-parse --is-inside-work-tree > /dev/null 2>&1; then
     echo "Git is not initialized in $LLM_AC_GIT_ROOT"
@@ -51,11 +52,10 @@ if [ -n "$_diff_names" ]; then
     summary+=("git diff --name-only:\n""$_diff_names")
 fi
 
-if [ -n "$_readme" ]; then
-    summary+=("README contents:\n""$_readme")
-fi
+# if [ -n "$_readme" ]; then
+#     summary+=("README contents:\n""$_readme")
+# fi
 
-# No longer use git log
 # if [ -n "$_log" ]; then
 #     summary+=("git log:\n""$_log")
 # fi
