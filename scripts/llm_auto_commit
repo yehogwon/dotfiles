@@ -54,38 +54,39 @@ message+=("Generate a Git commit message based on the provided context.\n")
 message+=("**Context:**\n")
 
 if [ -n "$_diff" ]; then
-    message+=("**\`git diff\` output:**\n")
+    message+=("**\`git diff\` output (This shows the actual changes to summarize):**\n")
     message+=("\`\`\`\n")
     message+=("$_diff")
     message+=("\`\`\`\n")
 fi
 
 if [ -n "$_diff_names" ]; then
-    message+=("**\`git diff --name-only\` output:**\n")
+    message+=("**\`git diff --name-only\` output (List of files changed):**\n")
     message+=("\`\`\`\n")
     message+=("$_diff_names")
     message+=("\`\`\`\n")
 fi
 
 if [ -n "$_readme" ]; then
-    message+=("**\`README.md\` contents:**\n")
+    message+=("**\`README.md\` contents (Use ONLY for background understanding of project terms/goals, NOT for the commit message content itself):**\n")
     message+=("\`\`\`\n")
     message+=("$_readme")
     message+=("\`\`\`\n")
 fi
 
 if [ -n "$_log" ]; then
-    message+=("**\`git log\` output:**\n")
+    message+=("**\`git log\` output (Use for historical context ONLY):**\n")
     message+=("\`\`\`\n")
     message+=("$_log")
     message+=("\`\`\`\n")
 fi
 
 message+=("**Instructions:**\n")
-message+=("- Write a single-sentence Git commit message in English.\n")
-message+=("- The message must be concise and clearly describe the main purpose of the changes visible in the diff.\n")
-message+=("- Output *only* the commit message text, without any introductory phrases, explanations, code blocks, backticks, or emojis. The output should be ready for direct use with \`git commit -m \"<output>\"\`.\n")
-
+message+=("Write a single-sentence Git commit message in English.")
+message+=("**The primary focus MUST be on describing the specific actions and modifications shown in the \`git diff\` output.** What was added, removed, or changed in the code?")
+message+=("**Do NOT simply describe the project based on the README.** Use the README and git log *only* as background context if needed to understand *what* the changed code does within the larger project.")
+message+=("The message must be concise.")
+message+=("Output *only* the commit message text, without any introductory phrases, explanations, code blocks, backticks, or emojis. It should be ready for direct use.")
 proc_message=$(echo -e "${message[@]}")
 
 double_quoted_message=$(echo \"$proc_message\")
