@@ -40,7 +40,8 @@ for candidate in $_readme_candidates; do
     fi
 done
 
-_log=$(git -C $LLM_AC_GIT_ROOT log --pretty=oneline -n 80)
+# No longer use git log
+# _log=$(git -C $LLM_AC_GIT_ROOT log --pretty=oneline -n 80)
 
 summary=()
 if [ -n "$_diff" ]; then
