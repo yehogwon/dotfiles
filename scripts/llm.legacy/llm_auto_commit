@@ -43,55 +43,43 @@ done
 
 _log=$(git -C $LLM_AC_GIT_ROOT log --pretty=oneline -n 80)
 
-message=()
-
-message+=("Generate a Git commit message based on the provided context.\n")
-message+=("**Context:**\n")
-
+summary=()
 if [ -n "$_diff" ]; then
-    message+=("**\`git diff\` output:**\n")
-    message+=("\`\`\`\n")
-    message+=("$_diff")
-    message+=("\`\`\`\n")
+    summary+=("git diff:\n""$_diff")
 fi
 
 if [ -n "$_diff_names" ]; then
-    message+=("**\`git diff --name-only\` output:**\n")
-    message+=("\`\`\`\n")
-    message+=("$_diff_names")
-    message+=("\`\`\`\n")
+    summary+=("git diff --name-only:\n""$_diff_names")
 fi
 
-if [ -n "$_readme" ]; then
-    message+=("**\`README.md\` contents:**\n")
-    message+=("\`\`\`\n")
-    message+=("$_readme")
-    message+=("\`\`\`\n")
-fi
+# if [ -n "$_readme" ]; then
+#     summary+=("README contents:\n""$_readme")
+# fi
 
-if [ -n "$_log" ]; then
-    message+=("**\`git log\` output:**\n")
-    message+=("\`\`\`\n")
-    message+=("$_log")
-    message+=("\`\`\`\n")
-fi
+# if [ -n "$_log" ]; then
+#     summary+=("git log:\n""$_log")
+# fi
 
-message+=("**Instructions:**\n")
-message+=("- Write a single-sentence Git commit message in English.\n")
-message+=("- The message must be concise and clearly describe the main purpose of the changes visible in the diff.\n")
-message+=("- Output *only* the commit message text, without any introductory phrases, explanations, code blocks, backticks, or emojis. The output should be ready for direct use with \`git commit -m \"<output>\"\`.\n")
-
-proc_message=$(echo -e "${message[@]}")
+proc_summary=$(echo -e "${summary[@]}")
 
 if git -C $LLM_AC_GIT_ROOT diff --quiet && git -C $LLM_AC_GIT_ROOT diff --cached --quiet; then
     echo "No changes to commit"
     exit 0
 fi
 
-double_quoted_message=$(echo \"$proc_message\")
+instruction_split=(
+    "Please write a git commit description given the following information."
+    "Keep your output clear and written in English."
+    "It will be used as a git commit message without any modification,"
+    "so it should contain a commmit message only."
+    "As a final note, please focus only on the changes."
+    "Do not use any emojis."
+)
+instruction=$(echo "${instruction_split[@]}")
+double_quoted_summary=$(echo \"$proc_summary\")
 
 python_file_path=$(dirname $0)/llm_auto_commit_helper.py
-response=$(python $python_file_path "$double_quoted_message" "LLM_AC_API_KEY")
+response=$(python $python_file_path "$instruction" "$double_quoted_summary" "LLM_AC_API_KEY")
 
 echo $response
 exit 0

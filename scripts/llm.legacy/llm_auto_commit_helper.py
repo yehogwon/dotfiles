@@ -1,7 +1,8 @@
 import sys, requests, os
 
-message = sys.argv[1]
-api = os.environ[sys.argv[2]]
+instruction = sys.argv[1]
+summary = sys.argv[2]
+api = os.environ[sys.argv[3]]
 
 out = requests.post(
     "https://openrouter.ai/api/v1/chat/completions",
@@ -16,7 +17,11 @@ out = requests.post(
         'messages': [
             {
                 'role': 'user',
-                'content': message
+                'content': instruction
+            },
+            {
+                'role': 'user',
+                'content': f'Here is the information: {summary}'
             }
         ]
     },
