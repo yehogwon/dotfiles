@@ -72,6 +72,7 @@ instruction_split=(
     "It will be used as a git commit message without any modification,"
     "so it should contain a commmit message only."
     "As a final note, please focus only on the changes."
+    "Do not use any emojis."
 )
 instruction=$(echo "${instruction_split[@]}")
 double_quoted_summary=$(echo \"$proc_summary\")
