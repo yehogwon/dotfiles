@@ -18,7 +18,9 @@ function get_commit_message() {
     fi
 
     >&2 echo -e "\e[1;31mGenerating commit message...\e[0m"
+    LLM_AC_GIT_ROOT="$DOTFILES_DIR"
     _gen_message="$($DOTFILES_DIR/scripts/llm_auto_commit)"
+    
     if [ $? -eq 0 ]; then
         >&2 echo -e "\e[1;31mCommit message generated successfully.\e[0m"
         message="$_gen_message"
