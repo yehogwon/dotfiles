@@ -13,7 +13,9 @@ out = requests.post(
         'X-Title': 'https://yehogwon.github.io',
     },
     json={
-        'model': 'deepseek/deepseek-r1-distill-qwen-14b:free',
+        # 'model': 'deepseek/deepseek-r1-distill-qwen-14b:free',
+        # 'model': 'deepseek/deepseek-v3-base:free',
+        'model': 'google/gemini-2.5-pro-exp-03-25:free',
         'messages': [
             {
                 'role': 'user',
