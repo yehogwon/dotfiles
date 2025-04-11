@@ -78,25 +78,18 @@ if [ -f "$ZSH/oh-my-zsh.sh" ]; then
 fi
 # <<< oh-my-zsh <<<
 
-alias gs='git status'
-alias gp='git push'
-alias gc='git commit'
-alias ga='git add'
-alias gd='git diff'
-
-alias dot-push="source ~/.dotfiles/bin/push $DOTSYNC_FILES"
-alias dot-pull="source ~/.dotfiles/bin/pull $DOTSYNC_FILES"
-
-alias gs='git status'
-alias gp='git push'
-alias gc='git commit'
-alias ga='git add'
-alias gd='git diff'
-
-alias t='tmux'
-alias tls='tmux ls'
-alias ta='tmux attach'
-alias tat='tmux attach -t'
+# >>> tmux >>>
+if [[ -n "$TMUX" ]]; then
+  # Inside tmux: separate history
+  unsetopt share_history
+  unsetopt inc_append_history
+  setopt append_history
+else
+  # Outside tmux: you can choose different behavior, e.g., shared history
+  setopt share_history
+  setopt inc_append_history
+fi
+# <<< tmux <<<
 
 # >>> Ruby >>>
 [[ -d ~/.rbenv  ]] && \
