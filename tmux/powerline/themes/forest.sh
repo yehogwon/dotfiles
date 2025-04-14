@@ -135,6 +135,7 @@ if [ -z "$TMUX_POWERLINE_RIGHT_STATUS_SEGMENTS" ]; then
 		#"rainbarf 0 ${TMUX_POWERLINE_DEFAULT_FOREGROUND_COLOR}"
 		#"xkb_layout 125 117"
 		"cwd_sync_panes 164 0"
+		"sync_panes 12 0"
 		"date_day 3 0"
 		"date 3 0"
 		"time 223 0"
