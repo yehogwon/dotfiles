@@ -217,9 +217,11 @@ if git pull > /tmp/git_pull_output 2>&1; then
     echo -e "\e[1;31mDotfiles linked & sourced successfully.\e[0m"
     
     if [ -n "$BASH_VERSION" ]; then
-        exec bash <(echo "cd $CWD")
+        cd $CWD
+        exec bash
     elif [ -n "$ZSH_VERSION" ]; then
-        exec zsh <(echo "cd $CWD")
+        cd $CWD
+        exec zsh
     fi
 else
     echo -e "\e[1;31mFailed to download dotfiles.\nRefer to the following output:\e[0m"
