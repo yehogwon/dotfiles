@@ -87,7 +87,7 @@ function tmux() {
         && chmod +x $_output_tmp
 
     mkdir -p $TMUX_INST_PATH/bin
-    mv $_output_tmp $TMUX_INST_PATH/bin/
+    mv $_output_tmp $TMUX_INST_PATH/bin/tmux
 
     echo -e "\e[1;33mInstalled neovim. Add the following to your \$PATH:\e[0m"
     echo -e "$TMUX_INST_PATH/bin"
