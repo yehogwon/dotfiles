@@ -87,7 +87,7 @@ message+=("**The primary focus MUST be on describing the specific actions and mo
 message+=("**Do NOT simply describe the project based on the README.** Use the README and git log *only* as background context if needed to understand *what* the changed code does within the larger project.")
 message+=("The message must be concise.")
 message+=("Output *only* the commit message text, without any introductory phrases, explanations, code blocks, backticks, or emojis. It should be ready for direct use.")
-proc_message=$(echo -e "${message[@]}")
+proc_message=$(echo "${message[@]}")
 
 double_quoted_message=$(echo \"$proc_message\")
 
