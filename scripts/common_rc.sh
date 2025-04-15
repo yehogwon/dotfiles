@@ -13,6 +13,15 @@ if [ -f ~/.local_envs ]; then
     source ~/.local_envs
 fi
 
+# Setup dotfiles bin
+if [ -d "$DF_INST_ROOT" ]; then
+    for dir in "$DF_INST_ROOT"/*; do
+        if [ -d "$dir" ]; then
+            PATH="$dir/bin:$PATH"
+        fi
+    done
+fi
+
 # Setup neovim
 export PATH="$DF_INST_ROOT/nvim/bin:$PATH"
 if which nvim > /dev/null 2>&1; then
