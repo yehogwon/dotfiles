@@ -15,13 +15,13 @@ elif [ -n "$BASH_VERSION" ]; then
         sourced=0
     fi
 else
-    echo "\e[1;31mThis shell($SHELL) is not supported.\e[0m"
+    echo "This shell ($SHELL) is not supported."
     exit 1
 fi
 
 if [ $sourced -eq 0 ]; then
-    echo -e "\e[1;31mError: This script must be sourced, not executed.\e[0m"
-    echo -e "\e[1;31mUsage: source $0\e[0m"
+    echo "Error: This script must be sourced, not executed."
+    echo "Usage: source $0"
     exit 1
 fi
 
@@ -30,6 +30,14 @@ CWD=$(pwd)
 SCRIPT_PATH="$(realpath "${BASH_SOURCE[0]:-$0}")"
 SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
 DOTFILES_DIR="$(realpath "$SCRIPT_DIR/..")" # does not end with a slash
+
+TOOLS_PATH="$(realpath "$DOTFILES_DIR/scripts/tools.sh")"
+if [ -f "$TOOLS_PATH" ]; then
+    source "$TOOLS_PATH"
+else
+    echo "Error: $TOOLS_PATH does not exist."
+    return 1
+fi
 
 # TODO: support unlink
 sync_modules=$@
@@ -66,12 +74,12 @@ function tmux_source_exists() {
 }
 
 function load_submodules() {
-    echo -e "\e[1;31m[Working] submodules\e[0m"
+    print_red "[Working] submodules"
     git submodule update --remote
 }
 
 function load_common_rc() {
-    echo -e "\e[1;31m[Working] common_rc\e[0m"
+    print_red "[Working] common_rc"
     rm -f "$HOME/.tools.sh"
     ln -s "$DOTFILES_DIR/scripts/tools.sh" "$HOME/.tools.sh"
 
@@ -81,7 +89,7 @@ function load_common_rc() {
 
 function load_fzf() {
     # This should be done prior to bash and zsh
-    echo -e "\e[1;31m[Working] fzf\e[0m"
+    print_red "[Working] fzf"
     rm -drf "$HOME/.fzf"
     ln -s "$DOTFILES_DIR/modules/fzf" "$HOME/.fzf"
 
@@ -89,7 +97,7 @@ function load_fzf() {
 }
 
 function load_bash() {
-    echo -e "\e[1;31m[Working] bash\e[0m"
+    print_red "[Working] bash"
     rm -f "$HOME/.bashrc"
     ln -s "$DOTFILES_DIR/bash/bashrc" "$HOME/.bashrc"
 
@@ -103,7 +111,7 @@ function load_bash() {
 }
 
 function load_zsh() {
-    echo -e "\e[1;31m[Working] zsh\e[0m"
+    print_red "[Working] zsh"
     rm -f "$HOME/.zshrc"
     ln -s "$DOTFILES_DIR/zsh/zshrc" "$HOME/.zshrc"
 
@@ -127,7 +135,7 @@ function load_zsh() {
 }
 
 function load_oh_my_zsh() {
-    echo -e "\e[1;31m[Working] oh-my-zsh\e[0m"
+    print_red "[Working] oh-my-zsh"
     rm -drf "$HOME/.oh-my-zsh"
     ln -s "$DOTFILES_DIR/modules/oh-my-zsh" "$HOME/.oh-my-zsh"
 }
@@ -161,13 +169,13 @@ function load_vim() {
 }
 
 function load_git() {
-    echo -e "\e[1;31m[Working] git\e[0m"
+    print_red "[Working] git"
     rm -f "$HOME/.gitconfig"
     ln -s "$DOTFILES_DIR/git/gitconfig" "$HOME/.gitconfig"
 }
 
 function load_conda() {
-    echo -e "\e[1;31m[Working] conda\e[0m"
+    print_red "[Working] conda"
     rm -f "$HOME/.conda_init.sh"
     ln -s "$DOTFILES_DIR/scripts/conda_init.sh" "$HOME/.conda_init.sh"
 }
@@ -198,23 +206,23 @@ function load_dotfiles()
             "tmux") load_tmux ;;
             "vim") load_vim ;;
             "git") load_git ;;
-            *) echo -e "\e[1;31mUnknown module: $module\e[0m" ;;
+            *) print_red "Unknown module: $module" ;;
         esac
     done
 }
 
-echo -e "\e[1;31mDownloading dotfiles from GitHub...\e[0m"
+print_red "Downloading dotfiles from GitHub..."
 cd "$DOTFILES_DIR"
 if git pull > /tmp/git_pull_output 2>&1; then
     if grep -q "Already up to date" /tmp/git_pull_output; then
-        echo -e "\e[1;31mDotfiles already up to date.\e[0m"
+        print_red "Dotfiles already up to date."
     else
-        echo -e "\e[1;31mDotfiles downloaded successfully.\e[0m"
+        print_red "Dotfiles downloaded successfully."
     fi
 
-    echo -e "\e[1;31mLinking & sourcing dotfiles...\e[0m"
+    print_red "Linking & sourcing dotfiles..."
     load_dotfiles
-    echo -e "\e[1;31mDotfiles linked & sourced successfully.\e[0m"
+    print_red "Dotfiles linked & sourced successfully."
     
     if [ -n "$BASH_VERSION" ]; then
         cd $CWD
@@ -224,7 +232,7 @@ if git pull > /tmp/git_pull_output 2>&1; then
         exec zsh
     fi
 else
-    echo -e "\e[1;31mFailed to download dotfiles.\nRefer to the following output:\e[0m"
+    print_red "Failed to download dotfiles.\nRefer to the following output:"
     cat /tmp/git_pull_output
 fi
 

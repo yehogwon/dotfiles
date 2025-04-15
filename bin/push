@@ -6,7 +6,15 @@ SCRIPT_PATH="$(realpath "${BASH_SOURCE[0]:-$0}")"
 SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
 DOTFILES_DIR="$(realpath "$SCRIPT_DIR/..")" # does not end with a slash
 
-echo -e "\e[1;31mUpdating submodules...\e[0m"
+TOOLS_PATH="$(realpath "$DOTFILES_DIR/scripts/tools.sh")"
+if [ -f "$TOOLS_PATH" ]; then
+    source "$TOOLS_PATH"
+else
+    echo "Error: $TOOLS_PATH does not exist."
+    return 1
+fi
+
+print_red "Updating submodules..."
 cd "$DOTFILES_DIR"
 git submodule update --remote
 
@@ -14,39 +22,39 @@ function get_commit_message() {
     message=$(date +"%Y.%m.%d-%H:%M:%S")
     
     if [ -z "$LLM_AC_API_KEY" ]; then
-        >&2 echo -e "You can set LLM_AC_API_KEY to use commit message generator."
+        >&2 print_green "You can set LLM_AC_API_KEY to use commit message generator."
     fi
 
-    >&2 echo -e "\e[1;31mGenerating commit message...\e[0m"
+    >&2 print_red "Generating commit message..."
     _gen_message="$($DOTFILES_DIR/scripts/llm_auto_commit "$DOTFILES_DIR")"
     
     if [ $? -eq 0 ]; then
-        >&2 echo -e "\e[1;31mCommit message generated successfully.\e[0m"
+        >&2 print_red "Commit message generated successfully."
         message="$_gen_message"
     else
-        >&2 echo -e "\e[1;31mFailed to generate commit message.\e[0m"
+        >&2 print_red "Failed to generate commit message."
         >&2 echo $_gen_message
     fi
 
     echo "$message 🚀"
 }
 
-echo -e "\e[1;31mAdding dotfiles to GitHub and committing...\e[0m"
+print_red "Adding dotfiles to GitHub and committing..."
 if git add .; then
-    echo -e "\e[1;31mDotfiles added successfully.\e[0m"
+    print_red "Dotfiles added successfully."
     _commit_message=$(get_commit_message)
     if git commit -m "$_commit_message"; then
-        echo -e "\e[1;31mDotfiles committed successfully.\e[0m"
+        print_red "Dotfiles committed successfully."
         if git push origin main; then
-            echo -e "\e[1;31mDotfiles pushed successfully.\e[0m"
+            print_red "Dotfiles pushed successfully."
         else
-            echo -e "\e[1;31mFailed to push dotfiles.\e[0m"
+            print_red "Failed to push dotfiles."
         fi
     else
-        echo -e "\e[1;31mFailed to commit dotfiles.\e[0m"
+        print_red "Failed to commit dotfiles."
     fi
 else
-    echo -e "\e[1;31mFailed to add dotfiles.\e[0m"
+    print_red "Failed to add dotfiles."
 fi
 
 cd $CWD;

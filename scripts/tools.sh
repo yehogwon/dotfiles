@@ -1,27 +1,27 @@
-RED=$(tput setaf 1)
-GREEN=$(tput setaf 2)
-YELLOW=$(tput setaf 3)
-BOLD=$(tput bold)
-RESET=$(tput sgr0)
+DOT_RED=$(tput setaf 1)
+DOT_GREEN=$(tput setaf 2)
+DOT_YELLOW=$(tput setaf 3)
+DOT_BOLD=$(tput bold)
+DOT_RESET=$(tput sgr0)
 
-function print() {
+function print_bold() {
     local message="$*"
-    printf "%s\n" "${BOLD}${RED}${message}${RESET}"
+    printf "%s\n" "${DOT_BOLD}${message}${DOT_RESET}"
 }
 
 function print_red() {
     local message="$*"
-    printf "%s\n" "${BOLD}${RED}${message}${RESET}"
+    printf "%s\n" "${DOT_BOLD}${DOT_RED}${message}${DOT_RESET}"
 }
 
 function print_yellow() {
     local message="$*"
-    printf "%s\n" "${BOLD}${YELLOW}${message}${RESET}"
+    printf "%s\n" "${DOT_BOLD}${DOT_YELLOW}${message}${DOT_RESET}"
 }
 
 function print_green() {
     local message="$*"
-    printf "%s\n" "${BOLD}${GREEN}${message}${RESET}"
+    printf "%s\n" "${DOT_BOLD}${DOT_GREEN}${message}${DOT_RESET}"
 }
 
 function is_bash() {

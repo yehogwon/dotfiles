@@ -68,7 +68,7 @@ alias sql40s='squeue -p L40S'
 
 function wwatch() {
     if [ -z "$1" ]; then
-        echo -e "\e[1;31mwwatch: no command provided\e[0m"
+        print_red "wwatch: no command provided"
         return 1
     fi
 
@@ -94,7 +94,7 @@ function wwatch() {
             break
         fi
         clear
-        echo -e "\e[1;33mwwatch: $(date)\e[0m"
+        print_yellow "wwatch: $(date)"
         eval "$@"
         sleep 1
     done
