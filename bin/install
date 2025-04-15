@@ -5,6 +5,35 @@ if [ ! -d "$DF_INST_ROOT" ]; then
     mkdir -p "$DF_INST_ROOT"
 fi
 
+TMUX_INST_PATH="$DF_INST_ROOT/tmux"
+NVIM_INST_PATH="$DF_INST_ROOT/nvim"
+
+RED=$(tput setaf 1)
+GREEN=$(tput setaf 2)
+YELLOW=$(tput setaf 3)
+BOLD=$(tput bold)
+RESET=$(tput sgr0)
+
+function print() {
+    local message="$*"
+    printf "%s\n" "${BOLD}${RED}${message}${RESET}"
+}
+
+function print_red() {
+    local message="$*"
+    printf "%s\n" "${BOLD}${RED}${message}${RESET}"
+}
+
+function print_yellow() {
+    local message="$*"
+    printf "%s\n" "${BOLD}${YELLOW}${message}${RESET}"
+}
+
+function print_green() {
+    local message="$*"
+    printf "%s\n" "${BOLD}${GREEN}${message}${RESET}"
+}
+
 function is_mac() {
     if [ "$(uname)" == "Darwin" ]; then
         return 0
@@ -20,10 +49,8 @@ function is_linux() {
 }
 
 function neovim() {
-    NVIM_INST_PATH="$DF_INST_ROOT/nvim"
-
     if [ -d "$NVIM_INST_PATH" ]; then
-        echo -e "\e[1;31m$NVIM_INST_PATH already exists\e[0m"
+        print_red "$NVIM_INST_PATH already exists"
         exit 1
     fi
 
@@ -40,7 +67,7 @@ function neovim() {
             suffix="linux-x86_64"
         fi
     else
-        echo -e "\e[1;31mUnsupported platform: $(uname) :: $(uname -m)\e[0m"
+        print_red "Unsupported platform: $(uname) :: $(uname -m)"
         exit 1
     fi
 
@@ -50,30 +77,28 @@ function neovim() {
     rm $_output_tmp
     mv /tmp/nvim-$suffix $NVIM_INST_PATH
 
-    echo -e "\e[1;33mInstalled neovim. Add the following to your \$PATH:\e[0m"
-    echo -e "$NVIM_INST_PATH/bin"
-    echo -e "alias vim='nvim'"
-    echo -e "alias vi='nvim'"
-    echo -e "\e[1;33mNote: This dotsync will do this on behalf of you!\e[0m"
+    print_green "Installed neovim. Add the following to your \$PATH:"
+    print "$NVIM_INST_PATH/bin"
+    print "alias vim='nvim'"
+    print "alias vi='nvim'"
+    print_yellow "Note: This dotsync will do this on behalf of you!"
 
     return 0
 }
 
 function git() {
-    echo -e "\e[1;31mInstalling git is not supported yet.\e[0m"
+    print_red "Installing git is not supported yet."
     return 1
 }
 
 function tmux() {
     if is_mac; then
-        echo -e "\e[1;31mUnsupported platform: $(uname) :: $(uname -m)\e[0m"
+        print_red "Unsupported platform: $(uname) :: $(uname -m)"
         return 1
     fi
 
-    TMUX_INST_PATH="$DF_INST_ROOT/tmux"
-
     if [ -d "$TMUX_INST_PATH" ]; then
-        echo -e "\e[1;31m$TMUX_INST_PATH already exists\e[0m"
+        print_red "$TMUX_INST_PATH already exists"
         exit 1
     fi
 
@@ -89,35 +114,66 @@ function tmux() {
     mkdir -p $TMUX_INST_PATH/bin
     mv $_output_tmp $TMUX_INST_PATH/bin/tmux
 
-    echo -e "\e[1;33mInstalled neovim. Add the following to your \$PATH:\e[0m"
-    echo -e "$TMUX_INST_PATH/bin"
-    echo -e "\e[1;33mNote: This dotsync will do this on behalf of you!\e[0m"
+    print_green "Installed tmux. Add the following to your \$PATH:"
+    print "$TMUX_INST_PATH/bin"
+    print_green "Note: This dotsync will do this on behalf of you!"
     
     return 0
 }
 
-packages=$@
-# for each package, check if corresponding function exists
-unknown_packages=()
-for package in $packages; do
-    if ! declare -f $package > /dev/null; then
-        unknown_packages+=($package)
-    fi
-done
+function uninstall() {
+    for package in "$@"; do
+        package_dir="none"
+        case $package in
+            neovim) package_dir="$NVIM_INST_PATH" ;;
+            tmux) package_dir="$TMUX_INST_PATH" ;;
+        esac
 
-if [ ${#unknown_packages[@]} -gt 0 ]; then
-    echo -e "\e[1;31mUnknown packages: ${unknown_packages[@]}\e[0m"
-    exit 1
+        if [ "$package_dir" == "none" ]; then
+            print_red "Unknown package: $package"
+            continue
+        fi
+
+        print_yellow "Are you sure to remove $package?"
+        print "This will run the following command:"
+        print_red " \$ rm -drf $package_dir"
+        read -p "Type 'yes' to confirm: " confirmation
+        if [ "$confirmation" == "yes" ]; then
+            rm -rf "$package_dir"
+            print_green "Removed $package successfully."
+        else
+            print_yellow "Skipped removal of $package."
+        fi
+    done
+}
+
+if [ "$1" == "uninstall" ]; then
+    shift
+    uninstall $@
+else
+    packages=$@
+
+    unknown_packages=()
+    for package in $packages; do
+        if ! declare -f $package > /dev/null; then
+            unknown_packages+=($package)
+        fi
+    done
+
+    if [ ${#unknown_packages[@]} -gt 0 ]; then
+        print_red "Unknown packages: ${unknown_packages[@]}"
+        exit 1
+    fi
+
+    for package in $packages; do
+        case $package in
+            neovim) neovim ;;
+            git) git ;;
+            tmux) tmux ;;
+        esac
+        if [ $? -ne 0 ]; then
+            print_red "Failed to install $package"
+        fi
+        print_yellow "Installed $package"
+    done
 fi
-
-for package in $packages; do
-    case $package in
-        neovim) neovim ;;
-        git) git ;;
-        tmux) tmux ;;
-    esac
-    if [ $? -ne 0 ]; then
-        echo -e "\e[1;31mFailed to install $package\e[0m"
-    fi
-    echo -e "\e[1;33mInstalled $package\e[0m"
-done

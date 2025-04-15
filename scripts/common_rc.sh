@@ -15,11 +15,13 @@ fi
 
 # Setup dotfiles bin
 if [ -d "$DF_INST_ROOT" ]; then
-    for dir in "$DF_INST_ROOT"/*; do
-        if [ -d "$dir" ]; then
-            PATH="$dir/bin:$PATH"
-        fi
-    done
+    if [ "$(ls -A $DF_INST_ROOT)" ]; then
+        for dir in "$DF_INST_ROOT"/*; do
+            if [ -d "$dir" ]; then
+                PATH="$dir/bin:$PATH"
+            fi
+        done
+    fi
 fi
 
 # Setup neovim
