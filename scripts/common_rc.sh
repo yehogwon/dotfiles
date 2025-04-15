@@ -24,8 +24,6 @@ if [ -d "$DF_INST_ROOT" ]; then
     fi
 fi
 
-# Setup neovim
-export PATH="$DF_INST_ROOT/nvim/bin:$PATH"
 if which nvim > /dev/null 2>&1; then
     alias vim='nvim'
     alias vi='nvim'
