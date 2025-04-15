@@ -63,4 +63,17 @@ This writes a commit message automatically using an LLM.
 
 To set local environment variables, add them to the `~/.local_envs` file directly.
 
+## Local Installation
 
+This repository also supports installation of packages. Run the following command to install packages:
+
+```bash
+$ dot-install <packages>
+$ dot-install uninstall <packages>
+```
+
+> [!TIP] `bin/install` is a standalone script. If you want to install packages only without syncing dotfiles, you can run `bin/install` directly. This will not affect your current shell.
+
+The default installation directory is `~/.dotfiles_bin/<package_name>` (as long as you have synced the dotfiles). Removing this is sufficient to uninstall the package. 
+
+If you want to change the installation directory, set the `DF_INST_ROOT` environment variable before running the installation script. 

@@ -1,6 +1,10 @@
 #!/bin/bash
 
-DF_INST_ROOT="$HOME/.dotfiles_bin"
+if [ -z "$DF_INST_ROOT" ]; then
+    echo "DF_INST_ROOT is not set."
+    exit 1
+fi
+
 if [ ! -d "$DF_INST_ROOT" ]; then
     mkdir -p "$DF_INST_ROOT"
 fi

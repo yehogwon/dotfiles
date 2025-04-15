@@ -1,4 +1,28 @@
-DF_INST_ROOT="$HOME/.dotfiles_bin"
+RED=$(tput setaf 1)
+GREEN=$(tput setaf 2)
+YELLOW=$(tput setaf 3)
+BOLD=$(tput bold)
+RESET=$(tput sgr0)
+
+function print() {
+    local message="$*"
+    printf "%s\n" "${BOLD}${RED}${message}${RESET}"
+}
+
+function print_red() {
+    local message="$*"
+    printf "%s\n" "${BOLD}${RED}${message}${RESET}"
+}
+
+function print_yellow() {
+    local message="$*"
+    printf "%s\n" "${BOLD}${YELLOW}${message}${RESET}"
+}
+
+function print_green() {
+    local message="$*"
+    printf "%s\n" "${BOLD}${GREEN}${message}${RESET}"
+}
 
 function is_bash() {
     # using $BASH_VERSION
