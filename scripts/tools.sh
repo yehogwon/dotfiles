@@ -1,3 +1,5 @@
+DF_INST_ROOT="$HOME/.dotfiles_bin"
+
 function is_bash() {
     # using $BASH_VERSION
     if [ -n "$BASH_VERSION" ]; then

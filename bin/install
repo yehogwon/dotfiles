@@ -1,8 +1,15 @@
 #!/bin/bash
 
+DF_INST_ROOT="$HOME/.dotfiles_bin"
+if [ ! -d "$DF_INST_ROOT" ]; then
+    mkdir -p "$DF_INST_ROOT"
+fi
+
 function neovim() {
-    if [ -d "$HOME/nvim" ]; then
-        echo -e "\e[1;31m$HOME/nvim already exists\e[0m"
+    NVIM_INST_PATH="$DF_INST_ROOT/nvim"
+
+    if [ -d "$NVIM_INST_PATH" ]; then
+        echo -e "\e[1;31m$NVIM_INST_PATH already exists\e[0m"
         exit 1
     fi
 
@@ -23,14 +30,14 @@ function neovim() {
         exit 1
     fi
 
-    _output_tmp="$HOME/.nvim.tar.gz.tmp"
+    _output_tmp="/tmp/.nvim.tar.gz.tmp"
     curl -L "https://github.com/neovim/neovim/releases/download/v0.11.0/nvim-$suffix.tar.gz" > $_output_tmp
-    tar -C $HOME -xzf $_output_tmp
+    tar -C /tmp/ -xzf $_output_tmp
     rm $_output_tmp
-    mv $HOME/nvim-$suffix $HOME/nvim
+    mv /tmp/nvim-$suffix $NVIM_INST_PATH
 
     echo -e "\e[1;33mInstalled neovim. Add the following to your \$PATH:\e[0m"
-    echo -e "$HOME/nvim/bin"
+    echo -e "$NVIM_INST_PATH/bin"
     echo -e "alias vim='nvim'"
     echo -e "alias vi='nvim'"
     echo -e "\e[1;33mNote: This dotsync will do this on behalf of you!\e[0m"
@@ -44,7 +51,16 @@ function git() {
 }
 
 function tmux() {
-    echo -e "\e[1;31mInstalling tmux is not supported yet.\e[0m"
+    curl -s https://api.github.com/repos/nelsonenzo/tmux-appimage/releases/latest \
+    | grep "browser_download_url.*appimage" \
+    | cut -d : -f 2,3 \
+    | tr -d \" \
+    | wget -O ~/.__tmux.appimage -qi - \
+    && chmod +x ~/.__tmux.appimage
+
+    ## optionaly, move it into your $PATH
+    mv tmux.appimage /usr/local/bin/tmux
+    tmux
     return 1
 }
 
