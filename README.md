@@ -72,7 +72,8 @@ $ dot-install <packages>
 $ dot-install uninstall <packages>
 ```
 
-> [!TIP] `bin/install` is a standalone script. If you want to install packages only without syncing dotfiles, you can run `bin/install` directly. This will not affect your current shell.
+> [!TIP]
+> `bin/install` is a standalone script. If you want to install packages only without syncing dotfiles, you can run `bin/install` directly. This will not affect your current shell.
 
 The default installation directory is `~/.dotfiles_bin/<package_name>` (as long as you have synced the dotfiles). Removing this is sufficient to uninstall the package. 
 
