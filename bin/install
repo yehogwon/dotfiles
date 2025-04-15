@@ -66,11 +66,17 @@ function git() {
 
 function tmux() {
     if is_mac; then
-        echo -e "\e[1;31mInstalling tmux on mac is not supported yet.\e[0m"
+        echo -e "\e[1;31mUnsupported platform: $(uname) :: $(uname -m)\e[0m"
         return 1
     fi
 
     TMUX_INST_PATH="$DF_INST_ROOT/tmux"
+
+    if [ -d "$TMUX_INST_PATH" ]; then
+        echo -e "\e[1;31m$TMUX_INST_PATH already exists\e[0m"
+        exit 1
+    fi
+
     _output_tmp="/tmp/.tmux.appimage.tmp"
 
     curl -s https://api.github.com/repos/nelsonenzo/tmux-appimage/releases/latest \
@@ -80,7 +86,12 @@ function tmux() {
         | wget -O $_output_tmp -qi - \
         && chmod +x $_output_tmp
 
-    mv $_output_tmp $TMUX_INST_PATH/
+    mkdir -p $TMUX_INST_PATH/bin
+    mv $_output_tmp $TMUX_INST_PATH/bin/
+
+    echo -e "\e[1;33mInstalled neovim. Add the following to your \$PATH:\e[0m"
+    echo -e "$TMUX_INST_PATH/bin"
+    echo -e "\e[1;33mNote: This dotsync will do this on behalf of you!\e[0m"
     
     return 0
 }
