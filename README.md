@@ -73,8 +73,8 @@ $ dot-install uninstall <packages>
 ```
 
 > [!TIP]
-> `bin/install` is a standalone script. If you want to install packages only without syncing dotfiles, you can run `bin/install` directly. This will not affect your current shell.
+> `bin/install` is a standalone script. If you want to install packages only without syncing dotfiles, you can run `bin/install` directly. This will not affect your system.
 
-The default installation directory is `~/.dotfiles_bin/<package_name>` (as long as you have synced the dotfiles). Removing this is sufficient to uninstall the package. 
+Once you sync your dotfiles, the default insatllation directory is `~/.dotfiles_bin/<package_name>`. You can set/change the installation directory by estting the `DF_INST_ROOT` environment variable before running the installation script.
 
-If you want to change the installation directory, set the `DF_INST_ROOT` environment variable before running the installation script. 
+FYI: the `bin` directory for each package (i.e., `$DF_INST_ROOT/<package_name>/bin`) is automatically added to the `PATH` variable once you sync your dotfiles. Please note that removing this is sufficient to uninstall the package.
