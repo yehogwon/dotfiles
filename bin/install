@@ -5,6 +5,20 @@ if [ ! -d "$DF_INST_ROOT" ]; then
     mkdir -p "$DF_INST_ROOT"
 fi
 
+function is_mac() {
+    if [ "$(uname)" == "Darwin" ]; then
+        return 0
+    fi
+    return 1
+}
+
+function is_linux() {
+    if [ "$(uname)" == "Linux" ]; then
+        return 0
+    fi
+    return 1
+}
+
 function neovim() {
     NVIM_INST_PATH="$DF_INST_ROOT/nvim"
 
@@ -51,17 +65,24 @@ function git() {
 }
 
 function tmux() {
-    curl -s https://api.github.com/repos/nelsonenzo/tmux-appimage/releases/latest \
-    | grep "browser_download_url.*appimage" \
-    | cut -d : -f 2,3 \
-    | tr -d \" \
-    | wget -O ~/.__tmux.appimage -qi - \
-    && chmod +x ~/.__tmux.appimage
+    if is_mac; then
+        echo -e "\e[1;31mInstalling tmux on mac is not supported yet.\e[0m"
+        return 1
+    fi
 
-    ## optionaly, move it into your $PATH
-    mv tmux.appimage /usr/local/bin/tmux
-    tmux
-    return 1
+    TMUX_INST_PATH="$DF_INST_ROOT/tmux"
+    _output_tmp="/tmp/.tmux.appimage.tmp"
+
+    curl -s https://api.github.com/repos/nelsonenzo/tmux-appimage/releases/latest \
+        | grep "browser_download_url.*appimage" \
+        | cut -d : -f 2,3 \
+        | tr -d \" \
+        | wget -O $_output_tmp -qi - \
+        && chmod +x $_output_tmp
+
+    mv $_output_tmp $TMUX_INST_PATH/
+    
+    return 0
 }
 
 packages=$@
