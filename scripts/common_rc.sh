@@ -32,8 +32,10 @@ fi
 SCRIPT_PATH="$(realpath "${BASH_SOURCE[0]:-$0}")"
 export DOTFILES_DIR="$(realpath "$(dirname "$SCRIPT_PATH")/..")"
 DOTSYNC_FILES="all"
+
 alias dot-push="source $DOTFILES_DIR/bin/push $DOTSYNC_FILES"
 alias dot-pull="source $DOTFILES_DIR/bin/pull $DOTSYNC_FILES"
+alias dot-install="$DOTFILES_DIR/bin/install"
 
 alias gs='git status'
 alias gp='git push'
