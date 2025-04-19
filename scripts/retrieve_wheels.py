@@ -72,6 +72,8 @@ parser.add_argument('--wheels', type=str, required=True,
                     help='Path to file containing wheel filenames, one per line.')
 parser.add_argument('--output', type=str, required=True,
                     help='Path to output file for resolved wheel URLs.')
+parser.add_argument('--url_only' , action='store_true',
+                    help='Only output the URLs of the wheels, not the filenames nor the package names.')
 
 args = parser.parse_args()
 
