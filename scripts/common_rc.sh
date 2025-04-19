@@ -48,6 +48,7 @@ alias gd='git diff'
 
 alias t='tmux'
 alias tls='tmux ls'
+alias tns='tmux new-session -s'
 alias ta='tmux attach'
 alias tat='tmux attach -t'
 
