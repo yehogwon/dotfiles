@@ -89,7 +89,10 @@ with open(output_file, 'w') as f:
         package_name, found_url = find_wheel(wheel_filename, index_urls)
         
         wheel_url_mapping[(package_name)] = (wheel_filename, found_url)
-        f.write(f'{package_name},{wheel_filename},{found_url if found_url is not None else "none"}\n')
+        if not args.url_only:
+            f.write(f'{package_name},{wheel_filename},{found_url if found_url is not None else "none"}\n')
+        elif found_url is not None:
+            f.write(f'{found_url}\n')
 
         if found_url is not None:
             resolved += 1
