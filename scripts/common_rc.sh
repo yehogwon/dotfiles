@@ -14,6 +14,7 @@ if [ -f ~/.local_envs ]; then
 fi
 
 # Setup dotfiles bin
+export DF_INST_ROOT="${DF_INST_ROOT:-$HOME/.dotfiles_bin}"
 if [ -d "$DF_INST_ROOT" ]; then
     if [ "$(ls -A $DF_INST_ROOT)" ]; then
         for dir in "$DF_INST_ROOT"/*; do
@@ -35,9 +36,6 @@ DOTSYNC_FILES="all"
 
 alias dot-push="source $DOTFILES_DIR/bin/push $DOTSYNC_FILES"
 alias dot-pull="source $DOTFILES_DIR/bin/pull $DOTSYNC_FILES"
-
-: "${DF_INST_ROOT:="$HOME/.dotfiles_bin"}"
-export DF_INST_ROOT
 alias dot-install="$DOTFILES_DIR/bin/install"
 
 alias gs='git status'
