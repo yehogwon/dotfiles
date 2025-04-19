@@ -85,11 +85,13 @@ FYI: the `bin` directory for each package (i.e., `$DF_INST_ROOT/<package_name>/b
 
 This repository also includes a script to retrieve the URLs of wheel files given index urls. 
 
-If you want to install `<package_names>` packages from `<index_urls>`, you can run the following command to retrieve the wheel file names for the packages:
+If you want to install `<package_names>` packages from `<index_urls>`, you can run the following command to retrieve the wheel file names for the packages. This will save the wheel file names (for those not installed) in `<wheel_name_file>`:
 
 ```bash
-$ uv pip install --dry-run <packge_names> --index-url <index_urls> --verbose \
-    | grep DEBUG Selecting > <wheel_name_file>
+(uv) $ uv pip install --dry-run <package_names> --index-url <index_urls> --verbose \
+    2>&1 | grep '.whl' | grep -v '.metadata' | grep 'Selecting' | grep -oP '\(\K[^)]*(?=\))' > <wheel_name_file>
+(pip) $ pip install --dry-run <package_names> --index-url <index_urls> --verbose \
+    2>&1 | grep '.whl' | grep -v '.metadata' | grep -o '\S*\.whl\S*' > <wheel_name_file>
 ```
 
 Then retrieve the URLs of the wheel files using the following command, which requires `requests`, `BeautifulSoup`, and `tqdm` Python packages:
@@ -112,11 +114,13 @@ $ cat <output_file> | xargs -n 1 -P <n_procs> wget
 Once all the wheels are downloaded, you can install them using the following command:
 
 ```bash
-$ uv pip install *.whl
+(uv) $ uv pip install *.whl
+(pip) $ pip install *.whl
 ```
 
 The command below installs the packages that couldn't have been retrieved from the index URL. 
 
 ```bash
-$ uv pip install <package_names>
+(uv) $ uv pip install <package_names>
+(pip) $ pip install <package_names>
 ```
