@@ -17,7 +17,7 @@ fi
 if [ -d "$DF_INST_ROOT" ]; then
     if [ "$(ls -A $DF_INST_ROOT)" ]; then
         for dir in "$DF_INST_ROOT"/*; do
-            if [ -d "$dir" ]; then
+            if [ -d "$dir/bin" ]; then
                 PATH="$dir/bin:$PATH"
             fi
         done

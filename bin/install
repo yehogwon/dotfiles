@@ -11,6 +11,7 @@ fi
 
 TMUX_INST_PATH="$DF_INST_ROOT/tmux"
 NVIM_INST_PATH="$DF_INST_ROOT/nvim"
+UV_INST_PATH="$DF_INST_ROOT/uv"
 
 DOT_RED=$(tput setaf 1)
 DOT_GREEN=$(tput setaf 2)
@@ -75,11 +76,12 @@ function neovim() {
         exit 1
     fi
 
-    _output_tmp="/tmp/.nvim.tar.gz.tmp"
+    _output_tmp=$(mktemp)
+    _tmp_dir=$(mktemp -d)
     curl -L "https://github.com/neovim/neovim/releases/download/v0.11.0/nvim-$suffix.tar.gz" > $_output_tmp
-    tar -C /tmp/ -xzf $_output_tmp
+    tar -C $_tmp_dir -xzf $_output_tmp
     rm $_output_tmp
-    mv /tmp/nvim-$suffix $NVIM_INST_PATH
+    mv $_tmp_dir/nvim-$suffix $NVIM_INST_PATH
 
     print_green "Installed neovim. Add the following to your \$PATH:"
     print_bold "$NVIM_INST_PATH/bin"
@@ -106,22 +108,40 @@ function tmux() {
         exit 1
     fi
 
-    _output_tmp="/tmp/.tmux.appimage.tmp"
+    bin_path=$TMUX_INST_PATH/bin/tmux
+    mkdir -p $TMUX_INST_PATH/bin
 
     curl -s https://api.github.com/repos/nelsonenzo/tmux-appimage/releases/latest \
         | grep "browser_download_url.*appimage" \
         | cut -d : -f 2,3 \
         | tr -d \" \
-        | wget -O $_output_tmp -qi - \
-        && chmod +x $_output_tmp
-
-    mkdir -p $TMUX_INST_PATH/bin
-    mv $_output_tmp $TMUX_INST_PATH/bin/tmux
+        | wget -O $bin_path -qi - \
+        && chmod +x $bin_path
 
     print_green "Installed tmux. Add the following to your \$PATH:"
     print_bold "$TMUX_INST_PATH/bin"
     print_green "Note: This dotsync will do this on behalf of you!"
     
+    return 0
+}
+
+function uv() {
+    if [ -d "$UV_INST_PATH" ]; then
+        print_red "$UV_INST_PATH already exists"
+        exit 1
+    fi
+
+    print_green "Installing uv..."
+
+    curl -LsSf https://astral.sh/uv/install.sh | env INSTALLER_NO_MODIFY_PATH=1 UV_INSTALL_DIR=$UV_INST_PATH/bin sh
+    if [ $? -ne 0 ]; then
+        print_red "Failed to install uv"
+        return 1
+    fi
+
+    print_green "Installed uv. Add the following to your \$PATH:"
+    print_bold "$UV_INST_PATH/bin"
+    print_green "Note: This dotsync will do this on behalf of you!"
     return 0
 }
 
@@ -174,10 +194,13 @@ else
             neovim) neovim ;;
             git) git ;;
             tmux) tmux ;;
+            uv) uv ;;
+            *) print_red "Unknown package: $package" && continue ;;
         esac
         if [ $? -ne 0 ]; then
             print_red "Failed to install $package"
+        else
+            print_yellow "Installed $package"
         fi
-        print_yellow "Installed $package"
     done
 fi
