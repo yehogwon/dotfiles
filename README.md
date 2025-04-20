@@ -124,3 +124,10 @@ The command below installs the packages that couldn't have been retrieved from t
 (uv) $ uv pip install <package_names>
 (pip) $ pip install <package_names>
 ```
+
+This may results in `(uv ) pip freeze` not showing package versions but only wheel file paths. As a workaround, you can get a properly-versioned list of packages using the following command:
+
+```bash
+(uv) $ uv pip list --format=freeze
+(pip) $ pip list --format=freeze
+```
