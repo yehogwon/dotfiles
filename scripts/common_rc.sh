@@ -65,6 +65,11 @@ alias sqa10040='squeue -p A100-40GB'
 alias sqa10080='squeue -p A100-80GB'
 alias sql40s='squeue -p L40S'
 
+# if the hostname is the form of "kwak###" (#: decimal digits)
+if [[ "$HOSTNAME" =~ ^kwak[0-9]+$ ]]; then
+    alias ssh='ssh -p10022'
+fi
+
 function wwatch() {
     if [ -z "$1" ]; then
         print_red "wwatch: no command provided"
