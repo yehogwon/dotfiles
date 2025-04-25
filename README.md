@@ -63,7 +63,9 @@ This writes a commit message automatically using an LLM.
 
 To set local environment variables, add them to the `~/.local_envs` file directly.
 
-## Local Installation
+## Useful tools
+
+### Local Installation
 
 This repository also supports installation of packages. Run the following command to install packages:
 
@@ -78,3 +80,54 @@ $ dot-install uninstall <packages>
 Once you sync your dotfiles, the default insatllation directory is `~/.dotfiles_bin/<package_name>`. You can set/change the installation directory by estting the `DF_INST_ROOT` environment variable before running the installation script.
 
 FYI: the `bin` directory for each package (i.e., `$DF_INST_ROOT/<package_name>/bin`) is automatically added to the `PATH` variable once you sync your dotfiles. Please note that removing this is sufficient to uninstall the package.
+
+### Wheel URL retriever
+
+This repository also includes a script to retrieve the URLs of wheel files given index urls. 
+
+If you want to install `<package_names>` packages from `<index_urls>`, you can run the following command to retrieve the wheel file names for the packages. This will save the wheel file names (for those not installed) in `<wheel_name_file>`:
+
+```bash
+(uv) $ uv pip install --dry-run <package_names> --index-url <index_urls> --verbose \
+    2>&1 | grep '.whl' | grep -v '.metadata' | grep 'Selecting' | grep -oP '\(\K[^)]*(?=\))' > <wheel_name_file>
+(pip) $ pip install --dry-run <package_names> --index-url <index_urls> --verbose \
+    2>&1 | grep '.whl' | grep -v '.metadata' | grep -o '\S*\.whl\S*' > <wheel_name_file>
+```
+
+Then retrieve the URLs of the wheel files using the following command, which requires `requests`, `BeautifulSoup`, and `tqdm` Python packages:
+
+```bash
+$ python scripts/retrieve_wheels.py \
+    --index_urls <index_url_file> \
+    --wheels <wheel_name_file> \
+    --output <output_file> \
+    --url_only
+```
+
+Then the URLs should be saved in the `<output_file>`. You can download them using `wget` or `curl`. But for a parallel download, run the following command:
+
+```bash
+$ cd <dir_for_wheels>
+$ cat <output_file> | xargs -n 1 -P <n_procs> wget
+```
+
+Once all the wheels are downloaded, you can install them using the following command:
+
+```bash
+(uv) $ uv pip install *.whl
+(pip) $ pip install *.whl
+```
+
+The command below installs the packages that couldn't have been retrieved from the index URL. 
+
+```bash
+(uv) $ uv pip install <package_names>
+(pip) $ pip install <package_names>
+```
+
+This may results in `(uv ) pip freeze` not showing package versions but only wheel file paths. As a workaround, you can get a properly-versioned list of packages using the following command:
+
+```bash
+(uv) $ uv pip list --format=freeze
+(pip) $ pip list --format=freeze
+```
