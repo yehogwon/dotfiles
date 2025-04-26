@@ -103,6 +103,13 @@ function wwatch() {
     done
 }
 
+# nvitop
+if command -v uvx 2>&1 >/dev/null; then
+    alias nvitop='uvx nvitop'
+elif command -v pipx 2>&1 >/dev/null; then
+    alias nvitop='pipx run nvitop'
+fi
+
 # conda
 _shell_name_bak="$shell_name"
 if [ -f "$HOME/.conda_init.sh" ]; then
