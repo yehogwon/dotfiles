@@ -12,6 +12,7 @@ fi
 TMUX_INST_PATH="$DF_INST_ROOT/tmux"
 NVIM_INST_PATH="$DF_INST_ROOT/nvim"
 UV_INST_PATH="$DF_INST_ROOT/uv"
+PYTHON_INST_PATH="$DF_INST_ROOT/python"
 
 DOT_RED=$(tput setaf 1)
 DOT_GREEN=$(tput setaf 2)
@@ -141,6 +142,27 @@ function uv() {
 
     print_green "Installed uv. Add the following to your \$PATH:"
     print_bold "$UV_INST_PATH/bin"
+    print_green "Note: This dotsync will do this on behalf of you!"
+    return 0
+}
+
+function python() {
+    if [ -d "$PYTHON_INST_PATH" ]; then
+        print_red "$PYTHON_INST_PATH already exists"
+        exit 1
+    fi
+
+    print_green "Linking python..."
+
+    if [ -f /usr/bin/python3 ]; then
+        ln -s /usr/bin/python3 $PYTHON_INST_PATH/bin/python
+    else
+        print_red "Python3 cannot be found."
+        return 1
+    fi
+
+    print_green "Installed python. Add the following to your \$PATH:"
+    print_bold "$PYTHON_INST_PATH/bin"
     print_green "Note: This dotsync will do this on behalf of you!"
     return 0
 }
