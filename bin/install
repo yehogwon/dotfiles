@@ -173,6 +173,8 @@ function uninstall() {
         case $package in
             neovim) package_dir="$NVIM_INST_PATH" ;;
             tmux) package_dir="$TMUX_INST_PATH" ;;
+            python) package_dir="$PYTHON_INST_PATH" ;;
+            uv) package_dir="$UV_INST_PATH" ;;
         esac
 
         if [ "$package_dir" == "none" ]; then
@@ -214,9 +216,9 @@ else
     for package in $packages; do
         case $package in
             neovim) neovim ;;
-            git) git ;;
             tmux) tmux ;;
             uv) uv ;;
+            python) python ;;
             *) print_red "Unknown package: $package" && continue ;;
         esac
         if [ $? -ne 0 ]; then
