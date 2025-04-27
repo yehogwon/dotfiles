@@ -77,7 +77,7 @@ parser.add_argument('--url_only' , action='store_true',
 
 args = parser.parse_args()
 
-index_urls = proc_list(read_file(args.index_urls))
+index_urls = proc_list(read_file(args.index_urls)) + ['https://pypi.python.org/simple']
 wheel_filenames = proc_list(read_file(args.wheels))
 output_file = args.output
 
