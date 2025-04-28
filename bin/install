@@ -13,6 +13,7 @@ DF_TMUX_INST_PATH="$DF_INST_ROOT/tmux"
 DF_NVIM_INST_PATH="$DF_INST_ROOT/nvim"
 DF_UV_INST_PATH="$DF_INST_ROOT/uv"
 DF_PYTHON_INST_PATH="$DF_INST_ROOT/python"
+DF_PROXYCHAINS_INST_PATH="$DF_INST_ROOT/proxychains"
 
 DF_PYTHON_VERSION="${PYTHON_VERSION:-3.10.17}"
 
@@ -194,6 +195,33 @@ function install_python() {
     return 0
 }
 
+function install_proxychains() {
+    if [ -d "$DF_PROXYCHAINS_INST_PATH" ]; then
+        print_red "$DF_PROXYCHAINS_INST_PATH already exists"
+        exit 1
+    fi
+
+    trap 'return 1' ERR
+    
+    print_green "Installing python..."
+    
+
+    _download_dir=$(mktemp -d)
+    cd $_download_dir
+    
+    git clone https://github.com/rofl0r/proxychains-ng
+    cd proxychains-ng
+
+    ./configure --prefix="$DF_PROXYCHAINS_INST_PATH"
+    make -j
+    make install
+
+    print_green "Installed proxychains. Add the following to your \$PATH:"
+    print_bold "$DF_PROXYCHAINS_INST_PATH/bin"
+    print_green "Note: This dotsync will do this on behalf of you!"
+    return 0
+}
+
 function uninstall() {
     for package in "$@"; do
         package_dir="none"
@@ -246,6 +274,7 @@ else
             tmux) install_tmux ;;
             uv) install_uv ;;
             python) install_python ;;
+            proxychains) install_proxychains ;;
             *) print_red "Unknown package: $package" && continue ;;
         esac
         if [ $? -ne 0 ]; then
