@@ -88,9 +88,9 @@ This repository also includes a script to retrieve the URLs of wheel files given
 If you want to install `<package_names>` packages from `<index_urls>`, you can run the following command to retrieve the wheel file names for the packages. This will save the wheel file names (for those not installed) in `<wheel_name_file>`:
 
 ```bash
-(uv) $ uv pip install --dry-run <package_names> --index-url <index_urls> --verbose \
+(uv) $ uv pip install --dry-run <package_names> --index-url <index_url> --verbose \
     2>&1 | grep '.whl' | grep -v '.metadata' | grep 'Selecting' | grep -oP '\(\K[^)]*(?=\))' > <wheel_name_file>
-(pip) $ pip install --dry-run <package_names> --index-url <index_urls> --verbose \
+(pip) $ pip install --dry-run <package_names> --index-url <index_url> --verbose \
     2>&1 | grep '.whl' | grep -v '.metadata' | grep -o '\S*\.whl\S*' > <wheel_name_file>
 ```
 
@@ -122,7 +122,7 @@ The command below installs the packages that couldn't have been retrieved from t
 
 ```bash
 (uv) $ uv pip install <package_names> --index-url <index_url>
-(pip) $ pip install <package_names> --index-url <index_urls>
+(pip) $ pip install <package_names> --index-url <index_url>
 ```
 
 This may results in `(uv) pip freeze` not showing package versions but only wheel file paths. As a workaround, you can get a properly-versioned list of packages using the following command:
@@ -131,3 +131,7 @@ This may results in `(uv) pip freeze` not showing package versions but only whee
 (uv) $ uv pip list --format=freeze
 (pip) $ pip list --format=freeze
 ```
+
+> [!NOTE]
+> You can automate the above process using `dot-wheel` command.
+> `$ dot-wheel <pip|uv> <index_url> <package_names>`
