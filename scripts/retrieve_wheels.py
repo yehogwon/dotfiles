@@ -66,10 +66,10 @@ def find_wheel(filename, index_urls):
     return package_name, found_url
 
 parser = ArgumentParser(description="Retrieve wheel URLs from PIP index urls.")
-parser.add_argument('--index_urls', type=str, required=True, 
-                    help='Path to file containing PIP index URLs, one per line.')
 parser.add_argument('--wheels', type=str, required=True,
                     help='Path to file containing wheel filenames, one per line.')
+parser.add_argument('--index_urls', type=str, required=True, 
+                    help='Path to file containing PIP index URLs, one per line.')
 parser.add_argument('--output', type=str, required=True,
                     help='Path to output file for resolved wheel URLs.')
 parser.add_argument('--url_only' , action='store_true',
@@ -77,8 +77,8 @@ parser.add_argument('--url_only' , action='store_true',
 
 args = parser.parse_args()
 
-index_urls = proc_list(read_file(args.index_urls))
 wheel_filenames = proc_list(read_file(args.wheels))
+index_urls = proc_list(read_file(args.index_urls)) + ['https://pypi.python.org/simple']
 output_file = args.output
 
 wheel_url_mapping = {}

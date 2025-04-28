@@ -38,6 +38,8 @@ alias dot-push="source $DOTFILES_DIR/bin/push $DOTSYNC_FILES"
 alias dot-pull="source $DOTFILES_DIR/bin/pull $DOTSYNC_FILES"
 alias dot-install="$DOTFILES_DIR/bin/install"
 
+alias dot-wheel="$DOTFILES_DIR/scripts/retrieve_wheels.sh"
+
 alias gs='git status'
 alias gp='git push'
 alias gc='git commit'
@@ -65,8 +67,7 @@ alias sqa10040='squeue -p A100-40GB'
 alias sqa10080='squeue -p A100-80GB'
 alias sql40s='squeue -p L40S'
 
-# if the hostname is the form of "kwak###" (#: decimal digits)
-if [[ "$HOSTNAME" =~ ^kwak[0-9]+$ ]]; then
+if [[ "$(hostname)" =~ ^kwak[0-9]+$ ]]; then
     alias ssh='ssh -p10022'
 fi
 
@@ -103,6 +104,13 @@ function wwatch() {
         sleep 1
     done
 }
+
+# nvitop
+if command -v uvx 2>&1 >/dev/null; then
+    alias nvitop='uvx nvitop'
+elif command -v pipx 2>&1 >/dev/null; then
+    alias nvitop='pipx run nvitop'
+fi
 
 # conda
 _shell_name_bak="$shell_name"

@@ -9,9 +9,13 @@ if [ ! -d "$DF_INST_ROOT" ]; then
     mkdir -p "$DF_INST_ROOT"
 fi
 
-TMUX_INST_PATH="$DF_INST_ROOT/tmux"
-NVIM_INST_PATH="$DF_INST_ROOT/nvim"
-UV_INST_PATH="$DF_INST_ROOT/uv"
+DF_TMUX_INST_PATH="$DF_INST_ROOT/tmux"
+DF_NVIM_INST_PATH="$DF_INST_ROOT/nvim"
+DF_UV_INST_PATH="$DF_INST_ROOT/uv"
+DF_PYTHON_INST_PATH="$DF_INST_ROOT/python"
+DF_PROXYCHAINS_INST_PATH="$DF_INST_ROOT/proxychains"
+
+DF_PYTHON_VERSION="${PYTHON_VERSION:-3.10.17}"
 
 DOT_RED=$(tput setaf 1)
 DOT_GREEN=$(tput setaf 2)
@@ -53,9 +57,9 @@ function is_linux() {
     return 1
 }
 
-function neovim() {
-    if [ -d "$NVIM_INST_PATH" ]; then
-        print_red "$NVIM_INST_PATH already exists"
+function install_neovim() {
+    if [ -d "$DF_NVIM_INST_PATH" ]; then
+        print_red "$DF_NVIM_INST_PATH already exists"
         exit 1
     fi
 
@@ -81,10 +85,10 @@ function neovim() {
     curl -L "https://github.com/neovim/neovim/releases/download/v0.11.0/nvim-$suffix.tar.gz" > $_output_tmp
     tar -C $_tmp_dir -xzf $_output_tmp
     rm $_output_tmp
-    mv $_tmp_dir/nvim-$suffix $NVIM_INST_PATH
+    mv $_tmp_dir/nvim-$suffix $DF_NVIM_INST_PATH
 
     print_green "Installed neovim. Add the following to your \$PATH:"
-    print_bold "$NVIM_INST_PATH/bin"
+    print_bold "$DF_NVIM_INST_PATH/bin"
     print_bold "alias vim='nvim'"
     print_bold "alias vi='nvim'"
     print_yellow "Note: This dotsync will do this on behalf of you!"
@@ -92,24 +96,24 @@ function neovim() {
     return 0
 }
 
-function git() {
+function install_git() {
     print_red "Installing git is not supported yet."
     return 1
 }
 
-function tmux() {
+function install_tmux() {
     if is_mac; then
         print_red "Unsupported platform: $(uname) :: $(uname -m)"
         return 1
     fi
 
-    if [ -d "$TMUX_INST_PATH" ]; then
-        print_red "$TMUX_INST_PATH already exists"
+    if [ -d "$DF_TMUX_INST_PATH" ]; then
+        print_red "$DF_TMUX_INST_PATH already exists"
         exit 1
     fi
 
-    bin_path=$TMUX_INST_PATH/bin/tmux
-    mkdir -p $TMUX_INST_PATH/bin
+    bin_path=$DF_TMUX_INST_PATH/bin/tmux
+    mkdir -p $DF_TMUX_INST_PATH/bin
 
     curl -s https://api.github.com/repos/nelsonenzo/tmux-appimage/releases/latest \
         | grep "browser_download_url.*appimage" \
@@ -119,28 +123,102 @@ function tmux() {
         && chmod +x $bin_path
 
     print_green "Installed tmux. Add the following to your \$PATH:"
-    print_bold "$TMUX_INST_PATH/bin"
+    print_bold "$DF_TMUX_INST_PATH/bin"
     print_green "Note: This dotsync will do this on behalf of you!"
     
     return 0
 }
 
-function uv() {
-    if [ -d "$UV_INST_PATH" ]; then
-        print_red "$UV_INST_PATH already exists"
+function install_uv() {
+    if [ -d "$DF_UV_INST_PATH" ]; then
+        print_red "$DF_UV_INST_PATH already exists"
         exit 1
     fi
 
     print_green "Installing uv..."
 
-    curl -LsSf https://astral.sh/uv/install.sh | env INSTALLER_NO_MODIFY_PATH=1 UV_INSTALL_DIR=$UV_INST_PATH/bin sh
+    mkdir -p $DF_UV_INST_PATH/bin
+
+    curl -LsSf https://astral.sh/uv/install.sh | env INSTALLER_NO_MODIFY_PATH=1 UV_INSTALL_DIR=$DF_UV_INST_PATH/bin sh
     if [ $? -ne 0 ]; then
         print_red "Failed to install uv"
         return 1
     fi
 
     print_green "Installed uv. Add the following to your \$PATH:"
-    print_bold "$UV_INST_PATH/bin"
+    print_bold "$DF_UV_INST_PATH/bin"
+    print_green "Note: This dotsync will do this on behalf of you!"
+    return 0
+}
+
+function install_python() {
+    if [ -d "$DF_PYTHON_INST_PATH" ]; then
+        print_red "$DF_PYTHON_INST_PATH already exists"
+        exit 1
+    fi
+
+    trap 'return 1' ERR
+    
+    print_green "Installing python..."
+    if command -v uv > /dev/null; then
+        print_green "uv found, using it to download python"
+        uv venv $DF_PYTHON_INST_PATH --python $DF_PYTHON_VERSION
+    else
+        print_red "uv not found. Would you build Python?"
+        read -p "Type 'yes' to confirm: " confirmation
+        if [ "$confirmation" == "yes" ]; then
+            _download_path=$(mktemp)
+            echo "Downloading at: $_download_path"
+            curl -o $_download_path "https://www.python.org/ftp/python/$DF_PYTHON_VERSION/Python-$DF_PYTHON_VERSION.tgz"
+
+            cd $(dirname $_download_path)
+            tar -xzf $_download_path
+            rm $_download_path
+            cd Python-$DF_PYTHON_VERSION
+
+            mkdir -p $DF_PYTHON_INST_PATH
+            ./configure --prefix="$DF_PYTHON_INST_PATH" --enable-optimizations
+            make -j$(nproc)
+            make install
+        else
+            print_yellow "Then please install uv first."
+            return 1
+        fi
+    fi
+
+    $DF_PYTHON_INST_PATH/bin/python -m ensurepip
+    $DF_PYTHON_INST_PATH/bin/python -m pip install --upgrade pip
+
+    print_green "Installed python. Add the following to your \$PATH:"
+    print_bold "$DF_PYTHON_INST_PATH/bin"
+    print_green "Note: This dotsync will do this on behalf of you!"
+    return 0
+}
+
+function install_proxychains() {
+    if [ -d "$DF_PROXYCHAINS_INST_PATH" ]; then
+        print_red "$DF_PROXYCHAINS_INST_PATH already exists"
+        exit 1
+    fi
+
+    trap 'return 1' ERR
+    
+    print_green "Installing proxychains..."
+    
+    _download_dir=$(mktemp -d)
+    cd $_download_dir
+    
+    git clone https://github.com/rofl0r/proxychains-ng
+    cd proxychains-ng
+
+    ./configure --prefix="$DF_PROXYCHAINS_INST_PATH"
+    make -j
+    make install
+
+    cp src/proxychains.conf ~/.proxychains.conf
+
+    print_green "Installed proxychains. Add the following to your \$PATH:"
+    print_bold "$DF_PROXYCHAINS_INST_PATH/bin"
     print_green "Note: This dotsync will do this on behalf of you!"
     return 0
 }
@@ -149,8 +227,10 @@ function uninstall() {
     for package in "$@"; do
         package_dir="none"
         case $package in
-            neovim) package_dir="$NVIM_INST_PATH" ;;
-            tmux) package_dir="$TMUX_INST_PATH" ;;
+            neovim) package_dir="$DF_NVIM_INST_PATH" ;;
+            tmux) package_dir="$DF_TMUX_INST_PATH" ;;
+            python) package_dir="$DF_PYTHON_INST_PATH" ;;
+            uv) package_dir="$DF_UV_INST_PATH" ;;
         esac
 
         if [ "$package_dir" == "none" ]; then
@@ -179,7 +259,7 @@ else
 
     unknown_packages=()
     for package in $packages; do
-        if ! declare -f $package > /dev/null; then
+        if ! declare -f "install_$package" > /dev/null; then
             unknown_packages+=($package)
         fi
     done
@@ -191,10 +271,11 @@ else
 
     for package in $packages; do
         case $package in
-            neovim) neovim ;;
-            git) git ;;
-            tmux) tmux ;;
-            uv) uv ;;
+            neovim) install_neovim ;;
+            tmux) install_tmux ;;
+            uv) install_uv ;;
+            python) install_python ;;
+            proxychains) install_proxychains ;;
             *) print_red "Unknown package: $package" && continue ;;
         esac
         if [ $? -ne 0 ]; then
