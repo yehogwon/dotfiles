@@ -98,8 +98,8 @@ Then retrieve the URLs of the wheel files using the following command, which req
 
 ```bash
 $ dot-wheel \
-    --index_urls <index_url_file> \
     --wheels <wheel_name_file> \
+    --index_urls <index_url_file> \
     --output <output_file> \
     --url_only
 ```
@@ -121,11 +121,11 @@ Once all the wheels are downloaded, you can install them using the following com
 The command below installs the packages that couldn't have been retrieved from the index URL. 
 
 ```bash
-(uv) $ uv pip install <package_names>
-(pip) $ pip install <package_names>
+(uv) $ uv pip install <package_names> --index-url <index_url>
+(pip) $ pip install <package_names> --index-url <index_urls>
 ```
 
-This may results in `(uv ) pip freeze` not showing package versions but only wheel file paths. As a workaround, you can get a properly-versioned list of packages using the following command:
+This may results in `(uv) pip freeze` not showing package versions but only wheel file paths. As a workaround, you can get a properly-versioned list of packages using the following command:
 
 ```bash
 (uv) $ uv pip list --format=freeze
