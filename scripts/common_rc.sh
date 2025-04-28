@@ -38,6 +38,8 @@ alias dot-push="source $DOTFILES_DIR/bin/push $DOTSYNC_FILES"
 alias dot-pull="source $DOTFILES_DIR/bin/pull $DOTSYNC_FILES"
 alias dot-install="$DOTFILES_DIR/bin/install"
 
+alias dot-wheel="python $DOTFILES_DIR/scripts/retrieve_wheels.py"
+
 alias gs='git status'
 alias gp='git push'
 alias gc='git commit'

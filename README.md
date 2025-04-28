@@ -97,7 +97,7 @@ If you want to install `<package_names>` packages from `<index_urls>`, you can r
 Then retrieve the URLs of the wheel files using the following command, which requires `requests`, `BeautifulSoup`, and `tqdm` Python packages:
 
 ```bash
-$ python scripts/retrieve_wheels.py \
+$ dot-wheel \
     --index_urls <index_url_file> \
     --wheels <wheel_name_file> \
     --output <output_file> \
