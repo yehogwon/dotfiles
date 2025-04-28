@@ -203,9 +203,8 @@ function install_proxychains() {
 
     trap 'return 1' ERR
     
-    print_green "Installing python..."
+    print_green "Installing proxychains..."
     
-
     _download_dir=$(mktemp -d)
     cd $_download_dir
     
@@ -215,6 +214,8 @@ function install_proxychains() {
     ./configure --prefix="$DF_PROXYCHAINS_INST_PATH"
     make -j
     make install
+
+    cp src/proxychains.conf ~/.proxychains.conf
 
     print_green "Installed proxychains. Add the following to your \$PATH:"
     print_bold "$DF_PROXYCHAINS_INST_PATH/bin"
