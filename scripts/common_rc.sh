@@ -52,7 +52,7 @@ alias tns='tmux new-session -s'
 alias ta='tmux attach'
 alias tat='tmux attach -t'
 
-alias squeue='squeue -o   "%6i %35j  %9T %12u %8g %15P %4D %20R %4C %13b %8m %11l %11L %p"'
+alias squeue='squeue -o   "%8i %30j  %9T %12u %8g %15P %4D %20R %4C %13b %8m %11l %11L %p"'
 alias sq='squeue'
 alias sqyh='squeue -u yehok117'
 alias sqw='squeue -w'
