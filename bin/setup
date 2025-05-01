@@ -1,0 +1,27 @@
+#!/bin/bash
+
+if [ -z "$__DF_SELF_SOURCED" ]; then
+    export __DF_SELF_SOURCED=1
+    source "$0"
+    exit 0
+fi
+
+cat <<EOF
+
+  ____        _    __ _ _ @yehogwon's
+ |  _ \  ___ | |_ / _(_) | ___  ___ 
+ | | | |/ _ \| __| |_| | |/ _ \/ __|
+ | |_| | (_) | |_|  _| | |  __/\__ \
+ |____/ \___/ \__|_| |_|_|\___||___/
+
+EOF
+
+if ! command -v git &> /dev/null; then echo "ERROR: git not found."; exit; fi
+
+DOT_DIR="$HOME/.dotfiles"
+GIT_REPO="https://github.com/yehogwon/dotfiles"
+git clone --recurse-submodules $GIT_REPO $DOT_DIR
+
+echo "You are all set up!"
+echo "Run the following command to enable the dotfiles:"
+echo "source $DOT_DIR/bin/pull"
