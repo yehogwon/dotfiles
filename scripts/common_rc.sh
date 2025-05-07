@@ -105,6 +105,35 @@ function wwatch() {
     done
 }
 
+function rjump() {
+    src=$1
+    dst=$2
+
+    _temp_dir=$(mktemp -d)
+    _fname=$(basename "$src")
+
+    set -e
+
+    print_yellow "rsyncing ..."
+
+    # TODO: Show the estimated size of the transfer
+    # print_green "Estimating size ..."
+    # rsync -avh --dry-run --stats "ssh -C" "$src" "$_temp_dir"
+
+    # read -p "Continue? (y/n) " -n 1 -r
+    # echo
+    # if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    #     print_red "Aborted."
+    #     return 1
+    # fi
+    
+    print_yellow "Downloading ..."
+    rsync -avz --partial -e "ssh -C" "$src" "$_temp_dir"
+    
+    print_yellow "Uploading ..."
+    rsync -avz --partial -e "ssh -C" "$_temp_dir/$_fname" "$dst"
+}
+
 # nvitop
 if command -v uvx 2>&1 >/dev/null; then
     alias nvitop='uvx nvitop'
