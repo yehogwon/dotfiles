@@ -99,7 +99,7 @@ function wwatch() {
             break
         fi
         clear
-        print_yellow "wwatch: $(date)"
+        print_yellow "wwatch :: $(hostname) :: $(date)"
         eval "$@"
         sleep 1
     done
