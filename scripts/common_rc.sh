@@ -120,10 +120,6 @@ fi
 shell_name="$_shell_name_bak"
 unset _shell_name_bak
 
-if [ "$ONLY_NECESSARY" = 1 ]; then
-    return 0
-fi
-
 # Setup fzf
 if [[ ! "$PATH" == *$HOME/.fzf/bin* ]]; then
   PATH="${PATH:+${PATH}:}$HOME/.fzf/bin"
