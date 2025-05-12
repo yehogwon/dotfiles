@@ -140,8 +140,6 @@ function rjump() {
 }
 
 function git_pull_all() {
-    set -e
-
     git branch -r \
     | grep -v '\->' \
     | sed "s,\x1B\[[0-9;]*[a-zA-Z],,g" \
