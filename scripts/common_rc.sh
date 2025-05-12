@@ -106,13 +106,18 @@ function wwatch() {
 }
 
 function rjump() {
+    set -e
+
     src=$1
     dst=$2
 
+    if [ -z "$src" ] || [ -z "$dst" ]; then
+        print_red "Usage: rjump <src> <dst>"
+        return 1
+    fi
+    
     _temp_dir=$(mktemp -d)
-    _fname=$(basename "$src")
-
-    set -e
+    _fname=$(basename "$src") # TODO: Prevent from being removed by OS
 
     print_yellow "rsyncing ..."
 
@@ -131,7 +136,7 @@ function rjump() {
     rsync -avz --partial -e "ssh -C" "$src" "$_temp_dir"
     
     print_yellow "Uploading ..."
-    rsync -avz --partial -e "ssh -C" "$_temp_dir/$_fname" "$dst"
+    rsync --remove-source-files -avz --partial -e "ssh -C" "$_temp_dir/$_fname" "$dst"
 }
 
 function git_pull_all() {
