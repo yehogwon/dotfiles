@@ -134,6 +134,22 @@ function rjump() {
     rsync -avz --partial -e "ssh -C" "$_temp_dir/$_fname" "$dst"
 }
 
+function git_pull_all() {
+    set -e
+
+    git branch -r \
+    | grep -v '\->' \
+    | sed "s,\x1B\[[0-9;]*[a-zA-Z],,g" \
+    | while read remote; do \
+        git branch --track "${remote#origin/}" "$remote"; \
+    done
+    
+    git fetch --all
+    git pull --all
+}
+
+alias git-pull-all=git_pull_all
+
 # nvitop
 if command -v uvx 2>&1 >/dev/null; then
     alias nvitop='uvx nvitop'
