@@ -3,3 +3,5 @@
 	name = Yeho Gwon
 [core]
 	editor = vim
+[init]
+	defaultBranch = main
