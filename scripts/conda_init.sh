@@ -49,7 +49,7 @@ if [ -n "$CONDA_INSTALLED_PATH" ]; then
         unset __conda_setup
     fi
 else
-    echo "Automatic conda search failed. Please set CONDA_INSTALLED_PATH manually."
+    : # no conda found
 fi
 # <<< conda initialize <<<
 
