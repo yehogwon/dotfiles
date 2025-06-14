@@ -14,6 +14,7 @@ DF_NVIM_INST_PATH="$DF_INST_ROOT/nvim"
 DF_UV_INST_PATH="$DF_INST_ROOT/uv"
 DF_PYTHON_INST_PATH="$DF_INST_ROOT/python"
 DF_NINJA_INST_PATH="$DF_INST_ROOT/ninja"
+DF_ZSH_INST_PATH="$DF_INST_ROOT/zsh"
 
 DF_PYTHON_VERSION="${PYTHON_VERSION:-3.10.17}"
 
@@ -82,10 +83,10 @@ function install_neovim() {
 
     _output_tmp=$(mktemp)
     _tmp_dir=$(mktemp -d)
-    curl -L "https://github.com/neovim/neovim/releases/download/v0.11.0/nvim-$suffix.tar.gz" > $_output_tmp
-    tar -C $_tmp_dir -xzf $_output_tmp
-    rm $_output_tmp
-    mv $_tmp_dir/nvim-$suffix $DF_NVIM_INST_PATH
+    curl -L "https://github.com/neovim/neovim/releases/download/v0.11.0/nvim-$suffix.tar.gz" > $_output_tmp > /dev/null
+    tar -C $_tmp_dir -xzf $_output_tmp > /dev/null
+    rm $_output_tmp > /dev/null
+    mv $_tmp_dir/nvim-$suffix $DF_NVIM_INST_PATH > /dev/null
 
     print_green "Installed neovim. Add the following to your \$PATH:"
     print_bold "$DF_NVIM_INST_PATH/bin"
@@ -119,8 +120,8 @@ function install_tmux() {
         | grep "browser_download_url.*appimage" \
         | cut -d : -f 2,3 \
         | tr -d \" \
-        | wget -O $bin_path -qi - \
-        && chmod +x $bin_path
+        | wget -O $bin_path -qi - > /dev/null \
+        && chmod +x $bin_path > /dev/null
 
     print_green "Installed tmux. Add the following to your \$PATH:"
     print_bold "$DF_TMUX_INST_PATH/bin"
@@ -139,7 +140,7 @@ function install_uv() {
 
     mkdir -p $DF_UV_INST_PATH/bin
 
-    curl -LsSf https://astral.sh/uv/install.sh | env INSTALLER_NO_MODIFY_PATH=1 UV_INSTALL_DIR=$DF_UV_INST_PATH/bin sh
+    curl -LsSf https://astral.sh/uv/install.sh | env INSTALLER_NO_MODIFY_PATH=1 UV_INSTALL_DIR=$DF_UV_INST_PATH/bin sh > /dev/null
     if [ $? -ne 0 ]; then
         print_red "Failed to install uv"
         return 1
@@ -169,25 +170,25 @@ function install_python() {
         if [ "$confirmation" == "yes" ]; then
             _download_path=$(mktemp)
             echo "Downloading at: $_download_path"
-            curl -o $_download_path "https://www.python.org/ftp/python/$DF_PYTHON_VERSION/Python-$DF_PYTHON_VERSION.tgz"
+            curl -o $_download_path "https://www.python.org/ftp/python/$DF_PYTHON_VERSION/Python-$DF_PYTHON_VERSION.tgz" > /dev/null
 
             cd $(dirname $_download_path)
-            tar -xzf $_download_path
+            tar -xzf $_download_path > /dev/null
             rm $_download_path
             cd Python-$DF_PYTHON_VERSION
 
             mkdir -p $DF_PYTHON_INST_PATH
-            ./configure --prefix="$DF_PYTHON_INST_PATH" --enable-optimizations
-            make -j$(nproc)
-            make install
+            ./configure --prefix="$DF_PYTHON_INST_PATH" --enable-optimizations > /dev/null
+            make -j$(nproc) > /dev/null
+            make install > /dev/null
         else
             print_yellow "Then please install uv first."
             return 1
         fi
     fi
 
-    $DF_PYTHON_INST_PATH/bin/python -m ensurepip
-    $DF_PYTHON_INST_PATH/bin/python -m pip install --upgrade pip
+    $DF_PYTHON_INST_PATH/bin/python -m ensurepip > /dev/null
+    $DF_PYTHON_INST_PATH/bin/python -m pip install --upgrade pip > /dev/null
 
     print_green "Installed python. Add the following to your \$PATH:"
     print_bold "$DF_PYTHON_INST_PATH/bin"
@@ -219,13 +220,62 @@ function install_ninja() {
     _url="https://github.com/ninja-build/ninja/releases/latest/download/$fname"
 
     _tmp_dir=$(mktemp -d)
-    wget -O $_tmp_dir/$fname "$_url"
-    mkdir -p $DF_NINJA_INST_PATH/bin
-    unzip $_tmp_dir/$fname -d $DF_NINJA_INST_PATH/bin
-    rm $_tmp_dir/$fname
+    wget -O $_tmp_dir/$fname "$_url" > /dev/null
+    mkdir -p $DF_NINJA_INST_PATH/bin > /dev/null
+    unzip $_tmp_dir/$fname -d $DF_NINJA_INST_PATH/bin > /dev/null
+    rm $_tmp_dir/$fname > /dev/null
 
     print_green "Installed ninja. Add the following to your \$PATH:"
     print_bold "$DF_NINJA_INST_PATH/bin"
+    print_yellow "Note: This dotsync will do this on behalf of you!"
+
+    return 0
+}
+
+function install_zsh() {
+    if [ -d "$DF_ZSH_INST_PATH" ]; then
+        print_red "$DF_ZSH_INST_PATH already exists"
+        exit 1
+    fi
+
+    trap 'return 1' ERR
+
+    os_name="$(uname -s)"
+    if [ "$os_name" != "Darwin" ] && [ "$os_name" != "Linux" ]; then
+        print_red "Unsupported platform: $(uname) :: $(uname -m)"
+        exit 1
+    fi
+
+    _url="https://sourceforge.net/projects/zsh/files/latest/download"
+    _fname=zsh.tar.xz
+
+    _tmp_dir=$(mktemp -d)
+    cd $_tmp_dir
+
+    print_bold "Downloading & extracting zsh..."
+    wget "$_url" -O "$_fname" > /dev/null
+
+    tar -xf zsh.tar.xz > /dev/null
+    cd zsh-*/
+    
+    print_bold "Building configuration..."
+    CFLAGS="-O2 -march=native" ./configure \
+        --prefix="$DF_ZSH_INST_PATH" \
+        --enable-multibyte \
+        --enable-pcre \
+        --enable-zsh-secure-free \
+        --enable-zsh-mem \
+        --with-tcsetpgrp > /dev/null
+    
+    print_bold "Building and installing..."
+    mkdir -p $DF_ZSH_INST_PATH > /dev/null
+    make -j > /dev/null
+    make install > /dev/null
+
+    rm -drf $_tmp_dir > /dev/null
+
+    print_green "Installed ninja. Add the following to your \$PATH:"
+    print_bold "$DF_ZSH_INST_PATH/bin"
     print_yellow "Note: This dotsync will do this on behalf of you!"
 
     return 0
@@ -240,6 +290,7 @@ function uninstall() {
             python) package_dir="$DF_PYTHON_INST_PATH" ;;
             uv) package_dir="$DF_UV_INST_PATH" ;;
             ninja) package_dir="$DF_NINJA_INST_PATH" ;;
+            zsh) package_dir="$DF_ZSH_INST_PATH" ;;
         esac
 
         if [ "$package_dir" == "none" ]; then
@@ -285,6 +336,7 @@ else
             uv) install_uv ;;
             python) install_python ;;
             ninja) install_ninja ;;
+            zsh) install_zsh ;;
             *) print_red "Unknown package: $package" && continue ;;
         esac
         if [ $? -ne 0 ]; then
