@@ -210,3 +210,6 @@ fi
 if [ -n "${FLUTTER_HOME}" ]; then
     export PATH="$FLUTTER_HOME/bin:$PATH"
 fi
+
+export EDITOR=vim
+
