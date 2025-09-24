@@ -145,6 +145,7 @@ function load_tmux() {
     ln -s "$DOTFILES_DIR/tmux/powerline/" "$HOME/.config/tmux-powerline"
     
     rm -f "$HOME/.tmux/tmux.keybinding.conf"
+    mkdir -p "$HOME/.tmux"
     ln -s "$DOTFILES_DIR/tmux/tmux.keybinding.conf" "$HOME/.tmux/tmux.keybinding.conf"
 
     rm -f "$HOME/.tmux.conf"
