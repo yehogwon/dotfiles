@@ -15,6 +15,7 @@ DF_UV_INST_PATH="$DF_INST_ROOT/uv"
 DF_PYTHON_INST_PATH="$DF_INST_ROOT/python"
 DF_NINJA_INST_PATH="$DF_INST_ROOT/ninja"
 DF_ZSH_INST_PATH="$DF_INST_ROOT/zsh"
+DF_NODEJS_INST_PATH="$DF_INST_ROOT/nodejs"
 
 DF_PYTHON_VERSION="${PYTHON_VERSION:-3.10.17}"
 
@@ -281,6 +282,56 @@ function install_zsh() {
     return 0
 }
 
+function install_nodejs() {
+    if [ -d "$DF_NODEJS_INST_PATH" ]; then
+        print_red "$DF_NODEJS_INST_PATH already exists"
+        exit 1
+    fi
+
+    trap 'return 1' ERR
+    
+    print_green "Installing nodejs..."
+
+    mkdir -p $DF_NODEJS_INST_PATH
+
+    if is_linux; then
+        if [ "$(uname -m)" == "arm64" ]; then
+            suffix="linux-arm64.tar.xz"
+        elif [ "$(uname -m)" == "x86_64" ]; then
+            suffix="linux-x64.tar.xz"
+        else
+            print_red "Unsupported platform: $(uname) :: $(uname -m)"
+            exit 1
+        fi
+    else
+        print_red "Unsupported platform: $(uname) :: $(uname -m)"
+    fi
+
+    base='https://nodejs.org/download/release/latest/'
+    fname=$(curl -s "$base" \
+        | grep -oE 'node-v[0-9]+\.[0-9]+\.[0-9]+-'$suffix \
+        | head -n1)
+    _fname="arch.tar.xz"
+    wget "${base}${fname}" -O $DF_NODEJS_INST_PATH/$_fname > /dev/null 2>&1
+
+    tar -xJf $DF_NODEJS_INST_PATH/$_fname -C $DF_NODEJS_INST_PATH > /dev/null
+    rm $DF_NODEJS_INST_PATH/$_fname > /dev/null
+
+    _top_dir=$(basename $fname .tar.xz)
+    mv $DF_NODEJS_INST_PATH/$_top_dir/* $DF_NODEJS_INST_PATH/
+    rm -d $DF_NODEJS_INST_PATH/$_top_dir
+
+    ln -s $DF_NODEJS_INST_PATH/bin/node $DF_NODEJS_INST_PATH/bin/node
+    ln -s $DF_NODEJS_INST_PATH/bin/npm $DF_NODEJS_INST_PATH/bin/npm
+    ln -s $DF_NODEJS_INST_PATH/bin/npx $DF_NODEJS_INST_PATH/bin/npx
+
+    print_green "Installed nodejs. Add the following to your \$PATH:"
+    print_bold "$DF_NODEJS_INST_PATH/bin"
+    print_yellow "Note: This dotsync will do this on behalf of you!"
+    return 0
+}
+
+
 function uninstall() {
     for package in "$@"; do
         package_dir="none"
@@ -291,6 +342,7 @@ function uninstall() {
             uv) package_dir="$DF_UV_INST_PATH" ;;
             ninja) package_dir="$DF_NINJA_INST_PATH" ;;
             zsh) package_dir="$DF_ZSH_INST_PATH" ;;
+            nodejs) package_dir="$DF_NODEJS_INST_PATH" ;;
         esac
 
         if [ "$package_dir" == "none" ]; then
@@ -337,6 +389,7 @@ else
             python) install_python ;;
             ninja) install_ninja ;;
             zsh) install_zsh ;;
+            nodejs) install_nodejs ;;
             *) print_red "Unknown package: $package" && continue ;;
         esac
         if [ $? -ne 0 ]; then
