@@ -307,6 +307,7 @@ function install_nodejs() {
         print_red "Unsupported platform: $(uname) :: $(uname -m)"
     fi
 
+    print_green "Downloading nodejs..."
     base='https://nodejs.org/download/release/latest/'
     fname=$(curl -s "$base" \
         | grep -oE 'node-v[0-9]+\.[0-9]+\.[0-9]+-'$suffix \
@@ -314,16 +315,13 @@ function install_nodejs() {
     _fname="arch.tar.xz"
     wget "${base}${fname}" -O $DF_NODEJS_INST_PATH/$_fname > /dev/null 2>&1
 
+    print_green "Extracting nodejs..."
     tar -xJf $DF_NODEJS_INST_PATH/$_fname -C $DF_NODEJS_INST_PATH > /dev/null
     rm $DF_NODEJS_INST_PATH/$_fname > /dev/null
 
     _top_dir=$(basename $fname .tar.xz)
     mv $DF_NODEJS_INST_PATH/$_top_dir/* $DF_NODEJS_INST_PATH/
     rm -d $DF_NODEJS_INST_PATH/$_top_dir
-
-    ln -s $DF_NODEJS_INST_PATH/bin/node $DF_NODEJS_INST_PATH/bin/node
-    ln -s $DF_NODEJS_INST_PATH/bin/npm $DF_NODEJS_INST_PATH/bin/npm
-    ln -s $DF_NODEJS_INST_PATH/bin/npx $DF_NODEJS_INST_PATH/bin/npx
 
     print_green "Installed nodejs. Add the following to your \$PATH:"
     print_bold "$DF_NODEJS_INST_PATH/bin"
