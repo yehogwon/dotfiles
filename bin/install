@@ -355,7 +355,7 @@ function install_aria2() {
         | cut -d : -f 2,3 \
         | tr -d \"
     )
-    wget $download_url -qi - > /dev/null
+    wget $download_url -q - > /dev/null
 
     fname=$(basename $download_url)
     root_dir=$(basename $fname .tar.xz)
