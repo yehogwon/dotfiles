@@ -16,6 +16,7 @@ DF_PYTHON_INST_PATH="$DF_INST_ROOT/python"
 DF_NINJA_INST_PATH="$DF_INST_ROOT/ninja"
 DF_ZSH_INST_PATH="$DF_INST_ROOT/zsh"
 DF_NODEJS_INST_PATH="$DF_INST_ROOT/nodejs"
+DF_ARIA2_INST_PATH="$DF_INST_ROOT/aria2"
 
 DF_PYTHON_VERSION="${PYTHON_VERSION:-3.10.17}"
 
@@ -330,6 +331,56 @@ function install_nodejs() {
 }
 
 
+function install_aria2() {
+    if [ -d "$DF_ARIA2_INST_PATH" ]; then
+        print_red "$DF_ARIA2_INST_PATH already exists"
+        exit 1
+    fi
+
+    trap 'return 1' ERR
+
+    print_green "Installing aria2..."
+
+    mkdir -p $DF_ARIA2_INST_PATH
+
+    if [ ! is_linux ]; then
+        print_red "Unsupported platform: $(uname) :: $(uname -m)"
+        exit 1
+    fi
+
+    print_green "Downloading aria2..."
+    cd $DF_ARIA2_INST_PATH
+    download_url=$(curl -s https://api.github.com/repos/aria2/aria2/releases/latest \
+        | grep "browser_download_url.*tar.xz" \
+        | cut -d : -f 2,3 \
+        | tr -d \"
+    )
+    wget $download_url -qi - > /dev/null
+
+    fname=$(basename $download_url)
+    root_dir=$(basename $fname .tar.xz)
+
+    tar -xJf $fname > /dev/null
+    rm $fname > /dev/null
+
+    mkdir bin > /dev/null
+    cd $root_dir
+
+    ./configure ARIA2_STATIC=yes > /dev/null
+    make -j > /dev/null
+
+    mv src/aria2c ../bin/ > /dev/null
+    cd ..
+    rm -drf $root_dir > /dev/null
+
+    print_green "Installed aria2. Add the following to your \$PATH:"
+    print_bold "$DF_ARIA2_INST_PATH/bin"
+    print_yellow "Note: This dotsync will do this on behalf of you!"
+
+    return 0
+}
+
+
 function uninstall() {
     for package in "$@"; do
         package_dir="none"
@@ -341,6 +392,7 @@ function uninstall() {
             ninja) package_dir="$DF_NINJA_INST_PATH" ;;
             zsh) package_dir="$DF_ZSH_INST_PATH" ;;
             nodejs) package_dir="$DF_NODEJS_INST_PATH" ;;
+            aria2) package_dir="$DF_ARIA2_INST_PATH" ;;
         esac
 
         if [ "$package_dir" == "none" ]; then
@@ -388,6 +440,7 @@ else
             ninja) install_ninja ;;
             zsh) install_zsh ;;
             nodejs) install_nodejs ;;
+            aria2) install_aria2 ;;
             *) print_red "Unknown package: $package" && continue ;;
         esac
         if [ $? -ne 0 ]; then
