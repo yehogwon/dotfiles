@@ -71,39 +71,52 @@ if [[ "$(hostname)" =~ ^kwak[0-9]+$ ]]; then
     alias ssh='ssh -p10022'
 fi
 
-function wwatch() {
-    if [ -z "$1" ]; then
-        print_red "wwatch: no command provided"
-        return 1
+wwatch() {
+  local interval=1 alt=1
+
+  # options
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      -n|--interval) interval="$2"; shift 2 ;;
+      --no-alt)      alt=0; shift ;;
+      --)            shift; break ;;
+      *)             break ;;
+    esac
+  done
+
+  # require a command
+  if [[ $# -eq 0 ]]; then
+    printf 'usage: wwatch [-n SEC] [--no-alt] -- <cmd> [args...]\n' >&2
+    return 1
+  fi
+
+  # enter alternate screen (if requested)
+  if (( alt )); then
+    # prefer terminfo where available
+    if command -v tput >/dev/null 2>&1; then tput smcup; else printf '\e[?1049h'; fi
+  fi
+
+  # cleanup
+  local interrupted=0
+  cleanup() {
+    interrupted=1
+    if (( alt )); then
+      if command -v tput >/dev/null 2>&1; then tput rmcup; else printf '\e[?1049l'; fi
     fi
+    stty sane
+  }
+  trap cleanup INT TERM HUP EXIT
 
-    # Use alternate screen buffer
-    echo -e "\e[?1049h"
-
-    # Internal flag to break the loop
-    interrupted=false
-
-    # Cleanup handler
-    cleanup() {
-        interrupted=true
-        echo -e "\e[?1049l"
-        stty sane
-    }
-
-    # Set traps
-    trap cleanup INT EXIT HUP
-
-    # Main loop
-    while true; do
-        if $interrupted; then
-            break
-        fi
-        clear
-        print_yellow "wwatch :: $(hostname) :: $(date)"
-        eval "$@"
-        sleep 1
-    done
+  # main loop
+  while (( !interrupted )); do
+    printf '\033[H\033[2J'
+    print_yellow 'wwatch :: %s :: %s\n' "$(hostname)" "$(date)"
+    printf '\n'
+    eval "$@"
+    for ((i=0; i<interval && !interrupted; i++)); do sleep 1; done
+  done
 }
+
 
 function rjump() {
     set -e
