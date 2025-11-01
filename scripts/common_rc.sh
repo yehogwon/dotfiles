@@ -110,7 +110,7 @@ wwatch() {
   # main loop
   while (( !interrupted )); do
     printf '\033[H\033[2J'
-    print_yellow 'wwatch :: %s :: %s\n' "$(hostname)" "$(date)"
+    print_yellow "wwatch :: $(hostname) :: $(date)"
     printf '\n'
     eval "$@"
     for ((i=0; i<interval && !interrupted; i++)); do sleep 1; done
