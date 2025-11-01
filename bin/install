@@ -17,6 +17,7 @@ DF_NINJA_INST_PATH="$DF_INST_ROOT/ninja"
 DF_ZSH_INST_PATH="$DF_INST_ROOT/zsh"
 DF_NODEJS_INST_PATH="$DF_INST_ROOT/nodejs"
 DF_ARIA2_INST_PATH="$DF_INST_ROOT/aria2"
+DF_GITLFS_INST_PATH="$DF_INST_ROOT/git-lfs"
 
 DF_PYTHON_VERSION="${PYTHON_VERSION:-3.10.17}"
 
@@ -383,6 +384,58 @@ function install_aria2() {
 }
 
 
+function install_gitlfs() {
+    if [ -d "$DF_GITLFS_INST_PATH" ]; then
+        print_red "$DF_GITLFS_INST_PATH already exists"
+        exit 1
+    fi
+
+    trap 'return 1' ERR
+
+    print_green "Installing git-lfs..."
+
+    mkdir -p $DF_GITLFS_INST_PATH
+
+    if [ ! is_linux ]; then
+        print_red "Unsupported platform: $(uname) :: $(uname -m)"
+        exit 1
+    fi
+
+    print_green "Downloading git-lfs..."
+    cd $DF_GITLFS_INST_PATH
+    download_url=$(curl -s https://api.github.com/repos/git-lfs/git-lfs/releases/latest \
+        | grep -E "https:\/\/github\.com\/git-lfs\/git-lfs\/releases\/download\/.*\/git-lfs-linux-amd64.*\.tar\.gz" \
+        | cut -d : -f 2,3 \
+        | tr -d \" \
+        | xargs
+    )
+    wget "$download_url" > /dev/null
+
+    fname=$(basename $download_url)
+    root_dir=$(echo $fname \
+        | sed -E 's/-linux-amd64-v([0-9.]+)\.tar\.gz/-\1/'
+    )
+
+    print_bold "Extracting git-lfs..."
+    tar -xzf $fname > /dev/null
+    rm $fname > /dev/null
+
+    mkdir bin > /dev/null
+    mv $root_dir/git-lfs bin/git-lfs > /dev/null
+    chmod +x bin/git-lfs > /dev/null
+    rm -drf $root_dir > /dev/null
+    
+    print_yellow "To enable git-lfs, run the following command:"
+    print_bold " \$ git lfs install --local"
+
+    print_green "Installed git-lfs. Add the following to your \$PATH:"
+    print_bold "$DF_GITLFS_INST_PATH/bin"
+    print_yellow "Note: This dotsync will do this on behalf of you!"
+
+    return 0
+}
+
+
 function uninstall() {
     for package in "$@"; do
         package_dir="none"
@@ -395,6 +448,7 @@ function uninstall() {
             zsh) package_dir="$DF_ZSH_INST_PATH" ;;
             nodejs) package_dir="$DF_NODEJS_INST_PATH" ;;
             aria2) package_dir="$DF_ARIA2_INST_PATH" ;;
+            gitlfs) package_dir="$DF_GITLFS_INST_PATH" ;;
         esac
 
         if [ "$package_dir" == "none" ]; then
@@ -443,6 +497,7 @@ else
             zsh) install_zsh ;;
             nodejs) install_nodejs ;;
             aria2) install_aria2 ;;
+            gitlfs) install_gitlfs ;;
             *) print_red "Unknown package: $package" && continue ;;
         esac
         if [ $? -ne 0 ]; then
