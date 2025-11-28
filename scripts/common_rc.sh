@@ -165,23 +165,34 @@ function git_pull_all() {
 
 alias git-pull-all=git_pull_all
 
+function _slurm_get_field() {
+    local job_id="$1"
+    local field="$2"
+
+    local result
+    result=$(scontrol show job "$job_id" 2>/dev/null | awk -F= -v key="$field" '$0 ~ key {print $2}')
+    local sc_status=${PIPESTATUS[0]}
+
+    if [ $sc_status -ne 0 ]; then
+        print_red "scontrol failed for job $job_id"
+        return 1
+    fi
+
+    if [ -z "$result" ]; then
+        print_red "Field $field not found for job $job_id"
+        return 1
+    fi
+
+    echo "$result"
+    return 0
+}
+
 function slurm_out() {
     if [ "$#" -ne 1 ]; then
         print_red "Usage: slurm_out <job_id>"
         return 1
     fi
-
-    job_id=$1
-    out_file=$(scontrol show job $job_id | awk -F= '/StdOut/{print $2}')
-    status=${PIPESTATUS[0]}
-
-    if [ $status -ne 0 ]; then
-        print_red "Failed to get output file for job $job_id"
-        return 1
-    else
-        echo "$out_file"
-        return 0
-    fi
+    _slurm_get_field "$1" "StdOut"
 }
 
 function slurm_err() {
@@ -189,17 +200,28 @@ function slurm_err() {
         print_red "Usage: slurm_err <job_id>"
         return 1
     fi
+    _slurm_get_field "$1" "StdErr"
+}
 
-    job_id=$1
-    out_file=$(scontrol show job $job_id | awk -F= '/StdErr/{print $2}')
-    status=${PIPESTATUS[0]}
+function _show_file() {
+    local mode="$1"  # cat or tail
+    local job_id="$2"
+    local file_func="$3"
 
-    if [ $status -ne 0 ]; then
-        print_red "Failed to get error file for job $job_id"
+    local file
+    file=$($file_func "$job_id") || return 1
+
+    if [ ! -f "$file" ]; then
+        print_red "File does not exist: $file"
         return 1
+    fi
+
+    if [ "$mode" = "cat" ]; then
+        print_green "Displaying file: $file"
+        cat "$file"
     else
-        echo "$out_file"
-        return 0
+        print_green "Tracking file: $file"
+        tail -f "$file"
     fi
 }
 
@@ -208,18 +230,7 @@ function cat_out() {
         print_red "Usage: cat_out <job_id>"
         return 1
     fi
-
-    job_id=$1
-    out_file=$(slurm_out $job_id)
-
-    if [ $? -ne 0 ]; then
-        print_red "Failed to get output file for job $job_id"
-        return 1
-    else
-        print_green "Displaying output file: $out_file"
-        cat "$out_file"
-        return 0
-    fi
+    _show_file "cat" "$1" slurm_out
 }
 
 function track_out() {
@@ -227,18 +238,7 @@ function track_out() {
         print_red "Usage: track_out <job_id>"
         return 1
     fi
-
-    job_id=$1
-    out_file=$(slurm_out $job_id)
-
-    if [ $? -ne 0 ]; then
-        print_red "Failed to get output file for job $job_id"
-        return 1
-    else
-        print_green "Tracking output file: $out_file"
-        tail -f "$out_file"
-        return 0
-    fi
+    _show_file "tail" "$1" slurm_out
 }
 
 function cat_err() {
@@ -246,18 +246,7 @@ function cat_err() {
         print_red "Usage: cat_err <job_id>"
         return 1
     fi
-
-    job_id=$1
-    err_file=$(slurm_err $job_id)
-
-    if [ $? -ne 0 ]; then
-        print_red "Failed to get error file for job $job_id"
-        return 1
-    else
-        print_green "Displaying error file: $err_file"
-        cat "$err_file"
-        return 0
-    fi
+    _show_file "cat" "$1" slurm_err
 }
 
 function track_err() {
@@ -265,18 +254,7 @@ function track_err() {
         print_red "Usage: track_err <job_id>"
         return 1
     fi
-
-    job_id=$1
-    err_file=$(slurm_err $job_id)
-
-    if [ $? -ne 0 ]; then
-        print_red "Failed to get error file for job $job_id"
-        return 1
-    else
-        print_green "Tracking error file: $err_file"
-        tail -f "$err_file"
-        return 0
-    fi
+    _show_file "tail" "$1" slurm_err
 }
 
 # nvitop
