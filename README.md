@@ -26,7 +26,7 @@ The following dotfiles are included:
 You can install the `dotfiles` by running the following command:
 
 ```bash
-$ curl -fsSL https://github.com/yehogwon/dotfiles/tree/main/bin/setup | bash
+$ curl -fsSL https://raw.githubusercontent.com/yehogwon/dotfiles/main/bin/setup | bash
 ```
 
 ## How to sync
