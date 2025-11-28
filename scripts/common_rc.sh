@@ -173,8 +173,9 @@ function slurm_out() {
 
     job_id=$1
     out_file=$(scontrol show job $job_id | awk -F= '/StdOut/{print $2}')
+    status=${PIPESTATUS[0]}
 
-    if [ $? -ne 0 ]; then
+    if [ $status -ne 0 ]; then
         print_red "Failed to get output file for job $job_id"
         return 1
     else
@@ -191,9 +192,10 @@ function slurm_err() {
 
     job_id=$1
     out_file=$(scontrol show job $job_id | awk -F= '/StdErr/{print $2}')
+    status=${PIPESTATUS[0]}
 
-    if [ $? -ne 0 ]; then
-        print_red "Failed to get output file for job $job_id"
+    if [ $status -ne 0 ]; then
+        print_red "Failed to get error file for job $job_id"
         return 1
     else
         echo "$out_file"
@@ -211,6 +213,7 @@ function cat_out() {
     out_file=$(slurm_out $job_id)
 
     if [ $? -ne 0 ]; then
+        print_red "Failed to get output file for job $job_id"
         return 1
     else
         print_green "Displaying output file: $out_file"
@@ -229,6 +232,7 @@ function track_out() {
     out_file=$(slurm_out $job_id)
 
     if [ $? -ne 0 ]; then
+        print_red "Failed to get output file for job $job_id"
         return 1
     else
         print_green "Tracking output file: $out_file"
@@ -247,6 +251,7 @@ function cat_err() {
     err_file=$(slurm_err $job_id)
 
     if [ $? -ne 0 ]; then
+        print_red "Failed to get error file for job $job_id"
         return 1
     else
         print_green "Displaying error file: $err_file"
@@ -265,6 +270,7 @@ function track_err() {
     err_file=$(slurm_err $job_id)
 
     if [ $? -ne 0 ]; then
+        print_red "Failed to get error file for job $job_id"
         return 1
     else
         print_green "Tracking error file: $err_file"
