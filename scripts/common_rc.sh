@@ -165,6 +165,114 @@ function git_pull_all() {
 
 alias git-pull-all=git_pull_all
 
+function slurm_out() {
+    if [ "$#" -ne 1 ]; then
+        print_red "Usage: slurm_out <job_id>"
+        return 1
+    fi
+
+    job_id=$1
+    out_file=$(scontrol show job $job_id | awk -F= '/StdOut/{print $2}')
+
+    if [ $? -ne 0 ]; then
+        print_red "Failed to get output file for job $job_id"
+        return 1
+    else
+        echo "$out_file"
+        return 0
+    fi
+}
+
+function slurm_err() {
+    if [ "$#" -ne 1 ]; then
+        print_red "Usage: slurm_err <job_id>"
+        return 1
+    fi
+
+    job_id=$1
+    out_file=$(scontrol show job $job_id | awk -F= '/StdErr/{print $2}')
+
+    if [ $? -ne 0 ]; then
+        print_red "Failed to get output file for job $job_id"
+        return 1
+    else
+        echo "$out_file"
+        return 0
+    fi
+}
+
+function cat_out() {
+    if [ "$#" -ne 1 ]; then
+        print_red "Usage: cat_out <job_id>"
+        return 1
+    fi
+
+    job_id=$1
+    out_file=$(slurm_out $job_id)
+
+    if [ $? -ne 0 ]; then
+        return 1
+    else
+        print_green "Displaying output file: $out_file"
+        cat "$out_file"
+        return 0
+    fi
+}
+
+function track_out() {
+    if [ "$#" -ne 1 ]; then
+        print_red "Usage: track_out <job_id>"
+        return 1
+    fi
+
+    job_id=$1
+    out_file=$(slurm_out $job_id)
+
+    if [ $? -ne 0 ]; then
+        return 1
+    else
+        print_green "Tracking output file: $out_file"
+        tail -f "$out_file"
+        return 0
+    fi
+}
+
+function cat_err() {
+    if [ "$#" -ne 1 ]; then
+        print_red "Usage: cat_err <job_id>"
+        return 1
+    fi
+
+    job_id=$1
+    err_file=$(slurm_err $job_id)
+
+    if [ $? -ne 0 ]; then
+        return 1
+    else
+        print_green "Displaying error file: $err_file"
+        cat "$err_file"
+        return 0
+    fi
+}
+
+function track_err() {
+    if [ "$#" -ne 1 ]; then
+        print_red "Usage: track_err <job_id>"
+        return 1
+    fi
+
+    job_id=$1
+    err_file=$(slurm_err $job_id)
+
+    if [ $? -ne 0 ]; then
+        return 1
+    else
+        print_green "Tracking error file: $err_file"
+        tail -f "$err_file"
+        return 0
+    fi
+}
+
 # nvitop
 if command -v uvx 2>&1 >/dev/null; then
     alias nvitop='uvx nvitop'
