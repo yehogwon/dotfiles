@@ -98,18 +98,20 @@ wwatch() {
   local interrupted=0
   cleanup() {
     interrupted=1
+    printf '\e[?25h'  # restore cursor
     if (( alt )); then
       if command -v tput >/dev/null 2>&1; then tput rmcup; else printf '\e[?1049l'; fi
     fi
   }
   trap cleanup INT TERM HUP EXIT
+  printf '\e[?25l'  # hide cursor
 
   # main loop
   while (( !interrupted )); do
-    printf '\033[H'
+    printf '\033[H'  # move cursor to the top-left
     print_yellow "wwatch :: $(hostname) :: $(date)"
     eval "$@"
-    printf '\033[J'
+    printf '\033[J'  # clear below cursor
 
     for ((i=0; i<interval && !interrupted; i++)); do sleep 1; done
   done
