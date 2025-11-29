@@ -92,26 +92,25 @@ wwatch() {
 
   # enter alternate screen (if requested)
   if (( alt )); then
-    # prefer terminfo where available
     if command -v tput >/dev/null 2>&1; then tput smcup; else printf '\e[?1049h'; fi
   fi
 
-  # cleanup
   local interrupted=0
   cleanup() {
     interrupted=1
     if (( alt )); then
       if command -v tput >/dev/null 2>&1; then tput rmcup; else printf '\e[?1049l'; fi
     fi
-    stty sane
   }
   trap cleanup INT TERM HUP EXIT
 
   # main loop
   while (( !interrupted )); do
-    printf '\033[H\033[2J'
+    printf '\033[H'
     print_yellow "wwatch :: $(hostname) :: $(date)"
     eval "$@"
+    printf '\033[J'
+
     for ((i=0; i<interval && !interrupted; i++)); do sleep 1; done
   done
 }
