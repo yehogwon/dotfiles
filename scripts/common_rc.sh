@@ -109,6 +109,7 @@ wwatch() {
   # main loop
   while (( !interrupted )); do
     printf '\033[H'  # move cursor to the top-left
+    printf '\033[K'  # clear rest of the line after header
     print_yellow "wwatch :: $(hostname) :: $(date)"
     eval "$@"
     printf '\033[J'  # clear below cursor
