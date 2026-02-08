@@ -101,6 +101,9 @@ function load_bash() {
     rm -f "$HOME/.bashrc"
     ln -s "$DOTFILES_DIR/bash/bashrc" "$HOME/.bashrc"
 
+    rm -f "$HOME/.bash_profile"
+    ln -s "$DOTFILES_DIR/bash/bash_profile" "$HOME/.bash_profile"
+
     rm -f "$HOME/.inputrc"
     ln -s "$DOTFILES_DIR/bash/inputrc" "$HOME/.inputrc"
     
