@@ -18,6 +18,7 @@ DF_ZSH_INST_PATH="$DF_INST_ROOT/zsh"
 DF_NODEJS_INST_PATH="$DF_INST_ROOT/nodejs"
 DF_ARIA2_INST_PATH="$DF_INST_ROOT/aria2"
 DF_GITLFS_INST_PATH="$DF_INST_ROOT/git-lfs"
+DF_GH_INST_PATH="$DF_INST_ROOT/gh"  # github cli
 
 DF_PYTHON_VERSION="${PYTHON_VERSION:-3.10.17}"
 
@@ -436,6 +437,59 @@ function install_gitlfs() {
 }
 
 
+function install_gh() {
+    if [ -d "$DF_GH_INST_PATH" ]; then
+        print_red "$DF_GH_INST_PATH already exists"
+        exit 1
+    fi
+
+    trap 'return 1' ERR
+
+    print_green "Installing gh..."
+
+    mkdir -p $DF_GH_INST_PATH
+
+    if [ ! is_linux ]; then
+        print_red "Unsupported platform: $(uname) :: $(uname -m)"
+        exit 1
+    fi
+
+    if [ "$(uname -m)" == "arm64" ]; then
+        arch="arm64"
+    else
+        arch="amd64"
+    fi
+
+    print_green "Downloading gh..."
+    cd $DF_GH_INST_PATH
+    download_url=$(curl -s https://api.github.com/repos/cli/cli/releases/latest \
+        | grep -E "https:\/\/github.com\/cli\/cli\/releases\/download\/.+\/gh.+${arch}\.tar\.gz" \
+        | cut -d : -f 2,3 \
+        | tr -d \" \
+        | xargs
+    )
+
+    _tmp_dir=$(mktemp -d)
+    wget "$download_url" -P $_tmp_dir > /dev/null
+
+    print_bold "Extracting gh..."
+    fname=$(basename $download_url)
+    tar_path="$_tmp_dir/$fname"
+
+    # --strip-components=1 since the tar.gz file compressed a directory
+    tar -xzf $tar_path -C $DF_GH_INST_PATH --strip-components=1 >> /dev/null
+
+    chmod +x $DF_GH_INST_PATH/bin/gh
+    rm -drf $_tmp_dir >> /dev/null
+
+    print_green "Installed gh. Add the following to your \$PATH:"
+    print_bold "$DF_GH_INST_PATH/bin"
+    print_yellow "Note: This dotsync will do this on behalf of you!"
+
+    return 0
+}
+
+
 function uninstall() {
     for package in "$@"; do
         package_dir="none"
@@ -449,6 +503,7 @@ function uninstall() {
             nodejs) package_dir="$DF_NODEJS_INST_PATH" ;;
             aria2) package_dir="$DF_ARIA2_INST_PATH" ;;
             gitlfs) package_dir="$DF_GITLFS_INST_PATH" ;;
+            gh) package_dir="$DF_GH_INST_PATH" ;;
         esac
 
         if [ "$package_dir" == "none" ]; then
@@ -498,6 +553,7 @@ else
             nodejs) install_nodejs ;;
             aria2) install_aria2 ;;
             gitlfs) install_gitlfs ;;
+            gh) install_gh ;;
             *) print_red "Unknown package: $package" && continue ;;
         esac
         if [ $? -ne 0 ]; then

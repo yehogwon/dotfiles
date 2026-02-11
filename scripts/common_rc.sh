@@ -52,20 +52,22 @@ alias tns='tmux new-session -s'
 alias ta='tmux attach'
 alias tat='tmux attach -t'
 
-alias squeue='squeue -o   "%8i %30j  %9T %12u %8g %9P %4D %8R %4C %13b %8m %11l %11L %p"'
+alias squeue='squeue -o   "%8i %30j  %9T %12u %8g %9P %4D %12R %4C %13b %8m %11l %11L %p"'
 alias sq='squeue'
 alias sqyh='squeue -u yehok117'
 alias sqw='squeue -w'
 
-alias sq2080ti='squeue -p 2080ti'
-alias sq3090='squeue -p 3090'
+alias sq2080ti='squeue -p RTX2080Ti'
+alias sq3090='squeue -p RTX3090'
 alias sqa5000='squeue -p A5000'
 alias sqa6000='squeue -p A6000'
-alias sqa100p='squeue -p A100-pci'
+alias sqa100p='squeue -p A100-40GB-PCIe'
 alias sq4a100='squeue -p 4A100'
 alias sqa10040='squeue -p A100-40GB'
 alias sqa10080='squeue -p A100-80GB'
 alias sql40s='squeue -p L40S'
+alias sq6000ada='squeue -p RTX6000ADA'
+alias sqh200='squeue -p H200'
 
 if [[ "$(hostname)" =~ ^kwak[0-9]+$ ]]; then
     alias ssh='ssh -p10022'
@@ -92,26 +94,28 @@ wwatch() {
 
   # enter alternate screen (if requested)
   if (( alt )); then
-    # prefer terminfo where available
     if command -v tput >/dev/null 2>&1; then tput smcup; else printf '\e[?1049h'; fi
   fi
 
-  # cleanup
   local interrupted=0
   cleanup() {
     interrupted=1
+    printf '\e[?25h'  # restore cursor
     if (( alt )); then
       if command -v tput >/dev/null 2>&1; then tput rmcup; else printf '\e[?1049l'; fi
     fi
-    stty sane
   }
   trap cleanup INT TERM HUP EXIT
+  printf '\e[?25l'  # hide cursor
 
   # main loop
   while (( !interrupted )); do
-    printf '\033[H\033[2J'
+    printf '\033[H'  # move cursor to the top-left
+    printf '\033[K'  # clear rest of the line after header
     print_yellow "wwatch :: $(hostname) :: $(date)"
     eval "$@"
+    printf '\033[J'  # clear below cursor
+
     for ((i=0; i<interval && !interrupted; i++)); do sleep 1; done
   done
 }
@@ -164,6 +168,98 @@ function git_pull_all() {
 }
 
 alias git-pull-all=git_pull_all
+
+function _slurm_get_field() {
+    local job_id="$1"
+    local field="$2"
+
+    local result
+    result=$(scontrol show job "$job_id" 2>/dev/null | awk -F= -v key="$field" '$0 ~ key {print $2}')
+    local sc_status=${PIPESTATUS[0]}
+
+    if [ $sc_status -ne 0 ]; then
+        print_red "scontrol failed for job $job_id"
+        return 1
+    fi
+
+    if [ -z "$result" ]; then
+        print_red "Field $field not found for job $job_id"
+        return 1
+    fi
+
+    echo "$result"
+    return 0
+}
+
+function slurm_out() {
+    if [ "$#" -ne 1 ]; then
+        print_red "Usage: slurm_out <job_id>"
+        return 1
+    fi
+    _slurm_get_field "$1" "StdOut"
+}
+
+function slurm_err() {
+    if [ "$#" -ne 1 ]; then
+        print_red "Usage: slurm_err <job_id>"
+        return 1
+    fi
+    _slurm_get_field "$1" "StdErr"
+}
+
+function _show_file() {
+    local mode="$1"  # cat or tail
+    local job_id="$2"
+    local file_func="$3"
+
+    local file
+    file=$($file_func "$job_id") || return 1
+
+    if [ ! -f "$file" ]; then
+        print_red "File does not exist: $file"
+        return 1
+    fi
+
+    if [ "$mode" = "cat" ]; then
+        print_green "Displaying file: $file"
+        cat "$file"
+    else
+        print_green "Tracking file: $file"
+        tail -f "$file"
+    fi
+}
+
+function cat_out() {
+    if [ "$#" -ne 1 ]; then
+        print_red "Usage: cat_out <job_id>"
+        return 1
+    fi
+    _show_file "cat" "$1" slurm_out
+}
+
+function track_out() {
+    if [ "$#" -ne 1 ]; then
+        print_red "Usage: track_out <job_id>"
+        return 1
+    fi
+    _show_file "tail" "$1" slurm_out
+}
+
+function cat_err() {
+    if [ "$#" -ne 1 ]; then
+        print_red "Usage: cat_err <job_id>"
+        return 1
+    fi
+    _show_file "cat" "$1" slurm_err
+}
+
+function track_err() {
+    if [ "$#" -ne 1 ]; then
+        print_red "Usage: track_err <job_id>"
+        return 1
+    fi
+    _show_file "tail" "$1" slurm_err
+}
 
 # nvitop
 if command -v uvx 2>&1 >/dev/null; then
