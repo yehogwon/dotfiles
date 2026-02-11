@@ -223,5 +223,10 @@ if [ -n "${FLUTTER_HOME}" ]; then
     export PATH="$FLUTTER_HOME/bin:$PATH"
 fi
 
+# opencode
+if [ -d "$HOME/.opencode" ]; then
+    export PATH="$HOME/.opencode/bin:$PATH"
+fi
+
 export EDITOR=vim
 export PATH="$HOME/.local/bin:$PATH"
