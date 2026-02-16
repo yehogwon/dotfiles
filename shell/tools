@@ -1,70 +1,115 @@
-# TODO: implement a better version of wwatch
-wwatch() {
-  local interval=1 alt=1
+_print_color() {
+    local color_code="$1"
+    shift
+    printf '\033[1;%sm%s\033[0m\n' "$color_code" "$*"
+}
 
-  # options
-  while [[ $# -gt 0 ]]; do
-    case "$1" in
-      -n|--interval) interval="$2"; shift 2 ;;
-      --no-alt)      alt=0; shift ;;
-      --)            shift; break ;;
-      *)             break ;;
-    esac
-  done
+print_black() { _print_color 30 "$@"; }
+print_red() { _print_color 31 "$@"; }
+print_green() { _print_color 32 "$@"; }
+print_yellow() { _print_color 33 "$@"; }
+print_blue() { _print_color 34 "$@"; }
+print_magenta() { _print_color 35 "$@"; }
+print_cyan() { _print_color 36 "$@"; }
+print_white() { _print_color 37 "$@"; }
 
-  # require a command
-  if [[ $# -eq 0 ]]; then
-    printf 'usage: wwatch [-n SEC] [--no-alt] -- <cmd> [args...]\n' >&2
-    return 1
-  fi
+_wwatch_named_exec() {
+    local proc_name="${WWATCH_PROCESS_NAME:-wwatch}"
 
-  # enter alternate screen (if requested)
-  if (( alt )); then
-    if command -v tput >/dev/null 2>&1; then tput smcup; else printf '\e[?1049h'; fi
-  fi
-
-  local interrupted=0
-  cleanup() {
-    interrupted=1
-    printf '\e[?25h'  # restore cursor
-    if (( alt )); then
-      if command -v tput >/dev/null 2>&1; then tput rmcup; else printf '\e[?1049l'; fi
+    # Use bash+exec -a when available to keep a stable process name.
+    if command -v bash >/dev/null 2>&1; then
+        if [[ $# -eq 1 ]]; then
+            command bash -c 'exec -a "$1" "$2" -lc "$3"' _ "$proc_name" "${SHELL:-/bin/sh}" "$1"
+        else
+            local cmd_type
+            cmd_type=$(type -t -- "$1" 2>/dev/null || true)
+            if [[ "$cmd_type" == "function" || "$cmd_type" == "builtin" || "$cmd_type" == "alias" || "$cmd_type" == "keyword" ]]; then
+                "$@"
+                return $?
+            fi
+            command bash -c 'exec -a "$1" "${@:2}"' _ "$proc_name" "$@"
+        fi
+        return $?
     fi
-  }
-  trap cleanup INT TERM HUP EXIT
-  printf '\e[?25l'  # hide cursor
 
-  # main loop
-  while (( !interrupted )); do
-    printf '\033[H'  # move cursor to the top-left
-    printf '\033[K'  # clear rest of the line after header
-    print_yellow "wwatch :: $(hostname) :: $(date)"
-    eval "$@"
-    printf '\033[J'  # clear below cursor
+    # Fallback without process renaming support.
+    if [[ $# -eq 1 ]]; then
+        eval "$1"
+    else
+        "$@"
+    fi
+}
 
-    for ((i=0; i<interval && !interrupted; i++)); do sleep 1; done
-  done
+wwatch() {
+    if [[ $# -lt 1 ]]; then
+        return 1
+    fi
+
+    local interval=1 alt=1
+    local cmd="$*"
+
+    # Terminal control only makes sense for an interactive terminal.
+    if [[ ! -t 1 ]]; then
+        alt=0
+    fi
+
+    (
+        local interrupted=0
+        trap 'interrupted=1' INT TERM HUP
+        trap 'printf "\e[?25h"; if (( alt )); then if command -v tput >/dev/null 2>&1; then tput rmcup; else printf "\e[?1049l"; fi; fi' EXIT
+
+        if (( alt )); then
+            if command -v tput >/dev/null 2>&1; then
+                tput smcup
+            else
+                printf '\e[?1049h'
+            fi
+        fi
+
+        printf '\e[?25l'
+
+        while (( !interrupted )); do
+            printf '\033[H\033[K'
+            print_yellow "wwatch :: $(hostname) :: $(date)"
+            _wwatch_named_exec "$cmd"
+            printf '\033[J'
+
+            (( interrupted )) && break
+            _wwatch_named_exec sleep "$interval" || interrupted=1
+        done
+
+        (( interrupted )) && exit 130
+        exit 0
+    )
 }
 
 function _slurm_get_field() {
     local job_id="$1"
     local field="$2"
 
-    local result
-    result=$(scontrol show job "$job_id" 2>/dev/null | awk -F= -v key="$field" '$0 ~ key {print $2}')
-    local sc_status=${PIPESTATUS[0]}
-
-    if [ $sc_status -ne 0 ]; then
+    local line
+    if ! line=$(scontrol show job -o "$job_id" 2>/dev/null); then
         print_red "scontrol failed for job $job_id"
         return 1
     fi
 
-    if [ -z "$result" ]; then
+    local result
+    result=$(awk -v key="$field" '{
+        for (i = 1; i <= NF; i++) {
+            if ($i ~ ("^" key "=")) {
+                sub("^" key "=", "", $i)
+                print $i
+                exit
+            }
+        }
+    }' <<< "$line")
+
+    if [[ -z "$result" ]]; then
         print_red "Field $field not found for job $job_id"
         return 1
     fi
 
-    echo "$result"
+    printf '%s\n' "$result"
     return 0
 }
 
@@ -90,19 +135,18 @@ function _show_file() {
     local file_func="$3"
 
     local file
-    file=$($file_func "$job_id") || return 1
-
-    if [ ! -f "$file" ]; then
-        print_red "File does not exist: $file"
-        return 1
-    fi
+    file=$("$file_func" "$job_id") || return 1
 
     if [ "$mode" = "cat" ]; then
+        if [ ! -f "$file" ]; then
+            print_red "File does not exist: $file"
+            return 1
+        fi
         print_green "Displaying file: $file"
         cat "$file"
     else
         print_green "Tracking file: $file"
-        tail -f "$file"
+        tail -F "$file"
     fi
 }
 

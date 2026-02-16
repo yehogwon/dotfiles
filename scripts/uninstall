@@ -1,0 +1,68 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+log() {
+    printf "%s\n" "$*"
+}
+
+remove_block() {
+    local file="$1"
+    local begin_marker="$2"
+    local end_marker="$3"
+    local label="$4"
+
+    if [[ ! -f "$file" ]]; then
+        log "[skip] $label not found"
+        return 0
+    fi
+
+    local begin_count
+    local end_count
+    begin_count="$(grep -Fxc "$begin_marker" "$file" || true)"
+    end_count="$(grep -Fxc "$end_marker" "$file" || true)"
+
+    if [[ "$begin_count" -eq 0 && "$end_count" -eq 0 ]]; then
+        log "[skip] $label not configured"
+        return 0
+    fi
+
+    if [[ "$begin_count" -ne "$end_count" ]]; then
+        log "[warn] $label has mismatched markers; skipping"
+        return 0
+    fi
+
+    local tmp_file
+    tmp_file="$(mktemp)"
+
+    awk -v begin_marker="$begin_marker" -v end_marker="$end_marker" '
+        $0 == begin_marker {skip = 1; next}
+        $0 == end_marker {skip = 0; next}
+        !skip {print}
+    ' "$file" > "$tmp_file"
+
+    mv "$tmp_file" "$file"
+    log "[ok] removed $label block"
+}
+
+SHELL_BEGIN="# >>> dotfiles >>>"
+SHELL_END="# <<< dotfiles <<<"
+VIM_BEGIN="\" >>> dotfiles >>>"
+VIM_END="\" <<< dotfiles <<<"
+GIT_BEGIN="; >>> dotfiles >>>"
+GIT_END="; <<< dotfiles <<<"
+
+remove_block "$HOME/.bashrc" "$SHELL_BEGIN" "$SHELL_END" ".bashrc"
+remove_block "$HOME/.bash_profile" "$SHELL_BEGIN" "$SHELL_END" ".bash_profile"
+remove_block "$HOME/.inputrc" "$SHELL_BEGIN" "$SHELL_END" ".inputrc"
+
+remove_block "$HOME/.zshrc" "$SHELL_BEGIN" "$SHELL_END" ".zshrc"
+remove_block "$HOME/.zprofile" "$SHELL_BEGIN" "$SHELL_END" ".zprofile"
+remove_block "$HOME/.zlogin" "$SHELL_BEGIN" "$SHELL_END" ".zlogin"
+remove_block "$HOME/.zlogout" "$SHELL_BEGIN" "$SHELL_END" ".zlogout"
+remove_block "$HOME/.zshenv" "$SHELL_BEGIN" "$SHELL_END" ".zshenv"
+
+remove_block "$HOME/.vimrc" "$VIM_BEGIN" "$VIM_END" ".vimrc"
+remove_block "$HOME/.gitconfig" "$GIT_BEGIN" "$GIT_END" ".gitconfig"
+
+log "Done. Restart your shell (or source your rc file) to apply changes."

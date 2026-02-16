@@ -1,6 +1,120 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-command -v python3 >/dev/null 2>&1 || {
-    echo "dotfiles requires Python 3. Terminating installation."
-    exit 1
+set -euo pipefail
+
+DEFAULT_DOTFILES_DIR="$HOME/.dotfiles"
+DEFAULT_DOTFILES_REPO_URL="https://github.com/yehogwon/dotfiles"
+
+DOTFILES_DIR=""
+DOTFILES_REPO_URL="${DOTFILES_REPO_URL:-$DEFAULT_DOTFILES_REPO_URL}"
+
+log() {
+    echo "$*"
 }
+
+detect_repo_from_script_path() {
+    local source_path="${BASH_SOURCE[0]:-}"
+    local script_dir
+    local dotfile_root
+
+    [[ -n "$source_path" ]] || return 1
+
+    case "$source_path" in
+        /dev/fd/*|/dev/stdin|-)
+            return 1
+            ;;
+    esac
+
+    [[ -e "$source_path" ]] || return 1
+
+    script_dir="$(cd -- "$(dirname -- "$source_path")" && pwd -P)"
+    dotfile_root="$(cd -- "$script_dir/.." && pwd -P)"
+
+    log "[info] using current checkout: $dotfile_root"
+    DOTFILES_DIR="$dotfile_root"
+    return 0
+}
+
+ensure_checkout() {
+    local repo_url="$1"
+
+    if ! command -v git >/dev/null 2>&1; then
+        log "[error] git is required"
+        exit 1
+    fi
+
+    if [[ -e "$DEFAULT_DOTFILES_DIR" ]]; then
+        log "[error] $DEFAULT_DOTFILES_DIR already exists"
+        log "[hint] remove it first or run this script from an existing dotfiles checkout"
+        exit 1
+    fi
+
+    log "[info] cloning dotfiles into $DEFAULT_DOTFILES_DIR"
+    git clone --recurse-submodules "$repo_url" "$DEFAULT_DOTFILES_DIR"
+    DOTFILES_DIR="$DEFAULT_DOTFILES_DIR"
+}
+
+resolve_dotfiles_dir() {
+    if detect_repo_from_script_path; then
+        DOTFILES_DIR="$(cd -- "$DOTFILES_DIR" && pwd -P)"
+        return 0
+    fi
+
+    ensure_checkout "$DOTFILES_REPO_URL"
+    DOTFILES_DIR="$(cd -- "$DOTFILES_DIR" && pwd -P)"
+}
+
+append_block() {
+    local file="$1"
+    local begin_marker="$2"
+    local end_marker="$3"
+    local payload="$4"
+    local label="$5"
+
+    mkdir -p "$(dirname "$file")"
+    touch "$file"
+
+    if grep -Fqx "$begin_marker" "$file"; then
+        log "[skip] $label already configured"
+        return 0
+    fi
+
+    {
+        log ""
+        log "$begin_marker"
+        while IFS= read -r line; do
+            log "$line"
+        done <<< "$payload"
+        log "$end_marker"
+    } >> "$file"
+
+    log "[ok] $label configured"
+}
+
+SHELL_BEGIN="# >>> dotfiles >>>"
+SHELL_END="# <<< dotfiles <<<"
+VIM_BEGIN="\" >>> dotfiles >>>"
+VIM_END="\" <<< dotfiles <<<"
+GIT_BEGIN="; >>> dotfiles >>>"
+GIT_END="; <<< dotfiles <<<"
+
+resolve_dotfiles_dir
+log "[info] dotfiles path: $DOTFILES_DIR"
+
+append_block "$HOME/.bashrc" "$SHELL_BEGIN" "$SHELL_END" "source \"$DOTFILES_DIR/shell/bash/bashrc\"" ".bashrc"
+append_block "$HOME/.bash_profile" "$SHELL_BEGIN" "$SHELL_END" "source \"$DOTFILES_DIR/shell/bash/bash_profile\"" ".bash_profile"
+append_block "$HOME/.inputrc" "$SHELL_BEGIN" "$SHELL_END" "\$include $DOTFILES_DIR/shell/bash/inputrc" ".inputrc"
+
+append_block "$HOME/.zshrc" "$SHELL_BEGIN" "$SHELL_END" "source \"$DOTFILES_DIR/shell/zsh/zshrc\"" ".zshrc"
+append_block "$HOME/.zprofile" "$SHELL_BEGIN" "$SHELL_END" "source \"$DOTFILES_DIR/shell/zsh/zprofile\"" ".zprofile"
+append_block "$HOME/.zlogin" "$SHELL_BEGIN" "$SHELL_END" "source \"$DOTFILES_DIR/shell/zsh/zlogin\"" ".zlogin"
+append_block "$HOME/.zlogout" "$SHELL_BEGIN" "$SHELL_END" "source \"$DOTFILES_DIR/shell/zsh/zlogout\"" ".zlogout"
+append_block "$HOME/.zshenv" "$SHELL_BEGIN" "$SHELL_END" "source \"$DOTFILES_DIR/shell/zsh/zshenv\"" ".zshenv"
+
+append_block "$HOME/.vimrc" "$VIM_BEGIN" "$VIM_END" "source $DOTFILES_DIR/vim/vimrc" ".vimrc"
+
+git_payload="[include]
+    path = \"$DOTFILES_DIR/git/gitconfig\""
+append_block "$HOME/.gitconfig" "$GIT_BEGIN" "$GIT_END" "$git_payload" ".gitconfig"
+
+log "Done. Restart your shell (or source your rc file) to apply changes."
