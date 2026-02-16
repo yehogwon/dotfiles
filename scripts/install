@@ -1,0 +1,6 @@
+#!/bin/bash
+
+command -v python3 >/dev/null 2>&1 || {
+    echo "dotfiles requires Python 3. Terminating installation."
+    exit 1
+}
