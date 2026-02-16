@@ -7,10 +7,22 @@ DEFAULT_DOTFILES_REPO_URL="https://github.com/yehogwon/dotfiles"
 
 DOTFILES_DIR=""
 DOTFILES_REPO_URL="${DOTFILES_REPO_URL:-$DEFAULT_DOTFILES_REPO_URL}"
+BOOTSTRAP_CLONED=0
 
 log() {
     echo "$*"
 }
+
+cleanup_bootstrap_checkout_on_failure() {
+    local exit_code=$?
+
+    if [[ "$exit_code" -ne 0 && "$BOOTSTRAP_CLONED" -eq 1 && -d "$DEFAULT_DOTFILES_DIR" ]]; then
+        log "[info] removing failed checkout at $DEFAULT_DOTFILES_DIR"
+        rm -rf "$DEFAULT_DOTFILES_DIR" || true
+    fi
+}
+
+trap 'cleanup_bootstrap_checkout_on_failure' EXIT
 
 detect_repo_from_script_path() {
     local source_path="${BASH_SOURCE[0]:-}"
@@ -37,6 +49,7 @@ detect_repo_from_script_path() {
 
 ensure_checkout() {
     local repo_url="$1"
+    local fzf_installer
 
     if ! command -v git >/dev/null 2>&1; then
         log "[error] git is required"
@@ -49,8 +62,20 @@ ensure_checkout() {
         exit 1
     fi
 
+    BOOTSTRAP_CLONED=1
+
     log "[info] cloning dotfiles into $DEFAULT_DOTFILES_DIR"
     git clone --recurse-submodules "$repo_url" "$DEFAULT_DOTFILES_DIR"
+
+    fzf_installer="$DEFAULT_DOTFILES_DIR/modules/fzf/install"
+    if [[ ! -f "$fzf_installer" ]]; then
+        log "[error] fzf installer not found at $fzf_installer"
+        exit 1
+    fi
+
+    log "[info] installing fzf binary"
+    bash "$fzf_installer" --bin
+
     DOTFILES_DIR="$DEFAULT_DOTFILES_DIR"
 }
 
