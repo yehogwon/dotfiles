@@ -1,0 +1,45 @@
+alias grep='grep --color=auto'
+alias fgrep='fgrep --color=auto'
+alias egrep='egrep --color=auto'
+
+alias ll='ls -alF'
+alias la='ls -A'
+alias l='ls -CF'
+
+# Kwak
+if [[ "$(hostname)" =~ ^kwak[0-9]+$ ]]; then
+    alias ssh='ssh -p10022'
+fi
+
+# nvitop
+if command -v uvx 2>&1 >/dev/null; then
+    alias nvitop='uvx nvitop'
+elif command -v pipx 2>&1 >/dev/null; then
+    alias nvitop='pipx run nvitop'
+fi
+
+# nvim
+if command -v nvim 2>&1 >/dev/null; then
+    alias vim='nvim'
+    alias vi='nvim'
+fi
+
+alias dot-push="source $DOTFILES_DIR/bin/push $DOTSYNC_FILES"
+alias dot-pull="source $DOTFILES_DIR/bin/pull $DOTSYNC_FILES"
+alias dot-install="$DOTFILES_DIR/bin/install"
+
+alias gs='git status'
+alias gp='git push'
+alias gc='git commit'
+alias ga='git add'
+alias gd='git diff'
+
+alias t='tmux'
+alias tls='tmux ls'
+alias tns='tmux new-session -s'
+alias ta='tmux attach'
+alias tat='tmux attach -t'
+
+alias squeue='squeue -o   "%8i %30j  %9T %12u %8g %9P %4D %12R %4C %13b %8m %11l %11L %p"'
+alias sq='squeue'
+alias sqyh='squeue -u yehok117'

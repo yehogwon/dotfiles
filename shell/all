@@ -1,0 +1,14 @@
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]:-$0}")" && pwd -P)/envs"
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]:-$0}")" && pwd -P)/tools"
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]:-$0}")" && pwd -P)/aliases"
+
+# fzf
+FZF_HOME="$(cd -- "$(dirname -- "${BASH_SOURCE[0]:-$0}")" && pwd -P)/../modules/fzf"
+[ -d "$FZF_HOME/bin" ] && export PATH="$FZF_HOME/bin${PATH:+:$PATH}"
+if command -v fzf >/dev/null 2>&1; then
+  if [ -n "$ZSH_VERSION" ]; then
+    eval "$(fzf --zsh)"
+  elif [ -n "$BASH_VERSION" ]; then
+    eval "$(fzf --bash)"
+  fi
+fi

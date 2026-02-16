@@ -1,0 +1,139 @@
+# TODO: implement a better version of wwatch
+wwatch() {
+  local interval=1 alt=1
+
+  # options
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      -n|--interval) interval="$2"; shift 2 ;;
+      --no-alt)      alt=0; shift ;;
+      --)            shift; break ;;
+      *)             break ;;
+    esac
+  done
+
+  # require a command
+  if [[ $# -eq 0 ]]; then
+    printf 'usage: wwatch [-n SEC] [--no-alt] -- <cmd> [args...]\n' >&2
+    return 1
+  fi
+
+  # enter alternate screen (if requested)
+  if (( alt )); then
+    if command -v tput >/dev/null 2>&1; then tput smcup; else printf '\e[?1049h'; fi
+  fi
+
+  local interrupted=0
+  cleanup() {
+    interrupted=1
+    printf '\e[?25h'  # restore cursor
+    if (( alt )); then
+      if command -v tput >/dev/null 2>&1; then tput rmcup; else printf '\e[?1049l'; fi
+    fi
+  }
+  trap cleanup INT TERM HUP EXIT
+  printf '\e[?25l'  # hide cursor
+
+  # main loop
+  while (( !interrupted )); do
+    printf '\033[H'  # move cursor to the top-left
+    printf '\033[K'  # clear rest of the line after header
+    print_yellow "wwatch :: $(hostname) :: $(date)"
+    eval "$@"
+    printf '\033[J'  # clear below cursor
+
+    for ((i=0; i<interval && !interrupted; i++)); do sleep 1; done
+  done
+}
+
+function _slurm_get_field() {
+    local job_id="$1"
+    local field="$2"
+
+    local result
+    result=$(scontrol show job "$job_id" 2>/dev/null | awk -F= -v key="$field" '$0 ~ key {print $2}')
+    local sc_status=${PIPESTATUS[0]}
+
+    if [ $sc_status -ne 0 ]; then
+        print_red "scontrol failed for job $job_id"
+        return 1
+    fi
+
+    if [ -z "$result" ]; then
+        print_red "Field $field not found for job $job_id"
+        return 1
+    fi
+
+    echo "$result"
+    return 0
+}
+
+function slurm_out() {
+    if [ "$#" -ne 1 ]; then
+        print_red "Usage: slurm_out <job_id>"
+        return 1
+    fi
+    _slurm_get_field "$1" "StdOut"
+}
+
+function slurm_err() {
+    if [ "$#" -ne 1 ]; then
+        print_red "Usage: slurm_err <job_id>"
+        return 1
+    fi
+    _slurm_get_field "$1" "StdErr"
+}
+
+function _show_file() {
+    local mode="$1"  # cat or tail
+    local job_id="$2"
+    local file_func="$3"
+
+    local file
+    file=$($file_func "$job_id") || return 1
+
+    if [ ! -f "$file" ]; then
+        print_red "File does not exist: $file"
+        return 1
+    fi
+
+    if [ "$mode" = "cat" ]; then
+        print_green "Displaying file: $file"
+        cat "$file"
+    else
+        print_green "Tracking file: $file"
+        tail -f "$file"
+    fi
+}
+
+function cat_out() {
+    if [ "$#" -ne 1 ]; then
+        print_red "Usage: cat_out <job_id>"
+        return 1
+    fi
+    _show_file "cat" "$1" slurm_out
+}
+
+function track_out() {
+    if [ "$#" -ne 1 ]; then
+        print_red "Usage: track_out <job_id>"
+        return 1
+    fi
+    _show_file "tail" "$1" slurm_out
+}
+
+function cat_err() {
+    if [ "$#" -ne 1 ]; then
+        print_red "Usage: cat_err <job_id>"
+        return 1
+    fi
+    _show_file "cat" "$1" slurm_err
+}
+
+function track_err() {
+    if [ "$#" -ne 1 ]; then
+        print_red "Usage: track_err <job_id>"
+        return 1
+    fi
+    _show_file "tail" "$1" slurm_err
+}
