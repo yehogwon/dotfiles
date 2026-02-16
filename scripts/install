@@ -142,4 +142,6 @@ git_payload="[include]
     path = \"$DOTFILES_DIR/git/gitconfig\""
 append_block "$HOME/.gitconfig" "$GIT_BEGIN" "$GIT_END" "$git_payload" ".gitconfig"
 
+append_block "$HOME/.tmux.conf" "$SHELL_BEGIN" "$SHELL_END" "source-file \"$DOTFILES_DIR/tmux/tmux.conf\"" ".tmux.conf"
+
 log "Done. Restart your shell (or source your rc file) to apply changes."

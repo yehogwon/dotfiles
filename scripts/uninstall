@@ -64,5 +64,6 @@ remove_block "$HOME/.zshenv" "$SHELL_BEGIN" "$SHELL_END" ".zshenv"
 
 remove_block "$HOME/.vimrc" "$VIM_BEGIN" "$VIM_END" ".vimrc"
 remove_block "$HOME/.gitconfig" "$GIT_BEGIN" "$GIT_END" ".gitconfig"
+remove_block "$HOME/.tmux.conf" "$SHELL_BEGIN" "$SHELL_END" ".tmux.conf"
 
 log "Done. Restart your shell (or source your rc file) to apply changes."
