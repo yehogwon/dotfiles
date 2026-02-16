@@ -1,1 +1,2 @@
 export LC_ALL=en_US.UTF-8
+export TMUX_POWERLINE_CONFIG_FILE="$(cd -- "$(dirname -- "${BASH_SOURCE[0]:-$0}")" && pwd -P)/../tmux/powerline/config.sh"
