@@ -1,5 +1,5 @@
 [submodule "tmux/tpm"]
-	path = tmux/tpm
+	path = modules/tpm
 	url = https://github.com/tmux-plugins/tpm
 [submodule "modules/fzf"]
 	path = modules/fzf

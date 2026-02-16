@@ -1,565 +1,147 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-if [ -z "$DF_INST_ROOT" ]; then
-    echo "DF_INST_ROOT is not set."
-    exit 1
-fi
+set -euo pipefail
 
-if [ ! -d "$DF_INST_ROOT" ]; then
-    mkdir -p "$DF_INST_ROOT"
-fi
+DEFAULT_DOTFILES_DIR="$HOME/.dotfiles"
+DEFAULT_DOTFILES_REPO_URL="https://github.com/yehogwon/dotfiles"
 
-DF_TMUX_INST_PATH="$DF_INST_ROOT/tmux"
-DF_NVIM_INST_PATH="$DF_INST_ROOT/nvim"
-DF_UV_INST_PATH="$DF_INST_ROOT/uv"
-DF_PYTHON_INST_PATH="$DF_INST_ROOT/python"
-DF_NINJA_INST_PATH="$DF_INST_ROOT/ninja"
-DF_ZSH_INST_PATH="$DF_INST_ROOT/zsh"
-DF_NODEJS_INST_PATH="$DF_INST_ROOT/nodejs"
-DF_ARIA2_INST_PATH="$DF_INST_ROOT/aria2"
-DF_GITLFS_INST_PATH="$DF_INST_ROOT/git-lfs"
-DF_GH_INST_PATH="$DF_INST_ROOT/gh"  # github cli
+DOTFILES_DIR=""
+DOTFILES_REPO_URL="${DOTFILES_REPO_URL:-$DEFAULT_DOTFILES_REPO_URL}"
+BOOTSTRAP_CLONED=0
 
-DF_PYTHON_VERSION="${PYTHON_VERSION:-3.10.17}"
-
-DOT_RED=$(tput setaf 1)
-DOT_GREEN=$(tput setaf 2)
-DOT_YELLOW=$(tput setaf 3)
-DOT_BOLD=$(tput bold)
-DOT_RESET=$(tput sgr0)
-
-function print_bold() {
-    local message="$*"
-    printf "%s\n" "${DOT_BOLD}${message}${DOT_RESET}"
+log() {
+    echo "$*"
 }
 
-function print_red() {
-    local message="$*"
-    printf "%s\n" "${DOT_BOLD}${DOT_RED}${message}${DOT_RESET}"
-}
+cleanup_bootstrap_checkout_on_failure() {
+    local exit_code=$?
 
-function print_yellow() {
-    local message="$*"
-    printf "%s\n" "${DOT_BOLD}${DOT_YELLOW}${message}${DOT_RESET}"
-}
-
-function print_green() {
-    local message="$*"
-    printf "%s\n" "${DOT_BOLD}${DOT_GREEN}${message}${DOT_RESET}"
-}
-
-function is_mac() {
-    if [ "$(uname)" == "Darwin" ]; then
-        return 0
+    if [[ "$exit_code" -ne 0 && "$BOOTSTRAP_CLONED" -eq 1 && -d "$DEFAULT_DOTFILES_DIR" ]]; then
+        log "[info] removing failed checkout at $DEFAULT_DOTFILES_DIR"
+        rm -rf "$DEFAULT_DOTFILES_DIR" || true
     fi
-    return 1
 }
 
-function is_linux() {
-    if [ "$(uname)" == "Linux" ]; then
-        return 0
-    fi
-    return 1
-}
+trap 'cleanup_bootstrap_checkout_on_failure' EXIT
 
-function install_neovim() {
-    if [ -d "$DF_NVIM_INST_PATH" ]; then
-        print_red "$DF_NVIM_INST_PATH already exists"
-        exit 1
-    fi
+detect_repo_from_script_path() {
+    local source_path="${BASH_SOURCE[0]:-}"
+    local script_dir
+    local dotfile_root
 
-    if [ "$(uname)" == "Darwin" ]; then
-        if [ "$(uname -m)" == "arm64" ]; then
-            suffix="macos-arm64"
-        else
-            suffix="macos-x86_64"
-        fi
-    elif [ "$(uname)" == "Linux" ]; then
-        if [ "$(uname -m)" == "arm64" ]; then
-            suffix="linux-arm64"
-        else
-            suffix="linux-x86_64"
-        fi
-    else
-        print_red "Unsupported platform: $(uname) :: $(uname -m)"
-        exit 1
-    fi
+    [[ -n "$source_path" ]] || return 1
 
-    _output_tmp=$(mktemp)
-    _tmp_dir=$(mktemp -d)
-    curl -L "https://github.com/neovim/neovim/releases/download/v0.11.0/nvim-$suffix.tar.gz" > $_output_tmp > /dev/null
-    tar -C $_tmp_dir -xzf $_output_tmp > /dev/null
-    rm $_output_tmp > /dev/null
-    mv $_tmp_dir/nvim-$suffix $DF_NVIM_INST_PATH > /dev/null
-
-    print_green "Installed neovim. Add the following to your \$PATH:"
-    print_bold "$DF_NVIM_INST_PATH/bin"
-    print_bold "alias vim='nvim'"
-    print_bold "alias vi='nvim'"
-    print_yellow "Note: This dotsync will do this on behalf of you!"
-
-    return 0
-}
-
-function install_git() {
-    print_red "Installing git is not supported yet."
-    return 1
-}
-
-function install_tmux() {
-    if is_mac; then
-        print_red "Unsupported platform: $(uname) :: $(uname -m)"
-        return 1
-    fi
-
-    if [ -d "$DF_TMUX_INST_PATH" ]; then
-        print_red "$DF_TMUX_INST_PATH already exists"
-        exit 1
-    fi
-
-    bin_path=$DF_TMUX_INST_PATH/bin/tmux
-    mkdir -p $DF_TMUX_INST_PATH/bin
-
-    curl -s https://api.github.com/repos/nelsonenzo/tmux-appimage/releases/latest \
-        | grep "browser_download_url.*appimage" \
-        | cut -d : -f 2,3 \
-        | tr -d \" \
-        | wget -O $bin_path -qi - > /dev/null \
-        && chmod +x $bin_path > /dev/null
-
-    print_green "Installed tmux. Add the following to your \$PATH:"
-    print_bold "$DF_TMUX_INST_PATH/bin"
-    print_green "Note: This dotsync will do this on behalf of you!"
-    
-    return 0
-}
-
-function install_uv() {
-    if [ -d "$DF_UV_INST_PATH" ]; then
-        print_red "$DF_UV_INST_PATH already exists"
-        exit 1
-    fi
-
-    print_green "Installing uv..."
-
-    mkdir -p $DF_UV_INST_PATH/bin
-
-    curl -LsSf https://astral.sh/uv/install.sh | env INSTALLER_NO_MODIFY_PATH=1 UV_INSTALL_DIR=$DF_UV_INST_PATH/bin sh > /dev/null
-    if [ $? -ne 0 ]; then
-        print_red "Failed to install uv"
-        return 1
-    fi
-
-    print_green "Installed uv. Add the following to your \$PATH:"
-    print_bold "$DF_UV_INST_PATH/bin"
-    print_green "Note: This dotsync will do this on behalf of you!"
-    return 0
-}
-
-function install_python() {
-    if [ -d "$DF_PYTHON_INST_PATH" ]; then
-        print_red "$DF_PYTHON_INST_PATH already exists"
-        exit 1
-    fi
-
-    trap 'return 1' ERR
-    
-    print_green "Installing python..."
-    if command -v uv > /dev/null; then
-        print_green "uv found, using it to download python"
-        uv venv $DF_PYTHON_INST_PATH --python $DF_PYTHON_VERSION
-    else
-        print_red "uv not found. Would you build Python?"
-        read -p "Type 'yes' to confirm: " confirmation
-        if [ "$confirmation" == "yes" ]; then
-            _download_path=$(mktemp)
-            echo "Downloading at: $_download_path"
-            curl -o $_download_path "https://www.python.org/ftp/python/$DF_PYTHON_VERSION/Python-$DF_PYTHON_VERSION.tgz" > /dev/null
-
-            cd $(dirname $_download_path)
-            tar -xzf $_download_path > /dev/null
-            rm $_download_path
-            cd Python-$DF_PYTHON_VERSION
-
-            mkdir -p $DF_PYTHON_INST_PATH
-            ./configure --prefix="$DF_PYTHON_INST_PATH" --enable-optimizations > /dev/null
-            make -j$(nproc) > /dev/null
-            make install > /dev/null
-        else
-            print_yellow "Then please install uv first."
+    case "$source_path" in
+        /dev/fd/*|/dev/stdin|-)
             return 1
-        fi
-    fi
+            ;;
+    esac
 
-    $DF_PYTHON_INST_PATH/bin/python -m ensurepip > /dev/null
-    $DF_PYTHON_INST_PATH/bin/python -m pip install --upgrade pip > /dev/null
+    [[ -e "$source_path" ]] || return 1
 
-    print_green "Installed python. Add the following to your \$PATH:"
-    print_bold "$DF_PYTHON_INST_PATH/bin"
-    print_green "Note: This dotsync will do this on behalf of you!"
+    script_dir="$(cd -- "$(dirname -- "$source_path")" && pwd -P)"
+    dotfile_root="$(cd -- "$script_dir/.." && pwd -P)"
+
+    log "[info] using current checkout: $dotfile_root"
+    DOTFILES_DIR="$dotfile_root"
     return 0
 }
 
-function install_ninja() {
-    if [ -d "$DF_NINJA_INST_PATH" ]; then
-        print_red "$DF_NINJA_INST_PATH already exists"
+ensure_checkout() {
+    local repo_url="$1"
+    local fzf_installer
+
+    if ! command -v git >/dev/null 2>&1; then
+        log "[error] git is required"
         exit 1
     fi
 
-    trap 'return 1' ERR
-
-    if [ "$(uname)" == "Darwin" ]; then
-        fname="ninja-mac.zip"
-    elif [ "$(uname)" == "Linux" ]; then
-        if [ "$(uname -m)" == "arm64" ]; then
-            fname="ninja-linux-aarch64.zip"
-        else
-            fname="ninja-linux.zip"
-        fi
-    else
-        print_red "Unsupported platform: $(uname) :: $(uname -m)"
+    if [[ -e "$DEFAULT_DOTFILES_DIR" ]]; then
+        log "[error] $DEFAULT_DOTFILES_DIR already exists"
+        log "[hint] remove it first or run this script from an existing dotfiles checkout"
         exit 1
     fi
 
-    _url="https://github.com/ninja-build/ninja/releases/latest/download/$fname"
+    BOOTSTRAP_CLONED=1
 
-    _tmp_dir=$(mktemp -d)
-    wget -O $_tmp_dir/$fname "$_url" > /dev/null
-    mkdir -p $DF_NINJA_INST_PATH/bin > /dev/null
-    unzip $_tmp_dir/$fname -d $DF_NINJA_INST_PATH/bin > /dev/null
-    rm $_tmp_dir/$fname > /dev/null
+    log "[info] cloning dotfiles into $DEFAULT_DOTFILES_DIR"
+    git clone --recurse-submodules "$repo_url" "$DEFAULT_DOTFILES_DIR"
 
-    print_green "Installed ninja. Add the following to your \$PATH:"
-    print_bold "$DF_NINJA_INST_PATH/bin"
-    print_yellow "Note: This dotsync will do this on behalf of you!"
+    fzf_installer="$DEFAULT_DOTFILES_DIR/modules/fzf/install"
+    if [[ ! -f "$fzf_installer" ]]; then
+        log "[error] fzf installer not found at $fzf_installer"
+        exit 1
+    fi
 
-    return 0
+    log "[info] installing fzf binary"
+    bash "$fzf_installer" --bin
+
+    DOTFILES_DIR="$DEFAULT_DOTFILES_DIR"
 }
 
-function install_zsh() {
-    if [ -d "$DF_ZSH_INST_PATH" ]; then
-        print_red "$DF_ZSH_INST_PATH already exists"
-        exit 1
+resolve_dotfiles_dir() {
+    if detect_repo_from_script_path; then
+        DOTFILES_DIR="$(cd -- "$DOTFILES_DIR" && pwd -P)"
+        return 0
     fi
 
-    trap 'return 1' ERR
-
-    os_name="$(uname -s)"
-    if [ "$os_name" != "Darwin" ] && [ "$os_name" != "Linux" ]; then
-        print_red "Unsupported platform: $(uname) :: $(uname -m)"
-        exit 1
-    fi
-
-    _url="https://sourceforge.net/projects/zsh/files/latest/download"
-    _fname=zsh.tar.xz
-
-    _tmp_dir=$(mktemp -d)
-    cd $_tmp_dir
-
-    print_bold "Downloading & extracting zsh..."
-    wget "$_url" -O "$_fname" > /dev/null
-
-    tar -xf zsh.tar.xz > /dev/null
-    cd zsh-*/
-    
-    print_bold "Building configuration..."
-    CFLAGS="-O2 -march=native" ./configure \
-        --prefix="$DF_ZSH_INST_PATH" \
-        --enable-multibyte \
-        --enable-pcre \
-        --enable-zsh-secure-free \
-        --enable-zsh-mem \
-        --with-tcsetpgrp > /dev/null
-    
-    print_bold "Building and installing..."
-    mkdir -p $DF_ZSH_INST_PATH > /dev/null
-    make -j > /dev/null
-    make install > /dev/null
-
-    rm -drf $_tmp_dir > /dev/null
-
-    print_green "Installed ninja. Add the following to your \$PATH:"
-    print_bold "$DF_ZSH_INST_PATH/bin"
-    print_yellow "Note: This dotsync will do this on behalf of you!"
-
-    return 0
+    ensure_checkout "$DOTFILES_REPO_URL"
+    DOTFILES_DIR="$(cd -- "$DOTFILES_DIR" && pwd -P)"
 }
 
-function install_nodejs() {
-    if [ -d "$DF_NODEJS_INST_PATH" ]; then
-        print_red "$DF_NODEJS_INST_PATH already exists"
-        exit 1
+append_block() {
+    local file="$1"
+    local begin_marker="$2"
+    local end_marker="$3"
+    local payload="$4"
+    local label="$5"
+
+    mkdir -p "$(dirname "$file")"
+    touch "$file"
+
+    if grep -Fqx "$begin_marker" "$file"; then
+        log "[skip] $label already configured"
+        return 0
     fi
 
-    trap 'return 1' ERR
-    
-    print_green "Installing nodejs..."
+    {
+        log ""
+        log "$begin_marker"
+        while IFS= read -r line; do
+            log "$line"
+        done <<< "$payload"
+        log "$end_marker"
+    } >> "$file"
 
-    mkdir -p $DF_NODEJS_INST_PATH
-
-    if is_linux; then
-        if [ "$(uname -m)" == "arm64" ]; then
-            suffix="linux-arm64.tar.xz"
-        elif [ "$(uname -m)" == "x86_64" ]; then
-            suffix="linux-x64.tar.xz"
-        else
-            print_red "Unsupported platform: $(uname) :: $(uname -m)"
-            exit 1
-        fi
-    else
-        print_red "Unsupported platform: $(uname) :: $(uname -m)"
-    fi
-
-    print_green "Downloading nodejs..."
-    base='https://nodejs.org/download/release/latest/'
-    fname=$(curl -s "$base" \
-        | grep -oE 'node-v[0-9]+\.[0-9]+\.[0-9]+-'$suffix \
-        | head -n1)
-    _fname="arch.tar.xz"
-    wget "${base}${fname}" -O $DF_NODEJS_INST_PATH/$_fname > /dev/null 2>&1
-
-    print_green "Extracting nodejs..."
-    tar -xJf $DF_NODEJS_INST_PATH/$_fname -C $DF_NODEJS_INST_PATH > /dev/null
-    rm $DF_NODEJS_INST_PATH/$_fname > /dev/null
-
-    _top_dir=$(basename $fname .tar.xz)
-    mv $DF_NODEJS_INST_PATH/$_top_dir/* $DF_NODEJS_INST_PATH/
-    rm -d $DF_NODEJS_INST_PATH/$_top_dir
-
-    print_green "Installed nodejs. Add the following to your \$PATH:"
-    print_bold "$DF_NODEJS_INST_PATH/bin"
-    print_yellow "Note: This dotsync will do this on behalf of you!"
-    return 0
+    log "[ok] $label configured"
 }
 
+SHELL_BEGIN="# >>> dotfiles >>>"
+SHELL_END="# <<< dotfiles <<<"
+VIM_BEGIN="\" >>> dotfiles >>>"
+VIM_END="\" <<< dotfiles <<<"
+GIT_BEGIN="; >>> dotfiles >>>"
+GIT_END="; <<< dotfiles <<<"
 
-function install_aria2() {
-    if [ -d "$DF_ARIA2_INST_PATH" ]; then
-        print_red "$DF_ARIA2_INST_PATH already exists"
-        exit 1
-    fi
+resolve_dotfiles_dir
+log "[info] dotfiles path: $DOTFILES_DIR"
 
-    trap 'return 1' ERR
+append_block "$HOME/.bashrc" "$SHELL_BEGIN" "$SHELL_END" "source \"$DOTFILES_DIR/shell/bash/bashrc\"" ".bashrc"
+append_block "$HOME/.bash_profile" "$SHELL_BEGIN" "$SHELL_END" "source \"$DOTFILES_DIR/shell/bash/bash_profile\"" ".bash_profile"
+append_block "$HOME/.inputrc" "$SHELL_BEGIN" "$SHELL_END" "\$include $DOTFILES_DIR/shell/bash/inputrc" ".inputrc"
 
-    print_green "Installing aria2..."
+append_block "$HOME/.zshrc" "$SHELL_BEGIN" "$SHELL_END" "source \"$DOTFILES_DIR/shell/zsh/zshrc\"" ".zshrc"
+append_block "$HOME/.zprofile" "$SHELL_BEGIN" "$SHELL_END" "source \"$DOTFILES_DIR/shell/zsh/zprofile\"" ".zprofile"
+append_block "$HOME/.zlogin" "$SHELL_BEGIN" "$SHELL_END" "source \"$DOTFILES_DIR/shell/zsh/zlogin\"" ".zlogin"
+append_block "$HOME/.zlogout" "$SHELL_BEGIN" "$SHELL_END" "source \"$DOTFILES_DIR/shell/zsh/zlogout\"" ".zlogout"
+append_block "$HOME/.zshenv" "$SHELL_BEGIN" "$SHELL_END" "source \"$DOTFILES_DIR/shell/zsh/zshenv\"" ".zshenv"
 
-    mkdir -p $DF_ARIA2_INST_PATH
+append_block "$HOME/.vimrc" "$VIM_BEGIN" "$VIM_END" "source $DOTFILES_DIR/vim/vimrc" ".vimrc"
 
-    if [ ! is_linux ]; then
-        print_red "Unsupported platform: $(uname) :: $(uname -m)"
-        exit 1
-    fi
+git_payload="[include]
+    path = \"$DOTFILES_DIR/git/gitconfig\""
+append_block "$HOME/.gitconfig" "$GIT_BEGIN" "$GIT_END" "$git_payload" ".gitconfig"
 
-    print_green "Downloading aria2..."
-    cd $DF_ARIA2_INST_PATH
-    download_url=$(curl -s https://api.github.com/repos/aria2/aria2/releases/latest \
-        | grep "browser_download_url.*tar.xz" \
-        | cut -d : -f 2,3 \
-        | tr -d \"
-    )
-    wget $download_url > /dev/null
+append_block "$HOME/.tmux.conf" "$SHELL_BEGIN" "$SHELL_END" "source-file \"$DOTFILES_DIR/tmux/tmux.conf\"" ".tmux.conf"
 
-    fname=$(basename $download_url)
-    root_dir=$(basename $fname .tar.xz)
-
-    print_bold "Extracting aria2..."
-    tar -xJf $fname > /dev/null
-    rm $fname > /dev/null
-
-    mkdir bin > /dev/null
-    cd $root_dir
-
-    print_bold "Building and installing..."
-    ./configure ARIA2_STATIC=yes > /dev/null
-    make -j > /dev/null
-
-    mv src/aria2c ../bin/ > /dev/null
-    cd ..
-    rm -drf $root_dir > /dev/null
-
-    print_green "Installed aria2. Add the following to your \$PATH:"
-    print_bold "$DF_ARIA2_INST_PATH/bin"
-    print_yellow "Note: This dotsync will do this on behalf of you!"
-
-    return 0
-}
-
-
-function install_gitlfs() {
-    if [ -d "$DF_GITLFS_INST_PATH" ]; then
-        print_red "$DF_GITLFS_INST_PATH already exists"
-        exit 1
-    fi
-
-    trap 'return 1' ERR
-
-    print_green "Installing git-lfs..."
-
-    mkdir -p $DF_GITLFS_INST_PATH
-
-    if [ ! is_linux ]; then
-        print_red "Unsupported platform: $(uname) :: $(uname -m)"
-        exit 1
-    fi
-
-    print_green "Downloading git-lfs..."
-    cd $DF_GITLFS_INST_PATH
-    download_url=$(curl -s https://api.github.com/repos/git-lfs/git-lfs/releases/latest \
-        | grep -E "https:\/\/github\.com\/git-lfs\/git-lfs\/releases\/download\/.*\/git-lfs-linux-amd64.*\.tar\.gz" \
-        | cut -d : -f 2,3 \
-        | tr -d \" \
-        | xargs
-    )
-    wget "$download_url" > /dev/null
-
-    fname=$(basename $download_url)
-    root_dir=$(echo $fname \
-        | sed -E 's/-linux-amd64-v([0-9.]+)\.tar\.gz/-\1/'
-    )
-
-    print_bold "Extracting git-lfs..."
-    tar -xzf $fname > /dev/null
-    rm $fname > /dev/null
-
-    mkdir bin > /dev/null
-    mv $root_dir/git-lfs bin/git-lfs > /dev/null
-    chmod +x bin/git-lfs > /dev/null
-    rm -drf $root_dir > /dev/null
-    
-    print_yellow "To enable git-lfs, run the following command:"
-    print_bold " \$ git lfs install --local"
-
-    print_green "Installed git-lfs. Add the following to your \$PATH:"
-    print_bold "$DF_GITLFS_INST_PATH/bin"
-    print_yellow "Note: This dotsync will do this on behalf of you!"
-
-    return 0
-}
-
-
-function install_gh() {
-    if [ -d "$DF_GH_INST_PATH" ]; then
-        print_red "$DF_GH_INST_PATH already exists"
-        exit 1
-    fi
-
-    trap 'return 1' ERR
-
-    print_green "Installing gh..."
-
-    mkdir -p $DF_GH_INST_PATH
-
-    if [ ! is_linux ]; then
-        print_red "Unsupported platform: $(uname) :: $(uname -m)"
-        exit 1
-    fi
-
-    if [ "$(uname -m)" == "arm64" ]; then
-        arch="arm64"
-    else
-        arch="amd64"
-    fi
-
-    print_green "Downloading gh..."
-    cd $DF_GH_INST_PATH
-    download_url=$(curl -s https://api.github.com/repos/cli/cli/releases/latest \
-        | grep -E "https:\/\/github.com\/cli\/cli\/releases\/download\/.+\/gh.+${arch}\.tar\.gz" \
-        | cut -d : -f 2,3 \
-        | tr -d \" \
-        | xargs
-    )
-
-    _tmp_dir=$(mktemp -d)
-    wget "$download_url" -P $_tmp_dir > /dev/null
-
-    print_bold "Extracting gh..."
-    fname=$(basename $download_url)
-    tar_path="$_tmp_dir/$fname"
-
-    # --strip-components=1 since the tar.gz file compressed a directory
-    tar -xzf $tar_path -C $DF_GH_INST_PATH --strip-components=1 >> /dev/null
-
-    chmod +x $DF_GH_INST_PATH/bin/gh
-    rm -drf $_tmp_dir >> /dev/null
-
-    print_green "Installed gh. Add the following to your \$PATH:"
-    print_bold "$DF_GH_INST_PATH/bin"
-    print_yellow "Note: This dotsync will do this on behalf of you!"
-
-    return 0
-}
-
-
-function uninstall() {
-    for package in "$@"; do
-        package_dir="none"
-        case $package in
-            neovim) package_dir="$DF_NVIM_INST_PATH" ;;
-            tmux) package_dir="$DF_TMUX_INST_PATH" ;;
-            python) package_dir="$DF_PYTHON_INST_PATH" ;;
-            uv) package_dir="$DF_UV_INST_PATH" ;;
-            ninja) package_dir="$DF_NINJA_INST_PATH" ;;
-            zsh) package_dir="$DF_ZSH_INST_PATH" ;;
-            nodejs) package_dir="$DF_NODEJS_INST_PATH" ;;
-            aria2) package_dir="$DF_ARIA2_INST_PATH" ;;
-            gitlfs) package_dir="$DF_GITLFS_INST_PATH" ;;
-            gh) package_dir="$DF_GH_INST_PATH" ;;
-        esac
-
-        if [ "$package_dir" == "none" ]; then
-            print_red "Unknown package: $package"
-            continue
-        fi
-
-        print_yellow "Are you sure to remove $package?"
-        print_bold "This will run the following command:"
-        print_red " \$ rm -drf $package_dir"
-        read -p "Type 'yes' to confirm: " confirmation
-        if [ "$confirmation" == "yes" ]; then
-            rm -rf "$package_dir"
-            print_green "Removed $package successfully."
-        else
-            print_yellow "Skipped removal of $package."
-        fi
-    done
-}
-
-if [ "$1" == "uninstall" ]; then
-    shift
-    uninstall $@
-else
-    packages=$@
-
-    unknown_packages=()
-    for package in $packages; do
-        if ! declare -f "install_$package" > /dev/null; then
-            unknown_packages+=($package)
-        fi
-    done
-
-    if [ ${#unknown_packages[@]} -gt 0 ]; then
-        print_red "Unknown packages: ${unknown_packages[@]}"
-        exit 1
-    fi
-
-    for package in $packages; do
-        case $package in
-            neovim) install_neovim ;;
-            tmux) install_tmux ;;
-            uv) install_uv ;;
-            python) install_python ;;
-            ninja) install_ninja ;;
-            zsh) install_zsh ;;
-            nodejs) install_nodejs ;;
-            aria2) install_aria2 ;;
-            gitlfs) install_gitlfs ;;
-            gh) install_gh ;;
-            *) print_red "Unknown package: $package" && continue ;;
-        esac
-        if [ $? -ne 0 ]; then
-            print_red "Failed to install $package"
-        else
-            print_yellow "Installed $package"
-        fi
-    done
-fi
+log "Done. Restart your shell (or source your rc file) to apply changes."

@@ -1,0 +1,16 @@
+# NOTE: oh-my-zsh should be sourced first due to keybinding conflicts
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]:-$0}")" && pwd -P)/oh-my-zsh"
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]:-$0}")" && pwd -P)/../all"
+
+# >>> tmux >>>
+if [[ -n "$TMUX" ]]; then
+  # inside tmux: separate history
+  unsetopt share_history
+  unsetopt inc_append_history
+  setopt append_history
+else
+  # outside tmux: you can choose different behavior, e.g., shared history
+  setopt share_history
+  setopt inc_append_history
+fi
+# <<< tmux <<<
