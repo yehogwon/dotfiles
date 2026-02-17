@@ -5,8 +5,8 @@
 ## Installation
 
 ```sh
-$ curl -fsSL https://raw.githubusercontent.com/yehogwon/dotfiles/main/bin/install | bash
-$ source ~/.bashrc  # (or ~/.zshrc)
+curl -fsSL https://raw.githubusercontent.com/yehogwon/dotfiles/main/bin/install | bash
+source ~/.bashrc  # (or ~/.zshrc)
 ```
 
 The installer asks whether you want to install Homebrew.
@@ -39,8 +39,8 @@ The installer asks whether you want to install Homebrew.
 ## Uninstallation
 
 ```sh
-$ ~/.dotfiles/bin/uninstall
-$ source ~/.bashrc  # (or ~/.zshrc)
+~/.dotfiles/bin/uninstall
+source ~/.bashrc  # (or ~/.zshrc)
 ```
 
 Running the uninstall script also removes the dotfiles checkout that contains that script.
