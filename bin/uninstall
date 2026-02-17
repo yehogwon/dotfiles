@@ -8,6 +8,10 @@ log() {
     printf "%s\n" "$*"
 }
 
+step() {
+    log "[info] $*"
+}
+
 prompt_yes_no() {
     local question="$1"
     local default_answer="${2:-n}"
@@ -56,6 +60,8 @@ remove_block() {
     local begin_marker="$2"
     local end_marker="$3"
     local label="$4"
+
+    step "checking $label"
 
     if [[ ! -f "$file" ]]; then
         log "[skip] $label not found"
@@ -150,6 +156,11 @@ remove_checkout_dir() {
         return 0
     fi
 
+    if ! prompt_yes_no "Remove dotfiles checkout directory at $checkout_dir?" "n"; then
+        log "[skip] checkout directory removal skipped"
+        return 0
+    fi
+
     cd -- "$HOME"
 
     if rm -rf -- "$checkout_dir"; then
@@ -194,6 +205,10 @@ VIM_END="\" <<< dotfiles <<<"
 GIT_BEGIN="; >>> dotfiles >>>"
 GIT_END="; <<< dotfiles <<<"
 
+step "starting dotfiles uninstallation"
+log "[warn] this can remove your entire dotfiles checkout directory"
+step "removing shell and tool configuration blocks"
+
 remove_block "$HOME/.bashrc" "$SHELL_BEGIN" "$SHELL_END" ".bashrc"
 remove_block "$HOME/.bash_profile" "$SHELL_BEGIN" "$SHELL_END" ".bash_profile"
 remove_block "$HOME/.inputrc" "$SHELL_BEGIN" "$SHELL_END" ".inputrc"
@@ -208,8 +223,10 @@ remove_block "$HOME/.vimrc" "$VIM_BEGIN" "$VIM_END" ".vimrc"
 remove_block "$HOME/.gitconfig" "$GIT_BEGIN" "$GIT_END" ".gitconfig"
 remove_block "$HOME/.tmux.conf" "$SHELL_BEGIN" "$SHELL_END" ".tmux.conf"
 
+step "checking optional homebrew uninstallation"
 maybe_uninstall_homebrew
 
+step "removing checkout directory if this script is from a checkout"
 remove_checkout_dir
 
 log "Done. Restart your shell (or source your rc file) to apply changes."
