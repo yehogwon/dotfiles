@@ -45,6 +45,77 @@ remove_block() {
     log "[ok] removed $label block"
 }
 
+resolve_checkout_from_script_path() {
+    local source_path="${BASH_SOURCE[0]:-}"
+    local script_dir
+    local checkout_dir
+
+    [[ -n "$source_path" ]] || return 1
+
+    case "$source_path" in
+        /dev/fd/*|/dev/stdin|-)
+            return 1
+            ;;
+    esac
+
+    [[ -e "$source_path" ]] || return 1
+
+    script_dir="$(cd -- "$(dirname -- "$source_path")" && pwd -P)"
+    checkout_dir="$(cd -- "$script_dir/.." && pwd -P)"
+
+    printf "%s\n" "$checkout_dir"
+}
+
+is_checkout_dir_safe_to_remove() {
+    local checkout_dir="$1"
+    local home_dir
+
+    home_dir="$(cd -- "$HOME" && pwd -P)"
+
+    [[ -n "$checkout_dir" ]] || return 1
+    [[ "$checkout_dir" != "/" ]] || return 1
+    [[ "$checkout_dir" != "$home_dir" ]] || return 1
+
+    [[ -f "$checkout_dir/bin/install" ]] || return 1
+    [[ -f "$checkout_dir/bin/uninstall" ]] || return 1
+    [[ -f "$checkout_dir/shell/all" ]] || return 1
+    [[ -f "$checkout_dir/git/gitconfig" ]] || return 1
+    [[ -f "$checkout_dir/vim/vimrc" ]] || return 1
+    [[ -f "$checkout_dir/tmux/tmux.conf" ]] || return 1
+
+    return 0
+}
+
+remove_checkout_dir() {
+    local checkout_dir=""
+
+    checkout_dir="$(resolve_checkout_from_script_path || true)"
+    if [[ -z "$checkout_dir" ]]; then
+        log "[skip] could not detect checkout path; repo directory left in place"
+        return 0
+    fi
+
+    if [[ ! -d "$checkout_dir" ]]; then
+        log "[skip] checkout path not found: $checkout_dir"
+        return 0
+    fi
+
+    if ! is_checkout_dir_safe_to_remove "$checkout_dir"; then
+        log "[warn] refusing to remove unexpected path: $checkout_dir"
+        return 0
+    fi
+
+    cd -- "$HOME"
+
+    if rm -rf -- "$checkout_dir"; then
+        log "[ok] removed checkout directory: $checkout_dir"
+        return 0
+    fi
+
+    log "[warn] failed to remove checkout directory: $checkout_dir"
+    return 0
+}
+
 SHELL_BEGIN="# >>> dotfiles >>>"
 SHELL_END="# <<< dotfiles <<<"
 VIM_BEGIN="\" >>> dotfiles >>>"
@@ -65,5 +136,7 @@ remove_block "$HOME/.zshenv" "$SHELL_BEGIN" "$SHELL_END" ".zshenv"
 remove_block "$HOME/.vimrc" "$VIM_BEGIN" "$VIM_END" ".vimrc"
 remove_block "$HOME/.gitconfig" "$GIT_BEGIN" "$GIT_END" ".gitconfig"
 remove_block "$HOME/.tmux.conf" "$SHELL_BEGIN" "$SHELL_END" ".tmux.conf"
+
+remove_checkout_dir
 
 log "Done. Restart your shell (or source your rc file) to apply changes."

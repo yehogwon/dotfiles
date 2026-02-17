@@ -40,3 +40,5 @@ $ source ~/.bashrc  # (or ~/.zshrc)
 $ ~/.dotfiles/bin/uninstall
 $ source ~/.bashrc  # (or ~/.zshrc)
 ```
+
+Running the uninstall script also removes the dotfiles checkout that contains that script.
