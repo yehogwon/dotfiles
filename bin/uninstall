@@ -2,8 +2,53 @@
 
 set -euo pipefail
 
+HOMEBREW_UNINSTALL_URL="https://raw.githubusercontent.com/Homebrew/install/HEAD/uninstall.sh"
+
 log() {
     printf "%s\n" "$*"
+}
+
+prompt_yes_no() {
+    local question="$1"
+    local default_answer="${2:-n}"
+    local prompt_suffix
+    local answer=""
+
+    if [[ "$default_answer" == "y" ]]; then
+        prompt_suffix="[Y/n]"
+    else
+        prompt_suffix="[y/N]"
+    fi
+
+    while true; do
+        if [[ -t 0 ]]; then
+            printf "%s %s " "$question" "$prompt_suffix"
+            if ! IFS= read -r answer; then
+                return 1
+            fi
+        elif [[ -t 1 ]]; then
+            printf "%s %s " "$question" "$prompt_suffix" > /dev/tty
+            if ! IFS= read -r answer < /dev/tty 2>/dev/null; then
+                return 1
+            fi
+        else
+            return 1
+        fi
+
+        answer="${answer:-$default_answer}"
+
+        case "$answer" in
+            y|Y|yes|YES|Yes)
+                return 0
+                ;;
+            n|N|no|NO|No)
+                return 1
+                ;;
+            *)
+                log "[warn] please answer yes or no"
+                ;;
+        esac
+    done
 }
 
 remove_block() {
@@ -116,6 +161,32 @@ remove_checkout_dir() {
     return 0
 }
 
+maybe_uninstall_homebrew() {
+    if ! command -v brew >/dev/null 2>&1; then
+        log "[skip] homebrew not found"
+        return 0
+    fi
+
+    if ! prompt_yes_no "Uninstall Homebrew?" "n"; then
+        log "[skip] homebrew uninstallation skipped"
+        return 0
+    fi
+
+    if ! command -v curl >/dev/null 2>&1; then
+        log "[warn] curl is required to uninstall homebrew"
+        return 0
+    fi
+
+    log "[info] uninstalling homebrew"
+    if curl -fsSL "$HOMEBREW_UNINSTALL_URL" 2>/dev/null | NONINTERACTIVE=1 /bin/bash -s -- --force >/dev/null 2>&1; then
+        log "[ok] homebrew uninstalled"
+        return 0
+    fi
+
+    log "[warn] failed to uninstall homebrew"
+    return 0
+}
+
 SHELL_BEGIN="# >>> dotfiles >>>"
 SHELL_END="# <<< dotfiles <<<"
 VIM_BEGIN="\" >>> dotfiles >>>"
@@ -136,6 +207,8 @@ remove_block "$HOME/.zshenv" "$SHELL_BEGIN" "$SHELL_END" ".zshenv"
 remove_block "$HOME/.vimrc" "$VIM_BEGIN" "$VIM_END" ".vimrc"
 remove_block "$HOME/.gitconfig" "$GIT_BEGIN" "$GIT_END" ".gitconfig"
 remove_block "$HOME/.tmux.conf" "$SHELL_BEGIN" "$SHELL_END" ".tmux.conf"
+
+maybe_uninstall_homebrew
 
 remove_checkout_dir
 
