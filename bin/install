@@ -26,22 +26,25 @@ prompt_yes_no() {
     local question="$1"
     local default_answer="${2:-n}"
     local prompt_suffix
+    local default_label
     local answer=""
 
     if [[ "$default_answer" == "y" ]]; then
         prompt_suffix="[Y/n]"
+        default_label="yes"
     else
         prompt_suffix="[y/N]"
+        default_label="no"
     fi
 
     while true; do
         if [[ -t 0 ]]; then
-            printf "%s %s " "$question" "$prompt_suffix"
+            printf "%s %s (default: %s) " "$question" "$prompt_suffix" "$default_label"
             if ! IFS= read -r answer; then
                 return 1
             fi
         elif [[ -t 1 ]]; then
-            printf "%s %s " "$question" "$prompt_suffix" > /dev/tty
+            printf "%s %s (default: %s) " "$question" "$prompt_suffix" "$default_label" > /dev/tty
             if ! IFS= read -r answer < /dev/tty 2>/dev/null; then
                 return 1
             fi
