@@ -80,18 +80,19 @@ if ! ln -sfn "$BREW_REPO/bin/brew" "$BREW_BIN"; then
 fi
 log "[ok] brew executable linked"
 
-step "disabling Homebrew analytics"
-if ! run_quiet "$BREW_BIN" analytics off; then
-    log "[error] failed to disable Homebrew analytics"
-    exit 1
-fi
-log "[ok] Homebrew analytics disabled and metadata updated"
-
 step "updating Homebrew metadata (this may take a minute)"
 if ! run_quiet "$BREW_BIN" update -fq; then
     log "[error] failed to update Homebrew"
     exit 1
 fi
+log "[ok] Homebrew metadata updated"
+
+step "disabling Homebrew analytics"
+if ! run_quiet "$BREW_BIN" analytics off; then
+    log "[error] failed to disable Homebrew analytics"
+    exit 1
+fi
+log "[ok] Homebrew analytics disabled"
 
 log "[ok] Homebrew installed at $BREW_ROOT"
 log "[hint] remove Homebrew anytime by deleting ~/.linuxbrew"
