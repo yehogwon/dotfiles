@@ -4,7 +4,6 @@ set -euo pipefail
 
 DEFAULT_DOTFILES_DIR="$HOME/.dotfiles"
 DEFAULT_DOTFILES_REPO_URL="https://github.com/yehogwon/dotfiles"
-HOMEBREW_INSTALL_URL="https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh"
 
 DOTFILES_DIR=""
 DOTFILES_REPO_URL="${DOTFILES_REPO_URL:-$DEFAULT_DOTFILES_REPO_URL}"
@@ -20,78 +19,6 @@ step() {
 
 run_quiet() {
     "$@" >/dev/null 2>&1
-}
-
-prompt_yes_no() {
-    local question="$1"
-    local default_answer="${2:-n}"
-    local prompt_suffix
-    local default_label
-    local answer=""
-
-    if [[ "$default_answer" == "y" ]]; then
-        prompt_suffix="[Y/n]"
-        default_label="yes"
-    else
-        prompt_suffix="[y/N]"
-        default_label="no"
-    fi
-
-    while true; do
-        if [[ -t 0 ]]; then
-            printf "%s %s (default: %s) " "$question" "$prompt_suffix" "$default_label"
-            if ! IFS= read -r answer; then
-                return 1
-            fi
-        elif [[ -t 1 ]]; then
-            printf "%s %s (default: %s) " "$question" "$prompt_suffix" "$default_label" > /dev/tty
-            if ! IFS= read -r answer < /dev/tty 2>/dev/null; then
-                return 1
-            fi
-        else
-            return 1
-        fi
-
-        answer="${answer:-$default_answer}"
-
-        case "$answer" in
-            y|Y|yes|YES|Yes)
-                return 0
-                ;;
-            n|N|no|NO|No)
-                return 1
-                ;;
-            *)
-                log "[warn] please answer yes or no"
-                ;;
-        esac
-    done
-}
-
-maybe_install_homebrew() {
-    if command -v brew >/dev/null 2>&1; then
-        log "[skip] homebrew already installed"
-        return 0
-    fi
-
-    if ! prompt_yes_no "Install Homebrew?" "n"; then
-        log "[skip] homebrew installation skipped"
-        return 0
-    fi
-
-    if ! command -v curl >/dev/null 2>&1; then
-        log "[warn] curl is required to install homebrew"
-        return 0
-    fi
-
-    log "[info] installing homebrew"
-    if curl -fsSL "$HOMEBREW_INSTALL_URL" 2>/dev/null | NONINTERACTIVE=1 /bin/bash >/dev/null 2>&1; then
-        log "[ok] homebrew installed"
-        return 0
-    fi
-
-    log "[warn] failed to install homebrew"
-    return 0
 }
 
 cleanup_bootstrap_checkout_on_failure() {
@@ -252,8 +179,5 @@ git_payload="[include]
 append_block "$HOME/.gitconfig" "$GIT_BEGIN" "$GIT_END" "$git_payload" ".gitconfig"
 
 append_block "$HOME/.tmux.conf" "$SHELL_BEGIN" "$SHELL_END" "if-shell \"[ -f '$DOTFILES_DIR/tmux/tmux.conf' ]\" \"source-file '$DOTFILES_DIR/tmux/tmux.conf'\"" ".tmux.conf"
-
-step "checking optional homebrew installation"
-maybe_install_homebrew
 
 log "Done. Restart your shell (or source your rc file) to apply changes."

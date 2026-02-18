@@ -9,8 +9,6 @@ curl -fsSL https://raw.githubusercontent.com/yehogwon/dotfiles/main/bin/install 
 source ~/.bashrc  # (or ~/.zshrc)
 ```
 
-The installer asks whether you want to install Homebrew.
-
 ## What It Manages
 
 **shell**
@@ -44,4 +42,3 @@ source ~/.bashrc  # (or ~/.zshrc)
 ```
 
 Running the uninstall script also removes the dotfiles checkout that contains that script.
-If Homebrew is installed, the uninstaller asks whether you want to remove it too.
