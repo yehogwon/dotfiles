@@ -40,10 +40,12 @@ if [[ -e "$BREW_ROOT" && ! -d "$BREW_ROOT" ]]; then
     exit 1
 fi
 
+step "preparing $BREW_ROOT"
 if ! mkdir -p "$BREW_ROOT"; then
     log "[error] failed to create $BREW_ROOT"
     exit 1
 fi
+log "[ok] $BREW_ROOT is ready"
 
 if [[ -d "$BREW_REPO/.git" ]]; then
     log "[info] Homebrew repository already exists at $BREW_REPO"
@@ -51,36 +53,47 @@ elif [[ -e "$BREW_REPO" ]]; then
     log "[error] $BREW_REPO exists and is not a git checkout"
     exit 1
 else
+    step "cloning Homebrew into $BREW_REPO (this may take a minute)"
     if ! run_quiet git clone https://github.com/Homebrew/brew "$BREW_REPO"; then
         log "[error] failed to clone Homebrew"
         exit 1
     fi
 fi
+log "[ok] Homebrew repository is ready"
 
+step "creating $BREW_BIN_DIR"
 if ! mkdir -p "$BREW_BIN_DIR"; then
     log "[error] failed to create $BREW_BIN_DIR"
     exit 1
 fi
+log "[ok] $BREW_BIN_DIR is ready"
 
+step "linking brew executable at $BREW_BIN"
 if ! ln -sfn "$BREW_REPO/bin/brew" "$BREW_BIN"; then
     log "[error] failed to symlink brew to $BREW_BIN"
     exit 1
 fi
+log "[ok] brew executable linked"
 
+step "disabling Homebrew analytics"
 if ! run_quiet "$BREW_BIN" analytics off; then
     log "[error] failed to disable Homebrew analytics"
     exit 1
 fi
+log "[ok] Homebrew analytics disabled and metadata updated"
 
+step "updating Homebrew metadata (this may take a minute)"
 if ! run_quiet "$BREW_BIN" update -fq; then
     log "[error] failed to update Homebrew"
     exit 1
 fi
 
-if ! run_quiet "$BREW_BIN" install portable-ruby gcc; then
+step "installing and gcc (this may take several minutes)"
+if ! run_quiet "$BREW_BIN" install gcc; then
     log "[error] failed to install Homebrew packages"
     exit 1
 fi
+log "[ok] Homebrew packages installed"
 
 log "[ok] Homebrew installed at $BREW_ROOT"
 log "[hint] remove Homebrew anytime by deleting ~/.linuxbrew"
