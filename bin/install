@@ -21,6 +21,52 @@ run_quiet() {
     "$@" >/dev/null 2>&1
 }
 
+prompt_yes_no() {
+    local question="$1"
+    local default_answer="${2:-n}"
+    local prompt_suffix
+    local default_label
+    local answer=""
+
+    if [[ "$default_answer" == "y" ]]; then
+        prompt_suffix="[Y/n]"
+        default_label="yes"
+    else
+        prompt_suffix="[y/N]"
+        default_label="no"
+    fi
+
+    while true; do
+        if [[ -t 0 ]]; then
+            printf "%s %s (default: %s) " "$question" "$prompt_suffix" "$default_label"
+            if ! IFS= read -r answer; then
+                return 1
+            fi
+        elif [[ -t 1 ]]; then
+            printf "%s %s (default: %s) " "$question" "$prompt_suffix" "$default_label" > /dev/tty
+            if ! IFS= read -r answer < /dev/tty 2>/dev/null; then
+                return 1
+            fi
+        else
+            return 1
+        fi
+
+        answer="${answer:-$default_answer}"
+
+        case "$answer" in
+            y|Y|yes|YES|Yes)
+                return 0
+                ;;
+            n|N|no|NO|No)
+                return 1
+                ;;
+            *)
+                log "[warn] please answer yes or no"
+                ;;
+        esac
+    done
+}
+
 cleanup_bootstrap_checkout_on_failure() {
     local exit_code=$?
 
@@ -103,6 +149,59 @@ resolve_dotfiles_dir() {
     DOTFILES_DIR="$(cd -- "$DOTFILES_DIR" && pwd -P)"
 }
 
+install_homebrew() {
+    local brew_root="$HOME/.linuxbrew"
+    local brew_repo="$brew_root/Homebrew"
+    local brew_bin_dir="$brew_root/bin"
+    local brew_bin="$brew_bin_dir/brew"
+
+    step "installing Homebrew"
+
+    if ! command -v git >/dev/null 2>&1; then
+        log "[error] git is required to install Homebrew"
+        exit 1
+    fi
+
+    if [[ -e "$brew_root" && ! -d "$brew_root" ]]; then
+        log "[error] $brew_root exists but is not a directory"
+        exit 1
+    fi
+
+    mkdir -p "$brew_root"
+
+    if [[ -d "$brew_repo/.git" ]]; then
+        log "[info] Homebrew repository already exists at $brew_repo"
+    elif [[ -e "$brew_repo" ]]; then
+        log "[error] $brew_repo exists and is not a git checkout"
+        exit 1
+    else
+        if ! run_quiet git clone https://github.com/Homebrew/brew "$brew_repo"; then
+            log "[error] failed to clone Homebrew"
+            exit 1
+        fi
+    fi
+
+    mkdir -p "$brew_bin_dir"
+    ln -sfn "$brew_repo/bin/brew" "$brew_bin"
+
+    if ! run_quiet "$brew_bin" analytics off; then
+        log "[error] failed to disable Homebrew analytics"
+        exit 1
+    fi
+
+    if ! run_quiet "$brew_bin" update -fq; then
+        log "[error] failed to update Homebrew"
+        exit 1
+    fi
+
+    if ! run_quiet "$brew_bin" install portable-ruby gcc; then
+        log "[error] failed to install Homebrew packages"
+        exit 1
+    fi
+
+    log "[ok] Homebrew installed at $brew_root"
+}
+
 append_block() {
     local file="$1"
     local begin_marker="$2"
@@ -179,5 +278,14 @@ git_payload="[include]
 append_block "$HOME/.gitconfig" "$GIT_BEGIN" "$GIT_END" "$git_payload" ".gitconfig"
 
 append_block "$HOME/.tmux.conf" "$SHELL_BEGIN" "$SHELL_END" "if-shell \"[ -f '$DOTFILES_DIR/tmux/tmux.conf' ]\" \"source-file '$DOTFILES_DIR/tmux/tmux.conf'\"" ".tmux.conf"
+
+step "optional Homebrew installation"
+if prompt_yes_no "Install Homebrew in ~/.linuxbrew?" "n"; then
+    install_homebrew
+else
+    log "[skip] Homebrew installation skipped"
+fi
+
+log "[hint] remove Homebrew anytime by deleting ~/.linuxbrew"
 
 log "Done. Restart your shell (or source your rc file) to apply changes."

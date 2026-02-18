@@ -12,3 +12,8 @@ if command -v fzf >/dev/null 2>&1; then
     eval "$(fzf --bash)"
   fi
 fi
+
+# linuxbrew
+if [ -x "$HOME/.linuxbrew/bin/brew" ]; then
+  eval "$("$HOME/.linuxbrew/bin/brew" shellenv)"
+fi

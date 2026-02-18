@@ -201,4 +201,6 @@ remove_block "$HOME/.tmux.conf" "$SHELL_BEGIN" "$SHELL_END" ".tmux.conf"
 step "removing checkout directory if this script is from a checkout"
 remove_checkout_dir
 
+log "[hint] remove Homebrew anytime by deleting ~/.linuxbrew"
+
 log "Done. Restart your shell (or source your rc file) to apply changes."
