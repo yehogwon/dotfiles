@@ -7,6 +7,7 @@ DEFAULT_DOTFILES_REPO_URL="https://github.com/yehogwon/dotfiles"
 
 DOTFILES_DIR=""
 DOTFILES_REPO_URL="${DOTFILES_REPO_URL:-$DEFAULT_DOTFILES_REPO_URL}"
+NONINTERACTIVE_DOTFILES="${NONINTERACTIVE_DOTFILES:-0}"
 BOOTSTRAP_CLONED=0
 
 log() {
@@ -24,9 +25,29 @@ run_quiet() {
 prompt_yes_no() {
     local question="$1"
     local default_answer="${2:-n}"
+    local env_var_name="${3:-}"
     local prompt_suffix
     local default_label
+    local env_var_value=""
     local answer=""
+
+    if [[ -n "$env_var_name" ]]; then
+        env_var_value="${!env_var_name:-}"
+
+        case "$env_var_value" in
+            y|Y|yes|YES|Yes|1|true|TRUE|True)
+                return 0
+                ;;
+            n|N|no|NO|No|0|false|FALSE|False)
+                return 1
+                ;;
+            "")
+                ;;
+            *)
+                log "[warn] invalid value for $env_var_name: $env_var_value"
+                ;;
+        esac
+    fi
 
     if [[ "$default_answer" == "y" ]]; then
         prompt_suffix="[Y/n]"
@@ -37,7 +58,9 @@ prompt_yes_no() {
     fi
 
     while true; do
-        if [[ -t 0 ]]; then
+        if [[ "$NONINTERACTIVE_DOTFILES" == "1" ]]; then
+            answer="$default_answer"
+        elif [[ -t 0 ]]; then
             printf "%s %s (default: %s) " "$question" "$prompt_suffix" "$default_label"
             if ! IFS= read -r answer; then
                 return 1
@@ -262,7 +285,7 @@ BOOTSTRAP_CLONED=0
 
 if is_linux_platform; then
     step "optional Homebrew installation"
-    if prompt_yes_no "Install Homebrew in ~/.linuxbrew?" "n"; then
+    if prompt_yes_no "Install Homebrew in ~/.linuxbrew?" "n" "INSTALL_LINUXBREW"; then
         if ! run_linuxbrew_installer; then
             log "[warn] Homebrew installation failed; dotfiles installation will continue"
         fi

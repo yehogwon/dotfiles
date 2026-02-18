@@ -2,6 +2,8 @@
 
 set -euo pipefail
 
+NONINTERACTIVE_DOTFILES="${NONINTERACTIVE_DOTFILES:-0}"
+
 log() {
     printf "%s\n" "$*"
 }
@@ -13,9 +15,29 @@ step() {
 prompt_yes_no() {
     local question="$1"
     local default_answer="${2:-n}"
+    local env_var_name="${3:-}"
     local prompt_suffix
     local default_label
+    local env_var_value=""
     local answer=""
+
+    if [[ -n "$env_var_name" ]]; then
+        env_var_value="${!env_var_name:-}"
+
+        case "$env_var_value" in
+            y|Y|yes|YES|Yes|1|true|TRUE|True)
+                return 0
+                ;;
+            n|N|no|NO|No|0|false|FALSE|False)
+                return 1
+                ;;
+            "")
+                ;;
+            *)
+                log "[warn] invalid value for $env_var_name: $env_var_value"
+                ;;
+        esac
+    fi
 
     if [[ "$default_answer" == "y" ]]; then
         prompt_suffix="[Y/n]"
@@ -26,7 +48,9 @@ prompt_yes_no() {
     fi
 
     while true; do
-        if [[ -t 0 ]]; then
+        if [[ "$NONINTERACTIVE_DOTFILES" == "1" ]]; then
+            answer="$default_answer"
+        elif [[ -t 0 ]]; then
             printf "%s %s (default: %s) " "$question" "$prompt_suffix" "$default_label"
             if ! IFS= read -r answer; then
                 return 1
@@ -157,7 +181,7 @@ remove_checkout_dir() {
         return 0
     fi
 
-    if ! prompt_yes_no "Remove dotfiles checkout directory at $checkout_dir?" "n"; then
+    if ! prompt_yes_no "Remove dotfiles checkout directory at $checkout_dir?" "n" "REMOVE_DOTFILES_CHECKOUT"; then
         log "[skip] checkout directory removal skipped"
         return 0
     fi
