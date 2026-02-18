@@ -30,13 +30,18 @@ if ! is_linux_platform; then
     exit 1
 fi
 
-if ! command -v git >/dev/null 2>&1; then
-    log "[error] git is required to install Homebrew"
+if [[ -e "$BREW_ROOT" ]]; then
+    if [[ -d "$BREW_ROOT" ]]; then
+        log "[info] $BREW_ROOT already exists; skipping Homebrew installation"
+        exit 0
+    fi
+
+    log "[error] $BREW_ROOT exists but is not a directory"
     exit 1
 fi
 
-if [[ -e "$BREW_ROOT" && ! -d "$BREW_ROOT" ]]; then
-    log "[error] $BREW_ROOT exists but is not a directory"
+if ! command -v git >/dev/null 2>&1; then
+    log "[error] git is required to install Homebrew"
     exit 1
 fi
 
