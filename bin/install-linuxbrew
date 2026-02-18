@@ -1,0 +1,86 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+BREW_ROOT="$HOME/.linuxbrew"
+BREW_REPO="$BREW_ROOT/Homebrew"
+BREW_BIN_DIR="$BREW_ROOT/bin"
+BREW_BIN="$BREW_BIN_DIR/brew"
+
+log() {
+    printf "%s\n" "$*"
+}
+
+step() {
+    log "[info] $*"
+}
+
+run_quiet() {
+    "$@" >/dev/null 2>&1
+}
+
+is_linux_platform() {
+    [[ "$(uname -s)" == "Linux" ]]
+}
+
+step "starting Homebrew installation"
+
+if ! is_linux_platform; then
+    log "[error] Homebrew installation at ~/.linuxbrew is only supported on Linux"
+    exit 1
+fi
+
+if ! command -v git >/dev/null 2>&1; then
+    log "[error] git is required to install Homebrew"
+    exit 1
+fi
+
+if [[ -e "$BREW_ROOT" && ! -d "$BREW_ROOT" ]]; then
+    log "[error] $BREW_ROOT exists but is not a directory"
+    exit 1
+fi
+
+if ! mkdir -p "$BREW_ROOT"; then
+    log "[error] failed to create $BREW_ROOT"
+    exit 1
+fi
+
+if [[ -d "$BREW_REPO/.git" ]]; then
+    log "[info] Homebrew repository already exists at $BREW_REPO"
+elif [[ -e "$BREW_REPO" ]]; then
+    log "[error] $BREW_REPO exists and is not a git checkout"
+    exit 1
+else
+    if ! run_quiet git clone https://github.com/Homebrew/brew "$BREW_REPO"; then
+        log "[error] failed to clone Homebrew"
+        exit 1
+    fi
+fi
+
+if ! mkdir -p "$BREW_BIN_DIR"; then
+    log "[error] failed to create $BREW_BIN_DIR"
+    exit 1
+fi
+
+if ! ln -sfn "$BREW_REPO/bin/brew" "$BREW_BIN"; then
+    log "[error] failed to symlink brew to $BREW_BIN"
+    exit 1
+fi
+
+if ! run_quiet "$BREW_BIN" analytics off; then
+    log "[error] failed to disable Homebrew analytics"
+    exit 1
+fi
+
+if ! run_quiet "$BREW_BIN" update -fq; then
+    log "[error] failed to update Homebrew"
+    exit 1
+fi
+
+if ! run_quiet "$BREW_BIN" install portable-ruby gcc; then
+    log "[error] failed to install Homebrew packages"
+    exit 1
+fi
+
+log "[ok] Homebrew installed at $BREW_ROOT"
+log "[hint] remove Homebrew anytime by deleting ~/.linuxbrew"
