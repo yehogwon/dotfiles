@@ -88,12 +88,5 @@ if ! run_quiet "$BREW_BIN" update -fq; then
     exit 1
 fi
 
-step "installing and gcc (this may take several minutes)"
-if ! run_quiet "$BREW_BIN" install gcc; then
-    log "[error] failed to install Homebrew packages"
-    exit 1
-fi
-log "[ok] Homebrew packages installed"
-
 log "[ok] Homebrew installed at $BREW_ROOT"
 log "[hint] remove Homebrew anytime by deleting ~/.linuxbrew"
