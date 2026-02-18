@@ -23,10 +23,20 @@ is_linux_platform() {
     [[ "$(uname -s)" == "Linux" ]]
 }
 
+is_root_user() {
+    [[ "$(id -u)" -eq 0 ]]
+}
+
 step "starting Homebrew installation"
 
 if ! is_linux_platform; then
     log "[error] Homebrew installation at ~/.linuxbrew is only supported on Linux"
+    exit 1
+fi
+
+if is_root_user; then
+    log "[error] running this installer as root is very dangerous"
+    log "[error] Homebrew does not support running as root"
     exit 1
 fi
 
