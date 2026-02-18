@@ -1,6 +1,6 @@
 # NOTE: oh-my-zsh should be sourced first due to keybinding conflicts
-source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]:-$0}")" && pwd -P)/oh-my-zsh"
-source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]:-$0}")" && pwd -P)/../all"
+source "$DOTFILES_HOME/shell/zsh/oh-my-zsh"
+source "$DOTFILES_HOME/shell/all"
 
 # >>> tmux >>>
 if [[ -n "$TMUX" ]]; then

@@ -1,9 +1,9 @@
-source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]:-$0}")" && pwd -P)/envs"
-source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]:-$0}")" && pwd -P)/tools"
-source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]:-$0}")" && pwd -P)/aliases"
+source "$DOTFILES_HOME/shell/envs"
+source "$DOTFILES_HOME/shell/tools"
+source "$DOTFILES_HOME/shell/aliases"
 
 # fzf
-FZF_HOME="$(cd -- "$(dirname -- "${BASH_SOURCE[0]:-$0}")" && pwd -P)/../modules/fzf"
+FZF_HOME="$DOTFILES_HOME/modules/fzf"
 [ -d "$FZF_HOME/bin" ] && export PATH="$FZF_HOME/bin${PATH:+:$PATH}"
 if command -v fzf >/dev/null 2>&1; then
   if [ -n "$ZSH_VERSION" ]; then

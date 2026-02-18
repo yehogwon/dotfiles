@@ -235,22 +235,27 @@ resolve_dotfiles_dir
 log "[info] dotfiles path: $DOTFILES_DIR"
 step "updating shell and tool configuration files"
 
-append_block "$HOME/.bashrc" "$SHELL_BEGIN" "$SHELL_END" "[ -f \"$DOTFILES_DIR/shell/bash/bashrc\" ] && source \"$DOTFILES_DIR/shell/bash/bashrc\"" ".bashrc"
-append_block "$HOME/.bash_profile" "$SHELL_BEGIN" "$SHELL_END" "[ -f \"$DOTFILES_DIR/shell/bash/bash_profile\" ] && source \"$DOTFILES_DIR/shell/bash/bash_profile\"" ".bash_profile"
+# bash shell
+append_block "$HOME/.bashrc" "$SHELL_BEGIN" "$SHELL_END" "[ -f \"$DOTFILES_DIR/bin/shellenv\" ] && source \"$DOTFILES_DIR/bin/shellenv\" bashrc" ".bashrc"
+append_block "$HOME/.bash_profile" "$SHELL_BEGIN" "$SHELL_END" "[ -f \"$DOTFILES_DIR/bin/shellenv\" ] && source \"$DOTFILES_DIR/bin/shellenv\" bash_profile" ".bash_profile"
 append_block "$HOME/.inputrc" "$SHELL_BEGIN" "$SHELL_END" "\$include $DOTFILES_DIR/shell/bash/inputrc" ".inputrc"
 
-append_block "$HOME/.zshrc" "$SHELL_BEGIN" "$SHELL_END" "[ -f \"$DOTFILES_DIR/shell/zsh/zshrc\" ] && source \"$DOTFILES_DIR/shell/zsh/zshrc\"" ".zshrc"
-append_block "$HOME/.zprofile" "$SHELL_BEGIN" "$SHELL_END" "[ -f \"$DOTFILES_DIR/shell/zsh/zprofile\" ] && source \"$DOTFILES_DIR/shell/zsh/zprofile\"" ".zprofile"
-append_block "$HOME/.zlogin" "$SHELL_BEGIN" "$SHELL_END" "[ -f \"$DOTFILES_DIR/shell/zsh/zlogin\" ] && source \"$DOTFILES_DIR/shell/zsh/zlogin\"" ".zlogin"
-append_block "$HOME/.zlogout" "$SHELL_BEGIN" "$SHELL_END" "[ -f \"$DOTFILES_DIR/shell/zsh/zlogout\" ] && source \"$DOTFILES_DIR/shell/zsh/zlogout\"" ".zlogout"
-append_block "$HOME/.zshenv" "$SHELL_BEGIN" "$SHELL_END" "[ -f \"$DOTFILES_DIR/shell/zsh/zshenv\" ] && source \"$DOTFILES_DIR/shell/zsh/zshenv\"" ".zshenv"
+# zsh shell
+append_block "$HOME/.zshrc" "$SHELL_BEGIN" "$SHELL_END" "[ -f \"$DOTFILES_DIR/bin/shellenv\" ] && source \"$DOTFILES_DIR/bin/shellenv\" zshrc" ".zshrc"
+append_block "$HOME/.zprofile" "$SHELL_BEGIN" "$SHELL_END" "[ -f \"$DOTFILES_DIR/bin/shellenv\" ] && source \"$DOTFILES_DIR/bin/shellenv\" zprofile" ".zprofile"
+append_block "$HOME/.zlogin" "$SHELL_BEGIN" "$SHELL_END" "[ -f \"$DOTFILES_DIR/bin/shellenv\" ] && source \"$DOTFILES_DIR/bin/shellenv\" zlogin" ".zlogin"
+append_block "$HOME/.zlogout" "$SHELL_BEGIN" "$SHELL_END" "[ -f \"$DOTFILES_DIR/bin/shellenv\" ] && source \"$DOTFILES_DIR/bin/shellenv\" zlogout" ".zlogout"
+append_block "$HOME/.zshenv" "$SHELL_BEGIN" "$SHELL_END" "[ -f \"$DOTFILES_DIR/bin/shellenv\" ] && source \"$DOTFILES_DIR/bin/shellenv\" zshenv" ".zshenv"
 
+# vim
 append_block "$HOME/.vimrc" "$VIM_BEGIN" "$VIM_END" "if filereadable(expand(\"$DOTFILES_DIR/vim/vimrc\")) | execute \"source \" . fnameescape(expand(\"$DOTFILES_DIR/vim/vimrc\")) | endif" ".vimrc"
 
+# git
 git_payload="[include]
     path = \"$DOTFILES_DIR/git/gitconfig\""
 append_block "$HOME/.gitconfig" "$GIT_BEGIN" "$GIT_END" "$git_payload" ".gitconfig"
 
+# tmux
 append_block "$HOME/.tmux.conf" "$SHELL_BEGIN" "$SHELL_END" "if-shell \"[ -f '$DOTFILES_DIR/tmux/tmux.conf' ]\" \"source-file '$DOTFILES_DIR/tmux/tmux.conf'\"" ".tmux.conf"
 
 BOOTSTRAP_CLONED=0
