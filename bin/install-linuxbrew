@@ -34,6 +34,7 @@ if ! is_linux_platform; then
     exit 1
 fi
 
+# FIXME: installing linuxbrew this way requires building bin from source most of the time (almost always)
 if is_root_user; then
     log "[error] running this installer as root is very dangerous"
     log "[error] Homebrew does not support running as root"
