@@ -1,6 +1,7 @@
 # >>> oh-my-zsh >>>
 # Path to your oh-my-zsh installation.
 export ZSH="$DOTFILES_HOME/modules/oh-my-zsh"
+export ZSH_CUSTOM="$DOTFILES_HOME/shell/zsh/custom"
 
 # Set name of the theme to load --- if set to "random", it will
 # load a random theme each time oh-my-zsh is loaded, in which case,
@@ -74,3 +75,5 @@ if [ -f "$ZSH/oh-my-zsh.sh" ]; then
   source "$ZSH/oh-my-zsh.sh"
 fi
 # <<< oh-my-zsh <<<
+
+source "$ZSH_CUSTOM/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
