@@ -76,4 +76,4 @@ if [ -f "$ZSH/oh-my-zsh.sh" ]; then
 fi
 # <<< oh-my-zsh <<<
 
-source "$ZSH_CUSTOM/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
+source "$ZSH_CUSTOM/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
