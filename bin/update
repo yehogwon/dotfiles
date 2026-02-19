@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+log() {
+    printf "%s\n" "$*"
+}
+
+step() {
+    log "[info] $*"
+}
+
+is_git_worktree() {
+    local dir="$1"
+
+    git -C "$dir" rev-parse --is-inside-work-tree >/dev/null 2>&1
+}
+
+resolve_dotfiles_home() {
+    if [[ -z "${DOTFILES_HOME:-}" ]]; then
+        log "[error] DOTFILES_HOME is not set"
+        log "[hint] dotfiles is not set up yet, so there is nothing to update"
+        exit 1
+    fi
+
+    if [[ ! -d "$DOTFILES_HOME" ]]; then
+        log "[error] DOTFILES_HOME path not found: $DOTFILES_HOME"
+        exit 1
+    fi
+
+    DOTFILES_HOME="$(realpath "$DOTFILES_HOME")"
+
+    if ! is_git_worktree "$DOTFILES_HOME"; then
+        log "[error] DOTFILES_HOME is not a git checkout: $DOTFILES_HOME"
+        exit 1
+    fi
+}
+
+step "starting dotfiles update"
+
+if ! command -v git >/dev/null 2>&1; then
+    log "[error] git is required"
+    exit 1
+fi
+
+resolve_dotfiles_home
+log "[info] dotfiles path: $DOTFILES_HOME"
+
+step "pulling latest changes"
+if ! git -C "$DOTFILES_HOME" pull; then
+    log "[error] failed to pull latest changes"
+    exit 1
+fi
+
+step "updating submodules"
+if ! git -C "$DOTFILES_HOME" submodule update --init --recursive; then
+    log "[error] failed to update submodules"
+    exit 1
+fi
+
+log "[ok] dotfiles update complete"
