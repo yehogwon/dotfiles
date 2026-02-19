@@ -14,7 +14,7 @@ print_cyan() { _print_color 36 "$@"; }
 print_white() { _print_color 37 "$@"; }
 
 _wwatch_named_exec() {
-    local proc_name="${WWATCH_PROCESS_NAME:-wwatch}"
+    local proc_name="wwatch"
 
     # Use bash+exec -a when available to keep a stable process name.
     if command -v bash >/dev/null 2>&1; then
