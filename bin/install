@@ -259,16 +259,16 @@ log "[info] dotfiles path: $DOTFILES_DIR"
 step "updating shell and tool configuration files"
 
 # bash shell
-append_block "$HOME/.bashrc" "$SHELL_BEGIN" "$SHELL_END" "[ -f \"$DOTFILES_DIR/bin/shellenv\" ] && source \"$DOTFILES_DIR/bin/shellenv\" bashrc" ".bashrc"
-append_block "$HOME/.bash_profile" "$SHELL_BEGIN" "$SHELL_END" "[ -f \"$DOTFILES_DIR/bin/shellenv\" ] && source \"$DOTFILES_DIR/bin/shellenv\" bash_profile" ".bash_profile"
+append_block "$HOME/.bashrc" "$SHELL_BEGIN" "$SHELL_END" "[ -f \"$DOTFILES_DIR/shell/shellenv\" ] && eval \"\$(bash '$DOTFILES_DIR/shell/shellenv' --emit bashrc)\"" ".bashrc"
+append_block "$HOME/.bash_profile" "$SHELL_BEGIN" "$SHELL_END" "[ -f \"$DOTFILES_DIR/shell/shellenv\" ] && eval \"\$(bash '$DOTFILES_DIR/shell/shellenv' --emit bash_profile)\"" ".bash_profile"
 append_block "$HOME/.inputrc" "$SHELL_BEGIN" "$SHELL_END" "\$include $DOTFILES_DIR/shell/bash/inputrc" ".inputrc"
 
 # zsh shell
-append_block "$HOME/.zshrc" "$SHELL_BEGIN" "$SHELL_END" "[ -f \"$DOTFILES_DIR/bin/shellenv\" ] && source \"$DOTFILES_DIR/bin/shellenv\" zshrc" ".zshrc"
-append_block "$HOME/.zprofile" "$SHELL_BEGIN" "$SHELL_END" "[ -f \"$DOTFILES_DIR/bin/shellenv\" ] && source \"$DOTFILES_DIR/bin/shellenv\" zprofile" ".zprofile"
-append_block "$HOME/.zlogin" "$SHELL_BEGIN" "$SHELL_END" "[ -f \"$DOTFILES_DIR/bin/shellenv\" ] && source \"$DOTFILES_DIR/bin/shellenv\" zlogin" ".zlogin"
-append_block "$HOME/.zlogout" "$SHELL_BEGIN" "$SHELL_END" "[ -f \"$DOTFILES_DIR/bin/shellenv\" ] && source \"$DOTFILES_DIR/bin/shellenv\" zlogout" ".zlogout"
-append_block "$HOME/.zshenv" "$SHELL_BEGIN" "$SHELL_END" "[ -f \"$DOTFILES_DIR/bin/shellenv\" ] && source \"$DOTFILES_DIR/bin/shellenv\" zshenv" ".zshenv"
+append_block "$HOME/.zshrc" "$SHELL_BEGIN" "$SHELL_END" "[ -f \"$DOTFILES_DIR/shell/shellenv\" ] && eval \"\$(bash '$DOTFILES_DIR/shell/shellenv' --emit zshrc)\"" ".zshrc"
+append_block "$HOME/.zprofile" "$SHELL_BEGIN" "$SHELL_END" "[ -f \"$DOTFILES_DIR/shell/shellenv\" ] && eval \"\$(bash '$DOTFILES_DIR/shell/shellenv' --emit zprofile)\"" ".zprofile"
+append_block "$HOME/.zlogin" "$SHELL_BEGIN" "$SHELL_END" "[ -f \"$DOTFILES_DIR/shell/shellenv\" ] && eval \"\$(bash '$DOTFILES_DIR/shell/shellenv' --emit zlogin)\"" ".zlogin"
+append_block "$HOME/.zlogout" "$SHELL_BEGIN" "$SHELL_END" "[ -f \"$DOTFILES_DIR/shell/shellenv\" ] && eval \"\$(bash '$DOTFILES_DIR/shell/shellenv' --emit zlogout)\"" ".zlogout"
+append_block "$HOME/.zshenv" "$SHELL_BEGIN" "$SHELL_END" "[ -f \"$DOTFILES_DIR/shell/shellenv\" ] && eval \"\$(bash '$DOTFILES_DIR/shell/shellenv' --emit zshenv)\"" ".zshenv"
 
 # vim
 append_block "$HOME/.vimrc" "$VIM_BEGIN" "$VIM_END" "if filereadable(expand(\"$DOTFILES_DIR/vim/vimrc\")) | execute \"source \" . fnameescape(expand(\"$DOTFILES_DIR/vim/vimrc\")) | endif" ".vimrc"

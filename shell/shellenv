@@ -1,0 +1,72 @@
+#!/usr/bin/env bash
+
+emit_mode=0
+
+if [ "${1:-}" = "--emit" ]; then
+  emit_mode=1
+  shift
+fi
+
+target_rc="${1:-}"
+
+if [ -z "$target_rc" ]; then
+  printf "usage: source shell/shellenv <rc-name>\n" >&2
+  printf "   or: bash shell/shellenv --emit <rc-name>\n" >&2
+  return 1 2>/dev/null || exit 1
+fi
+
+if [ -n "${ZSH_VERSION:-}" ]; then
+  eval 'shellenv_source="${(%):-%x}"'
+else
+  shellenv_source="${BASH_SOURCE[0]:-$0}"
+fi
+
+case "$shellenv_source" in
+  /*) ;;
+  *) shellenv_source="$PWD/$shellenv_source" ;;
+esac
+
+if [ -z "${DOTFILES_HOME+x}" ]; then
+  DOTFILES_HOME="${shellenv_source%/*}"
+  DOTFILES_HOME="${DOTFILES_HOME%/*}"
+  export DOTFILES_HOME
+fi
+
+unset shellenv_source
+
+case "$target_rc" in
+  bashrc)
+    target_rc_path="$DOTFILES_HOME/shell/bash/bashrc"
+    ;;
+  bash_profile)
+    target_rc_path="$DOTFILES_HOME/shell/bash/bash_profile"
+    ;;
+  zshrc)
+    target_rc_path="$DOTFILES_HOME/shell/zsh/zshrc"
+    ;;
+  zprofile)
+    target_rc_path="$DOTFILES_HOME/shell/zsh/zprofile"
+    ;;
+  zlogin)
+    target_rc_path="$DOTFILES_HOME/shell/zsh/zlogin"
+    ;;
+  zlogout)
+    target_rc_path="$DOTFILES_HOME/shell/zsh/zlogout"
+    ;;
+  zshenv)
+    target_rc_path="$DOTFILES_HOME/shell/zsh/zshenv"
+    ;;
+  *)
+    printf "unknown shell rc name: %s\n" "$target_rc" >&2
+    return 1 2>/dev/null || exit 1
+    ;;
+esac
+
+if [ "$emit_mode" = "1" ]; then
+  printf 'DOTFILES_HOME=%q\n' "$DOTFILES_HOME"
+  printf 'export DOTFILES_HOME\n'
+  printf 'source %q\n' "$target_rc_path"
+  return 0 2>/dev/null || exit 0
+fi
+
+source "$target_rc_path"
