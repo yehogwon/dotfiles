@@ -13,31 +13,37 @@ print_magenta() { _print_color 35 "$@"; }
 print_cyan() { _print_color 36 "$@"; }
 print_white() { _print_color 37 "$@"; }
 
+_wwatch_eval_args() {
+    local quoted
+    quoted=$(printf '%q ' "$@")
+    eval "${quoted% }"
+}
+
 _wwatch_named_exec() {
     local proc_name="wwatch"
 
+    if [[ $# -eq 1 ]]; then
+        (
+            eval "$1"
+        )
+        return $?
+    fi
+
+    if alias -- "$1" >/dev/null 2>&1 || typeset -f -- "$1" >/dev/null 2>&1; then
+        (
+            _wwatch_eval_args "$@"
+        )
+        return $?
+    fi
+
     # Use bash+exec -a when available to keep a stable process name.
     if command -v bash >/dev/null 2>&1; then
-        if [[ $# -eq 1 ]]; then
-            command bash -c 'exec -a "$1" "$2" -lc "$3"' _ "$proc_name" "${SHELL:-/bin/sh}" "$1"
-        else
-            local cmd_type
-            cmd_type=$(type -t -- "$1" 2>/dev/null || true)
-            if [[ "$cmd_type" == "function" || "$cmd_type" == "builtin" || "$cmd_type" == "alias" || "$cmd_type" == "keyword" ]]; then
-                "$@"
-                return $?
-            fi
-            command bash -c 'exec -a "$1" "${@:2}"' _ "$proc_name" "$@"
-        fi
+        command bash -c 'exec -a "$1" "${@:2}"' _ "$proc_name" "$@"
         return $?
     fi
 
     # Fallback without process renaming support.
-    if [[ $# -eq 1 ]]; then
-        eval "$1"
-    else
-        "$@"
-    fi
+    "$@"
 }
 
 wwatch() {
@@ -46,7 +52,7 @@ wwatch() {
     fi
 
     local interval=1 alt=1
-    local cmd="$*"
+    local -a cmd_argv=("$@")
 
     # Terminal control only makes sense for an interactive terminal.
     if [[ ! -t 1 ]]; then
@@ -71,7 +77,7 @@ wwatch() {
         while (( !interrupted )); do
             printf '\033[H\033[K'
             print_yellow "wwatch :: $(hostname) :: $(date)"
-            _wwatch_named_exec "$cmd"
+            _wwatch_named_exec "${cmd_argv[@]}"
             printf '\033[J'
 
             (( interrupted )) && break
