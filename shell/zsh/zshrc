@@ -5,9 +5,9 @@ source "$DOTFILES_HOME/shell/all"
 # >>> tmux >>>
 if [[ -n "$TMUX" ]]; then
   # inside tmux: separate history
-  unsetopt share_history
-  unsetopt inc_append_history
-  setopt append_history
+  unsetopt share_history  # up/down arrow
+  setopt inc_append_history  # incremental
+  setopt append_history  # when exit
 else
   # outside tmux: you can choose different behavior, e.g., shared history
   setopt share_history
