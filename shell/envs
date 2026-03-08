@@ -2,3 +2,19 @@ export LC_ALL=en_US.UTF-8
 export TMUX_POWERLINE_CONFIG_FILE="$DOTFILES_HOME/tmux/powerline/config.sh"
 
 [ -d "$HOME/.local/bin" ] && export PATH="$HOME/.local/bin${PATH:+:$PATH}"
+
+# fzf
+FZF_HOME="$DOTFILES_HOME/modules/fzf"
+[ -d "$FZF_HOME/bin" ] && export PATH="$FZF_HOME/bin${PATH:+:$PATH}"
+if command -v fzf >/dev/null 2>&1; then
+  if [ -n "$ZSH_VERSION" ]; then
+    eval "$(fzf --zsh)"
+  elif [ -n "$BASH_VERSION" ]; then
+    eval "$(fzf --bash)"
+  fi
+fi
+
+# linuxbrew
+if [ -x "$HOME/.linuxbrew/bin/brew" ]; then
+  eval "$("$HOME/.linuxbrew/bin/brew" shellenv)"
+fi
