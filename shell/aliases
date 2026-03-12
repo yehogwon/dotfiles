@@ -6,11 +6,6 @@ alias ll='ls -alF'
 alias la='ls -A'
 alias l='ls -CF'
 
-# Kwak
-if [[ "$(hostname)" =~ ^kwak[0-9]+$ ]]; then
-    alias ssh='ssh -p10022'
-fi
-
 # nvitop
 if command -v uvx 2>&1 >/dev/null; then
     alias nvitop='uvx nvitop'
