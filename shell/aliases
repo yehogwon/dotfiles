@@ -7,10 +7,12 @@ alias la='ls -A'
 alias l='ls -CF'
 
 # nvitop
-if command -v uvx 2>&1 >/dev/null; then
-    alias nvitop='uvx nvitop'
-elif command -v pipx 2>&1 >/dev/null; then
-    alias nvitop='pipx run nvitop'
+if ! command -v nvitop >/dev/null 2>&1; then
+    if command -v uvx >/dev/null 2>&1; then
+        alias nvitop='uvx nvitop'
+    elif command -v pipx >/dev/null 2>&1; then
+        alias nvitop='pipx run nvitop'
+    fi
 fi
 
 # nvim
