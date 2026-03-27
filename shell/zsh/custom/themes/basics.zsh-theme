@@ -1,14 +1,18 @@
 # fork of crcandy
+PROMPT=''
+
 if [[ -n "$SLURM_JOB_ID" ]]; then
-  basics_identity_color="%{$fg_bold[red]%}"
-  basics_slurm_segment="%{$fg[red]%}[$SLURM_JOB_ID]%{$reset_color%} "
+  PROMPT+='%{$fg_bold[yellow]%}%n@%m '
+  PROMPT+='%{$fg[yellow]%}[$SLURM_JOB_ID]%{$reset_color%} '
 else
-  basics_identity_color="%{$fg_bold[green]%}"
-  basics_slurm_segment=""
+  PROMPT+='%{$fg_bold[green]%}%n@%m '
 fi
 
-PROMPT='${basics_identity_color}%n@%m %{$fg[blue]%}%D{[%H:%M:%S]} ${basics_slurm_segment}%{$reset_color%}%{$fg[white]%}[%~]%{$reset_color%} $(git_prompt_info)
-%{$fg[blue]%}->%{$fg_bold[blue]%} %#%{$reset_color%} '
+PROMPT+='%{$fg[blue]%}%D{[%H:%M:%S]} '
+PROMPT+='%{$fg[white]%}[%~]%{$reset_color%} '
+PROMPT+='$(git_prompt_info)'
+PROMPT+=$'\n'
+PROMPT+='%{$fg[blue]%}->%{$fg_bold[blue]%} %#%{$reset_color%} '
 
 ZSH_THEME_GIT_PROMPT_PREFIX="%{$fg[green]%}["
 ZSH_THEME_GIT_PROMPT_SUFFIX="]%{$reset_color%}"
