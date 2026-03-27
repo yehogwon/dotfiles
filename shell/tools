@@ -119,29 +119,226 @@ function _slurm_get_field() {
     return 0
 }
 
-function slurm_out() {
-    if [ "$#" -ne 1 ]; then
-        print_red "Usage: slurm_out <job_id>"
+function _slurm_try_get_field() {
+    local job_id="$1"
+    local field="$2"
+
+    local line
+    if ! line=$(scontrol show job -o "$job_id" 2>/dev/null); then
         return 1
     fi
-    _slurm_get_field "$1" "StdOut"
+
+    awk -v key="$field" '{
+        for (i = 1; i <= NF; i++) {
+            if ($i ~ ("^" key "=")) {
+                sub("^" key "=", "", $i)
+                print $i
+                exit
+            }
+        }
+    }' <<< "$line"
+}
+
+function _slurm_first_host_from_nodelist() {
+    local nodelist="$1"
+
+    [ -n "$nodelist" ] || return 1
+    [ "$nodelist" != "(null)" ] || return 1
+
+    local first_host
+    first_host=$(scontrol show hostnames "$nodelist" 2>/dev/null | while IFS= read -r host; do
+        printf '%s\n' "$host"
+        break
+    done) || return 1
+
+    [ -n "$first_host" ] || return 1
+    printf '%s\n' "$first_host"
+}
+
+function _slurm_detect_log_host() {
+    local job_id="$1"
+
+    local batch_host
+    batch_host=$(_slurm_try_get_field "$job_id" "BatchHost")
+    if [ -n "$batch_host" ] && [ "$batch_host" != "(null)" ]; then
+        printf '%s\n' "$batch_host"
+        return 0
+    fi
+
+    local nodelist
+    nodelist=$(_slurm_try_get_field "$job_id" "NodeList") || return 1
+    _slurm_first_host_from_nodelist "$nodelist"
+}
+
+function _slurm_is_remote_path() {
+    local location="$1"
+    local remote_prefix="${location%%:*}"
+    local remote_path="${location#*:}"
+
+    [ "$remote_prefix" != "$location" ] || return 1
+    [ -n "$remote_prefix" ] || return 1
+    [ "${remote_prefix#*/}" = "$remote_prefix" ] || return 1
+    [ "${remote_path#/}" != "$remote_path" ] || return 1
+
+    return 0
+}
+
+function _slurm_compose_log_location() {
+    local path="$1"
+    local ssh_host="$2"
+
+    if _slurm_is_remote_path "$path"; then
+        printf '%s\n' "$path"
+        return 0
+    fi
+
+    if [ -n "$ssh_host" ]; then
+        if [ "${path#/}" = "$path" ]; then
+            print_red "Remote log path must be absolute when using ssh_host: $path"
+            return 1
+        fi
+
+        printf '%s:%s\n' "$ssh_host" "$path"
+        return 0
+    fi
+
+    printf '%s\n' "$path"
+    return 0
+}
+
+function _slurm_split_log_location() {
+    local location="$1"
+
+    if _slurm_is_remote_path "$location"; then
+        printf 'remote\n%s\n%s\n' "${location%%:*}" "${location#*:}"
+        return 0
+    fi
+
+    printf 'local\n\n%s\n' "$location"
+    return 0
+}
+
+function _slurm_quote_for_shell() {
+    printf '%q' "$1"
+}
+
+function _slurm_run_ssh() {
+    local ssh_host="$1"
+    local remote_command="$2"
+
+    ssh -- "$ssh_host" "$remote_command"
+}
+
+function slurm_out() {
+    if [ "$#" -lt 1 ] || [ "$#" -gt 2 ]; then
+        print_red "Usage: slurm_out <job_id> [ssh_host]"
+        return 1
+    fi
+
+    local file
+    file=$(_slurm_get_field "$1" "StdOut") || return 1
+    _slurm_compose_log_location "$file" "$2"
 }
 
 function slurm_err() {
-    if [ "$#" -ne 1 ]; then
-        print_red "Usage: slurm_err <job_id>"
+    if [ "$#" -lt 1 ] || [ "$#" -gt 2 ]; then
+        print_red "Usage: slurm_err <job_id> [ssh_host]"
         return 1
     fi
-    _slurm_get_field "$1" "StdErr"
+
+    local file
+    file=$(_slurm_get_field "$1" "StdErr") || return 1
+    _slurm_compose_log_location "$file" "$2"
 }
 
 function _show_file() {
     local mode="$1"  # cat or tail
     local job_id="$2"
     local file_func="$3"
+    local ssh_host="$4"
 
-    local file
-    file=$("$file_func" "$job_id") || return 1
+    local location
+    location=$("$file_func" "$job_id" "$ssh_host") || return 1
+
+    local target_kind remote_host file
+    {
+        IFS= read -r target_kind
+        IFS= read -r remote_host
+        IFS= read -r file
+    } <<EOF
+$(_slurm_split_log_location "$location")
+EOF
+
+    if [ "$target_kind" = "remote" ]; then
+        local quoted_file
+        quoted_file=$(_slurm_quote_for_shell "$file")
+
+        if [ "$mode" = "cat" ]; then
+            local check_status
+            _slurm_run_ssh "$remote_host" "test -f $quoted_file"
+            check_status=$?
+
+            if [ "$check_status" -ne 0 ]; then
+                if [ "$check_status" -eq 1 ]; then
+                    print_red "File does not exist: $location"
+                else
+                    print_red "ssh failed while checking file: $location"
+                fi
+                return "$check_status"
+            fi
+
+            print_green "Displaying file: $location"
+            _slurm_run_ssh "$remote_host" "cat -- $quoted_file"
+            return $?
+        fi
+
+        print_green "Tracking file: $location"
+        _slurm_run_ssh "$remote_host" "tail -F -- $quoted_file"
+        return $?
+    fi
+
+    local auto_host=""
+    if [ -z "$ssh_host" ] && [ ! -f "$file" ]; then
+        auto_host=$(_slurm_detect_log_host "$job_id")
+        if [ -n "$auto_host" ]; then
+            location=$(_slurm_compose_log_location "$file" "$auto_host") || return 1
+            {
+                IFS= read -r target_kind
+                IFS= read -r remote_host
+                IFS= read -r file
+            } <<EOF
+$( _slurm_split_log_location "$location" )
+EOF
+        fi
+    fi
+
+    if [ "$target_kind" = "remote" ]; then
+        local quoted_file
+        quoted_file=$(_slurm_quote_for_shell "$file")
+
+        if [ "$mode" = "cat" ]; then
+            local check_status
+            _slurm_run_ssh "$remote_host" "test -f $quoted_file"
+            check_status=$?
+
+            if [ "$check_status" -ne 0 ]; then
+                if [ "$check_status" -eq 1 ]; then
+                    print_red "File does not exist: $location"
+                else
+                    print_red "ssh failed while checking file: $location"
+                fi
+                return "$check_status"
+            fi
+
+            print_green "Displaying file: $location"
+            _slurm_run_ssh "$remote_host" "cat -- $quoted_file"
+            return $?
+        fi
+
+        print_green "Tracking file: $location"
+        _slurm_run_ssh "$remote_host" "tail -F -- $quoted_file"
+        return $?
+    fi
 
     if [ "$mode" = "cat" ]; then
         if [ ! -f "$file" ]; then
@@ -157,33 +354,33 @@ function _show_file() {
 }
 
 function cat_out() {
-    if [ "$#" -ne 1 ]; then
-        print_red "Usage: cat_out <job_id>"
+    if [ "$#" -lt 1 ] || [ "$#" -gt 2 ]; then
+        print_red "Usage: cat_out <job_id> [ssh_host]"
         return 1
     fi
-    _show_file "cat" "$1" slurm_out
+    _show_file "cat" "$1" slurm_out "$2"
 }
 
 function track_out() {
-    if [ "$#" -ne 1 ]; then
-        print_red "Usage: track_out <job_id>"
+    if [ "$#" -lt 1 ] || [ "$#" -gt 2 ]; then
+        print_red "Usage: track_out <job_id> [ssh_host]"
         return 1
     fi
-    _show_file "tail" "$1" slurm_out
+    _show_file "tail" "$1" slurm_out "$2"
 }
 
 function cat_err() {
-    if [ "$#" -ne 1 ]; then
-        print_red "Usage: cat_err <job_id>"
+    if [ "$#" -lt 1 ] || [ "$#" -gt 2 ]; then
+        print_red "Usage: cat_err <job_id> [ssh_host]"
         return 1
     fi
-    _show_file "cat" "$1" slurm_err
+    _show_file "cat" "$1" slurm_err "$2"
 }
 
 function track_err() {
-    if [ "$#" -ne 1 ]; then
-        print_red "Usage: track_err <job_id>"
+    if [ "$#" -lt 1 ] || [ "$#" -gt 2 ]; then
+        print_red "Usage: track_err <job_id> [ssh_host]"
         return 1
     fi
-    _show_file "tail" "$1" slurm_err
+    _show_file "tail" "$1" slurm_err "$2"
 }
