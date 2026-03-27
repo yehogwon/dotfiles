@@ -7,7 +7,7 @@ else
   basics_slurm_segment=""
 fi
 
-PROMPT='${basics_identity_color}%n@%m %{$fg[blue]%}%D{[%H:%M:%S]} ${basics_slurm_segment}%{$reset_color%}%{$fg[white]%}[%~]%{$reset_color%} $(git_prompt_info)\
+PROMPT='${basics_identity_color}%n@%m %{$fg[blue]%}%D{[%H:%M:%S]} ${basics_slurm_segment}%{$reset_color%}%{$fg[white]%}[%~]%{$reset_color%} $(git_prompt_info)
 %{$fg[blue]%}->%{$fg_bold[blue]%} %#%{$reset_color%} '
 
 ZSH_THEME_GIT_PROMPT_PREFIX="%{$fg[green]%}["
