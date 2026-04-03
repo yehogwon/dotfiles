@@ -2,7 +2,6 @@
 
 import argparse
 import json
-import shutil
 import subprocess
 import sys
 import tempfile
@@ -11,8 +10,77 @@ from datetime import datetime
 from pathlib import Path
 
 
-SCRIPT_DIR = Path(__file__).resolve().parent
-SOURCE_FILE = SCRIPT_DIR / 'trainjob' / 'interactive.yaml'
+INTERACTIVE_TRAINJOB_TEMPLATE = """apiVersion: trainer.kubeflow.org/v1alpha1
+kind: TrainJob
+metadata:
+  name: yehogwon-interactive
+  namespace: kbm-g-np-postech-b
+spec:
+  runtimeRef:
+    apiGroup: trainer.kubeflow.org
+    kind: TrainingRuntime
+    name: resampler-runtime
+  trainer:
+    numNodes: 1
+    numProcPerNode: 1
+    resourcesPerNode:
+      limits:
+        cpu: '16'
+        memory: 64Gi
+        nvidia.com/gpu: '1'
+    env:
+    - name: POD_NAME
+      valueFrom:
+        fieldRef:
+          fieldPath: metadata.name
+    - name: WANDB_API_KEY
+      valueFrom:
+        secretKeyRef:
+          name: trainer-secrets
+          key: wandb_api_key
+    - name: HF_TOKEN
+      valueFrom:
+        secretKeyRef:
+          name: trainer-secrets
+          key: hf_token
+    args:
+      - /bin/bash
+      - '-lc'
+      - |-
+        set -euo pipefail
+        echo 'Interactive TrainJob is ready.'
+        echo "Pod name: ${POD_NAME}"
+        echo "Try: kubectl exec -it ${POD_NAME} -n kbm-g-np-postech-b -c node -- /bin/zsh"
+        sleep infinity
+
+  podTemplateOverrides:
+    - targetJobs:
+        - name: node
+      metadata:
+        annotations:
+          sidecar.istio.io/inject: "false"
+      spec:
+        containers:
+          - name: node
+            volumeMounts:
+              - mountPath: /workspace
+                name: workspace
+              - mountPath: /data
+                name: data
+              - mountPath: /dev/shm
+                name: dshm
+        volumes:  # pvc
+          - name: workspace
+            persistentVolumeClaim:
+              claimName: yehogwon-workspace
+          - name: data
+            persistentVolumeClaim:
+              claimName: data
+          - name: dshm # shared memory for multi-worker dataloader
+            emptyDir:
+              medium: Memory
+              sizeLimit: 32Gi  # adjust as needed
+"""
 
 DEFAULT_CPU_PER_GPU = 8
 DEFAULT_MEM_PER_GPU = 128
@@ -324,8 +392,7 @@ def main() -> int:
         mode='w', suffix='.yaml', prefix='interactive-trainjob-', delete=False
     ) as tmp:
         tmp_path = Path(tmp.name)
-
-    shutil.copyfile(SOURCE_FILE, tmp_path)
+        tmp.write(INTERACTIVE_TRAINJOB_TEMPLATE)
 
     original_name = get_config_value(tmp_path, 'metadata.name')
     trainjob_name = f'{original_name}-{timestamp}'
