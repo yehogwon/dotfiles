@@ -1,0 +1,367 @@
+#!/usr/bin/env python3
+
+import argparse
+import json
+import shutil
+import subprocess
+import sys
+import tempfile
+import time
+from datetime import datetime
+from pathlib import Path
+
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+SOURCE_FILE = SCRIPT_DIR / 'trainjob' / 'interactive.yaml'
+
+DEFAULT_CPU_PER_GPU = 8
+DEFAULT_MEM_PER_GPU = 128
+
+SPINNER = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
+POD_POLL_INTERVAL_SECONDS = 1.0
+SPINNER_UPDATE_INTERVAL_SECONDS = 0.1
+JOBSET_NAME_LABEL = 'jobset.sigs.k8s.io/jobset-name'
+TRAINJOB_ANCESTOR_LABEL = 'trainer.kubeflow.org/trainjob-ancestor-step'
+TRAINJOB_ANCESTOR_TRAINER = 'trainer'
+PREFERRED_POD_PHASES = ('Running', 'Pending')
+
+
+def split_config_key(key: str) -> list[str]:
+    parts: list[str] = []
+    current: list[str] = []
+    escaped = False
+
+    for char in key:
+        if escaped:
+            current.append(char)
+            escaped = False
+            continue
+
+        if char == '\\':
+            escaped = True
+            continue
+
+        if char == '.':
+            if not current:
+                raise ValueError(f'Invalid key: {key}')
+            parts.append(''.join(current))
+            current = []
+            continue
+
+        current.append(char)
+
+    if escaped or not current:
+        raise ValueError(f'Invalid key: {key}')
+
+    parts.append(''.join(current))
+    return parts
+
+
+def format_yaml_scalar(value: object) -> str:
+    if isinstance(value, bool):
+        return 'true' if value else 'false'
+    if value is None:
+        return 'null'
+    if isinstance(value, (int, float)):
+        return str(value)
+
+    string_value = str(value).replace("'", "''")
+    return f"'{string_value}'"
+
+
+def find_block_end(lines: list[str], start_index: int, indent: int) -> int:
+    index = start_index + 1
+    while index < len(lines):
+        stripped = lines[index].strip()
+        current_indent = len(lines[index]) - len(lines[index].lstrip(' '))
+        if stripped and current_indent <= indent:
+            break
+        index += 1
+    return index
+
+
+def set_config_value(path: Path, key: str, value: object) -> None:
+    parts = split_config_key(key)
+
+    lines = path.read_text().splitlines()
+    insert_at = 0
+    current_indent = -2
+
+    for depth, part in enumerate(parts):
+        target_indent = current_indent + 2
+        prefix = ' ' * target_indent
+        block_end = (
+            find_block_end(lines, insert_at - 1, current_indent) if insert_at else len(lines)
+        )
+        found_index = None
+
+        for index in range(insert_at, block_end):
+            line = lines[index]
+            if not line.strip():
+                continue
+
+            indent = len(line) - len(line.lstrip(' '))
+            if indent != target_indent:
+                continue
+
+            if line.strip() == f'{part}:' or line.startswith(f'{prefix}{part}:'):
+                found_index = index
+                break
+
+        is_leaf = depth == len(parts) - 1
+
+        if found_index is None:
+            new_line = (
+                f'{prefix}{part}: {format_yaml_scalar(value)}' if is_leaf else f'{prefix}{part}:'
+            )
+            lines.insert(block_end, new_line)
+            found_index = block_end
+            block_end += 1
+
+        elif is_leaf:
+            lines[found_index] = f'{prefix}{part}: {format_yaml_scalar(value)}'
+
+        insert_at = found_index + 1
+        current_indent = target_indent
+
+    path.write_text('\n'.join(lines) + '\n')
+
+
+def get_config_value(path: Path, key: str) -> str:
+    parts = split_config_key(key)
+
+    lines = path.read_text().splitlines()
+    search_start = 0
+    current_indent = -2
+
+    for depth, part in enumerate(parts):
+        target_indent = current_indent + 2
+        block_end = (
+            find_block_end(lines, search_start - 1, current_indent) if search_start else len(lines)
+        )
+        match_index = None
+
+        for index in range(search_start, block_end):
+            line = lines[index]
+            if not line.strip():
+                continue
+
+            indent = len(line) - len(line.lstrip(' '))
+            if indent != target_indent:
+                continue
+
+            stripped = line.strip()
+            if stripped == f'{part}:' or stripped.startswith(f'{part}:'):
+                match_index = index
+                break
+
+        if match_index is None:
+            raise RuntimeError(f'Config key not found: {key}')
+
+        stripped = lines[match_index].strip()
+        if depth == len(parts) - 1:
+            _, raw_value = stripped.split(':', 1)
+            return raw_value.strip().strip("'")
+
+        search_start = match_index + 1
+        current_indent = target_indent
+
+    raise RuntimeError(f'Config key not found: {key}')
+
+
+def get_pod_name(trainjob_name: str, timeout: int) -> str:
+    interactive = sys.stderr.isatty()
+    progress_line = ''
+    spinner_index = 0
+
+    try:
+        for attempt in range(timeout):
+            if interactive:
+                progress_line = (
+                    f'waiting for pod to be created... '
+                    f'{SPINNER[spinner_index % len(SPINNER)]} '
+                    f'{attempt + 1}/{timeout} attempts'
+                )
+                sys.stderr.write(f'\r{progress_line}')
+                spinner_index += 1
+            else:
+                sys.stderr.write('.')
+            sys.stderr.flush()
+
+            result = subprocess.run(
+                [
+                    'kubectl',
+                    'get',
+                    'pods',
+                    # '-n',
+                    # NAMESPACE,
+                    '-o',
+                    'json',
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            payload = json.loads(result.stdout)
+            direct_owner_pods: list[dict[str, object]] = []
+            trainer_pods: list[dict[str, object]] = []
+            jobset_pods: list[dict[str, object]] = []
+            exact_name_match: str | None = None
+
+            for item in payload.get('items', []):
+                metadata = item.get('metadata', {})
+                owner_refs = metadata.get('ownerReferences', [])
+                pod_name = metadata.get('name')
+                if any(
+                    ref.get('kind') == 'TrainJob' and ref.get('name') == trainjob_name
+                    for ref in owner_refs
+                ):
+                    if pod_name:
+                        direct_owner_pods.append(item)
+
+                if not pod_name:
+                    continue
+
+                labels = metadata.get('labels', {})
+                if labels.get(JOBSET_NAME_LABEL) == trainjob_name:
+                    if labels.get(TRAINJOB_ANCESTOR_LABEL) == TRAINJOB_ANCESTOR_TRAINER:
+                        trainer_pods.append(item)
+                    else:
+                        jobset_pods.append(item)
+
+                if pod_name == trainjob_name:
+                    exact_name_match = pod_name
+
+            for phase in PREFERRED_POD_PHASES:
+                for item in [*direct_owner_pods, *trainer_pods, *jobset_pods]:
+                    status = item.get('status', {})
+                    metadata = item.get('metadata', {})
+                    if status.get('phase') == phase and metadata.get('name'):
+                        return metadata['name']
+
+            for item in [*direct_owner_pods, *trainer_pods, *jobset_pods]:
+                metadata = item.get('metadata', {})
+                if metadata.get('name'):
+                    return metadata['name']
+
+            if exact_name_match:
+                return exact_name_match
+
+            if attempt == timeout - 1:
+                continue
+
+            if interactive:
+                updates_per_poll = max(
+                    1,
+                    round(POD_POLL_INTERVAL_SECONDS / SPINNER_UPDATE_INTERVAL_SECONDS),
+                )
+                sleep_for = POD_POLL_INTERVAL_SECONDS / updates_per_poll
+                for _ in range(updates_per_poll):
+                    time.sleep(sleep_for)
+                    progress_line = (
+                        f'waiting for pod to be created... '
+                        f'{SPINNER[spinner_index % len(SPINNER)]} '
+                        f'{attempt + 1}/{timeout} attempts'
+                    )
+                    sys.stderr.write(f'\r{progress_line}')
+                    sys.stderr.flush()
+                    spinner_index += 1
+            else:
+                time.sleep(POD_POLL_INTERVAL_SECONDS)
+    finally:
+        if interactive and progress_line:
+            sys.stderr.write(f'\r{" " * len(progress_line)}\r')
+        else:
+            sys.stderr.write('\n')
+        sys.stderr.flush()
+
+    raise RuntimeError(f'Failed to determine pod name for TrainJob: {trainjob_name}')
+
+
+def delete_trainjob(trainjob_name: str) -> None:
+    print(f'Cleaning up TrainJob: {trainjob_name}', file=sys.stderr)
+    subprocess.run(
+        [
+            'kubectl',
+            'delete',
+            'trainjob',
+            trainjob_name,
+            # '-n',
+            # NAMESPACE,
+            '--ignore-not-found=true',
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--gpus', type=int, default=1)
+    parser.add_argument('--cpus', type=int)
+    parser.add_argument('--mem', type=int)
+    parser.add_argument('--timeout', type=int, default=300)
+    args = parser.parse_args()
+
+    if args.gpus < 1:
+        raise ValueError('--gpus must be at least 1')
+    if args.cpus is not None and args.cpus < 1:
+        raise ValueError('--cpus must be at least 1')
+    if args.mem is not None and args.mem < 1:
+        raise ValueError('--mem must be at least 1')
+
+    return args
+
+
+def main() -> int:
+    args = parse_args()
+    timestamp = datetime.now().strftime('%Y%m%d-%H%M%S')
+    cpu_limit = args.cpus if args.cpus is not None else DEFAULT_CPU_PER_GPU * args.gpus
+    mem_limit = args.mem if args.mem is not None else DEFAULT_MEM_PER_GPU * args.gpus
+
+    with tempfile.NamedTemporaryFile(
+        mode='w', suffix='.yaml', prefix='interactive-trainjob-', delete=False
+    ) as tmp:
+        tmp_path = Path(tmp.name)
+
+    shutil.copyfile(SOURCE_FILE, tmp_path)
+
+    original_name = get_config_value(tmp_path, 'metadata.name')
+    trainjob_name = f'{original_name}-{timestamp}'
+    set_config_value(tmp_path, 'metadata.name', trainjob_name)
+    set_config_value(tmp_path, 'spec.trainer.resourcesPerNode.limits.cpu', str(cpu_limit))
+    set_config_value(tmp_path, 'spec.trainer.resourcesPerNode.limits.memory', f'{mem_limit}Gi')
+    set_config_value(
+        tmp_path,
+        'spec.trainer.resourcesPerNode.limits.nvidia\\.com/gpu',
+        str(args.gpus),
+    )
+
+    subprocess.run(['kubectl', 'apply', '-f', str(tmp_path)], check=True)
+
+    try:
+        print(f'start resolving pod name... (timeout: {args.timeout} attempts)', file=sys.stderr)
+        print('fyi: you can delete the Trainjob with:', file=sys.stderr)
+        print(f'kubectl delete trainjob {trainjob_name}', file=sys.stderr)
+
+        pod_name = get_pod_name(trainjob_name, args.timeout)
+
+        print(f'Try: kubectl exec -it {pod_name} -c node -- /bin/zsh')
+        print(f'Try: kubectl delete trainjob {trainjob_name}')
+        print(f'Manifest: {tmp_path}')
+        return 0
+    except BaseException:
+        try:
+            delete_trainjob(trainjob_name)
+        except Exception as cleanup_exc:
+            print(f'Failed to clean up TrainJob {trainjob_name}: {cleanup_exc}', file=sys.stderr)
+        raise
+
+
+if __name__ == '__main__':
+    try:
+        raise SystemExit(main())
+    except Exception as exc:
+        print(str(exc), file=sys.stderr)
+        raise SystemExit(1)
