@@ -2,13 +2,12 @@
 
 set -euo pipefail
 
-# check if it is running with sudo
 if [ "$EUID" -ne 0 ]; then
     echo "Please run this script with sudo."
     exit 1
 fi
 
-apt update && apt install -y rsync zsh gh aria2 less tzdata
+apt update && apt install -y rsync zsh gh aria2 less tzdata ncdu
 
 # timezone
 ln -sf /usr/share/zoneinfo/Asia/Seoul /etc/localtime
