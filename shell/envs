@@ -18,3 +18,12 @@ fi
 if [ -x "$HOME/.linuxbrew/bin/brew" ]; then
   eval "$("$HOME/.linuxbrew/bin/brew" shellenv)"
 fi
+
+# kubectl
+if command -v kubectl >/dev/null 2>&1; then
+  if [ -n "${BASH_VERSION-}" ]; then
+    source <(kubectl completion bash)
+  elif [ -n "${ZSH_VERSION-}" ]; then
+    source <(kubectl completion zsh)
+  fi
+fi
