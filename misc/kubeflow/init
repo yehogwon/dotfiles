@@ -7,7 +7,7 @@ if [ "$EUID" -ne 0 ]; then
     exit 1
 fi
 
-apt update && apt install -y rsync zsh gh aria2 less tzdata ncdu
+apt update && apt install -y rsync zsh gh aria2 less tzdata ncdu bash-completion
 
 # timezone
 ln -sf /usr/share/zoneinfo/Asia/Seoul /etc/localtime
