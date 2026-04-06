@@ -25,7 +25,7 @@ source ~/.bashrc  # (or ~/.zshrc)
 - `tmux.conf`
 - plugins: `tmux-powerline`
 
-**misc.**
+**config**
 - `gitconfig`
 - `vimrc`
 
@@ -33,6 +33,10 @@ source ~/.bashrc  # (or ~/.zshrc)
 - `fzf`
 - `oh-my-zsh`
 - `tpm`
+
+**misc.**
+
+The `misc` directory contains some useful tools (at least for me) for managing clusters or doing fun stuff.
 
 ## Uninstallation
 
