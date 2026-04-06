@@ -17,6 +17,9 @@ echo 'Asia/Seoul' | tee /etc/timezone > /dev/null
 curl -fsSL https://raw.githubusercontent.com/yehogwon/dotfiles/main/bin/install | NONINTERACTIVE_DOTFILES=1 bash
 locale-gen en_US.UTF-8
 
+# uv
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
 # kubectl shell completion
 echo -e "\nsource <(kubectl completion zsh)\n" >> ~/.zshrc
 echo -e "\nsource <(kubectl completion bash)\n" >> ~/.bashrc
