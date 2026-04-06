@@ -20,11 +20,6 @@ locale-gen en_US.UTF-8
 # uv
 curl -LsSf https://astral.sh/uv/install.sh | sh
 
-# uv cache
-if [ -d /workspace ]; then
-  export UV_CACHE_DIR='/workspace/.cache/uv'
-fi
-
 # kubectl shell completion
 echo -e "\nsource <(kubectl completion zsh)\n" >> ~/.zshrc
 echo -e "\nsource <(kubectl completion bash)\n" >> ~/.bashrc
