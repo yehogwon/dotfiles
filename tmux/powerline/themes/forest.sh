@@ -2,17 +2,14 @@
 # Default Theme
 # If changes made here does not take effect, then try to re-create the tmux session to force reload.
 
-if patched_font_in_use; then
-	TMUX_POWERLINE_SEPARATOR_LEFT_BOLD=""
-	TMUX_POWERLINE_SEPARATOR_LEFT_THIN=""
-	TMUX_POWERLINE_SEPARATOR_RIGHT_BOLD=""
-	TMUX_POWERLINE_SEPARATOR_RIGHT_THIN=""
-else
-	TMUX_POWERLINE_SEPARATOR_LEFT_BOLD="◀"
-	TMUX_POWERLINE_SEPARATOR_LEFT_THIN="❮"
-	TMUX_POWERLINE_SEPARATOR_RIGHT_BOLD="▶"
-	TMUX_POWERLINE_SEPARATOR_RIGHT_THIN="❯"
-fi
+# No Nerd Font: BMP half-block + box-drawing glyphs (renders in any monospace).
+TMUX_POWERLINE_SEPARATOR_LEFT_BOLD="▐"
+TMUX_POWERLINE_SEPARATOR_LEFT_THIN="│"
+TMUX_POWERLINE_SEPARATOR_RIGHT_BOLD="▌"
+TMUX_POWERLINE_SEPARATOR_RIGHT_THIN="│"
+
+# vcs_branch defaults to PUA U+E0A0 (Powerline branch). Override with U+2387.
+TMUX_POWERLINE_SEG_VCS_BRANCH_DEFAULT_SYMBOL="⎇ "
 
 # See Color formatting section below for details on what colors can be used here.
 TMUX_POWERLINE_DEFAULT_BACKGROUND_COLOR=${TMUX_POWERLINE_DEFAULT_BACKGROUND_COLOR:-'235'}
