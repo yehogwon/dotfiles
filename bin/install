@@ -207,6 +207,32 @@ ensure_trailing_newline() {
     fi
 }
 
+write_managed_block() {
+    local begin_marker="$1"
+    local end_marker="$2"
+    local payload="$3"
+
+    printf '%s\n' "$begin_marker"
+    while IFS= read -r line; do
+        printf '%s\n' "$line"
+    done <<< "$payload"
+    printf '%s\n\n' "$end_marker"
+}
+
+strip_managed_block() {
+    local input_file="$1"
+    local output_file="$2"
+    local begin_marker="$3"
+    local end_marker="$4"
+
+    awk -v begin_marker="$begin_marker" -v end_marker="$end_marker" '
+        $0 == begin_marker {skip = 1; next}
+        $0 == end_marker {skip = 0; trim_blank = 1; next}
+        trim_blank && $0 == "" {trim_blank = 0; next}
+        !skip {trim_blank = 0; print}
+    ' "$input_file" > "$output_file"
+}
+
 append_block() {
     local file="$1"
     local begin_marker="$2"
@@ -233,12 +259,7 @@ append_block() {
     if [[ "$begin_count" -gt 0 ]]; then
         tmp_file="$(mktemp)"
 
-        awk -v begin_marker="$begin_marker" -v end_marker="$end_marker" '
-            $0 == begin_marker {skip = 1; next}
-            $0 == end_marker {skip = 0; trim_blank = 1; next}
-            trim_blank && $0 == "" {trim_blank = 0; next}
-            !skip {trim_blank = 0; print}
-        ' "$file" > "$tmp_file"
+        strip_managed_block "$file" "$tmp_file" "$begin_marker" "$end_marker"
 
         mv "$tmp_file" "$file"
         log "[info] refreshed existing $label block"
@@ -246,14 +267,69 @@ append_block() {
 
     ensure_trailing_newline "$file"
 
-    {
-        log "$begin_marker"
-        while IFS= read -r line; do
-            log "$line"
-        done <<< "$payload"
-        log "$end_marker"
-        printf '\n'
-    } >> "$file"
+    write_managed_block "$begin_marker" "$end_marker" "$payload" >> "$file"
+
+    log "[ok] $label configured"
+}
+
+insert_block() {
+    local file="$1"
+    local begin_marker="$2"
+    local end_marker="$3"
+    local payload="$4"
+    local label="$5"
+    local insertion_pattern="$6"
+    local begin_count
+    local end_count
+    local tmp_file
+    local block_file
+    local first_match_line=""
+
+    step "configuring $label"
+
+    mkdir -p "$(dirname "$file")"
+    touch "$file"
+
+    begin_count="$(grep -Fxc "$begin_marker" "$file" || true)"
+    end_count="$(grep -Fxc "$end_marker" "$file" || true)"
+
+    if [[ "$begin_count" -ne "$end_count" ]]; then
+        log "[warn] $label has mismatched markers; skipping"
+        return 0
+    fi
+
+    if [[ "$begin_count" -gt 0 ]]; then
+        tmp_file="$(mktemp)"
+
+        strip_managed_block "$file" "$tmp_file" "$begin_marker" "$end_marker"
+
+        mv "$tmp_file" "$file"
+        log "[info] refreshed existing $label block"
+    fi
+
+    block_file="$(mktemp)"
+    write_managed_block "$begin_marker" "$end_marker" "$payload" > "$block_file"
+
+    first_match_line="$(grep -n -m1 -E "$insertion_pattern" "$file" | cut -d: -f1 || true)"
+    tmp_file="$(mktemp)"
+
+    if [[ -n "$first_match_line" ]]; then
+        if (( first_match_line > 1 )); then
+            sed -n "1,$((first_match_line - 1))p" "$file" > "$tmp_file"
+        else
+            : > "$tmp_file"
+        fi
+
+        cat "$block_file" >> "$tmp_file"
+        sed -n "${first_match_line},\$p" "$file" >> "$tmp_file"
+    else
+        cat "$file" > "$tmp_file"
+        ensure_trailing_newline "$tmp_file"
+        cat "$block_file" >> "$tmp_file"
+    fi
+
+    rm -f "$block_file"
+    mv "$tmp_file" "$file"
 
     log "[ok] $label configured"
 }
@@ -291,7 +367,7 @@ git_payload="[include]
 append_block "$HOME/.gitconfig" "$GIT_BEGIN" "$GIT_END" "$git_payload" ".gitconfig"
 
 # ssh
-append_block "$HOME/.ssh/config" "$SHELL_BEGIN" "$SHELL_END" "Include \"$DOTFILES_DIR/ssh/config\"" ".ssh/config"
+insert_block "$HOME/.ssh/config" "$SHELL_BEGIN" "$SHELL_END" "Include \"$DOTFILES_DIR/ssh/config\"" ".ssh/config" '^(Host|Match)[[:space:]]'
 
 # tmux
 append_block "$HOME/.tmux.conf" "$SHELL_BEGIN" "$SHELL_END" "if-shell \"[ -f '$DOTFILES_DIR/tmux/tmux.conf' ]\" \"source-file '$DOTFILES_DIR/tmux/tmux.conf'\"" ".tmux.conf"

@@ -20,6 +20,20 @@ ensure_trailing_newline() {
     fi
 }
 
+strip_managed_block() {
+    local input_file="$1"
+    local output_file="$2"
+    local begin_marker="$3"
+    local end_marker="$4"
+
+    awk -v begin_marker="$begin_marker" -v end_marker="$end_marker" '
+        $0 == begin_marker {skip = 1; next}
+        $0 == end_marker {skip = 0; trim_blank = 1; next}
+        trim_blank && $0 == "" {trim_blank = 0; next}
+        !skip {trim_blank = 0; print}
+    ' "$input_file" > "$output_file"
+}
+
 prompt_yes_no() {
     local question="$1"
     local default_answer="${2:-n}"
@@ -119,12 +133,7 @@ remove_block() {
     local tmp_file
     tmp_file="$(mktemp)"
 
-    awk -v begin_marker="$begin_marker" -v end_marker="$end_marker" '
-        $0 == begin_marker {skip = 1; next}
-        $0 == end_marker {skip = 0; trim_blank = 1; next}
-        trim_blank && $0 == "" {trim_blank = 0; next}
-        !skip {trim_blank = 0; print}
-    ' "$file" > "$tmp_file"
+    strip_managed_block "$file" "$tmp_file" "$begin_marker" "$end_marker"
 
     mv "$tmp_file" "$file"
     ensure_trailing_newline "$file"
