@@ -11,6 +11,5 @@ Host hf.co
     LogLevel ERROR
 
 Host kwak*
-    Port 10022
     IdentityFile ~/.ssh/kwak
     LogLevel ERROR
