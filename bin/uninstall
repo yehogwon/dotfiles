@@ -12,6 +12,14 @@ step() {
     log "[info] $*"
 }
 
+ensure_trailing_newline() {
+    local file="$1"
+
+    if [[ -s "$file" && -n "$(tail -c 1 "$file" 2>/dev/null)" ]]; then
+        printf '\n' >> "$file"
+    fi
+}
+
 prompt_yes_no() {
     local question="$1"
     local default_answer="${2:-n}"
@@ -113,11 +121,13 @@ remove_block() {
 
     awk -v begin_marker="$begin_marker" -v end_marker="$end_marker" '
         $0 == begin_marker {skip = 1; next}
-        $0 == end_marker {skip = 0; next}
-        !skip {print}
+        $0 == end_marker {skip = 0; trim_blank = 1; next}
+        trim_blank && $0 == "" {trim_blank = 0; next}
+        !skip {trim_blank = 0; print}
     ' "$file" > "$tmp_file"
 
     mv "$tmp_file" "$file"
+    ensure_trailing_newline "$file"
     log "[ok] removed $label block"
 }
 

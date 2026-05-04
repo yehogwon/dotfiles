@@ -199,6 +199,14 @@ is_linux_platform() {
     [[ "$(uname -s)" == "Linux" ]]
 }
 
+ensure_trailing_newline() {
+    local file="$1"
+
+    if [[ -s "$file" && -n "$(tail -c 1 "$file" 2>/dev/null)" ]]; then
+        printf '\n' >> "$file"
+    fi
+}
+
 append_block() {
     local file="$1"
     local begin_marker="$2"
@@ -227,13 +235,16 @@ append_block() {
 
         awk -v begin_marker="$begin_marker" -v end_marker="$end_marker" '
             $0 == begin_marker {skip = 1; next}
-            $0 == end_marker {skip = 0; next}
-            !skip {print}
+            $0 == end_marker {skip = 0; trim_blank = 1; next}
+            trim_blank && $0 == "" {trim_blank = 0; next}
+            !skip {trim_blank = 0; print}
         ' "$file" > "$tmp_file"
 
         mv "$tmp_file" "$file"
         log "[info] refreshed existing $label block"
     fi
+
+    ensure_trailing_newline "$file"
 
     {
         log "$begin_marker"
@@ -241,6 +252,7 @@ append_block() {
             log "$line"
         done <<< "$payload"
         log "$end_marker"
+        printf '\n'
     } >> "$file"
 
     log "[ok] $label configured"
