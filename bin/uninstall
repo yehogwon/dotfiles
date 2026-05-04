@@ -220,6 +220,7 @@ remove_block "$HOME/.zshenv" "$SHELL_BEGIN" "$SHELL_END" ".zshenv"
 
 remove_block "$HOME/.vimrc" "$VIM_BEGIN" "$VIM_END" ".vimrc"
 remove_block "$HOME/.gitconfig" "$GIT_BEGIN" "$GIT_END" ".gitconfig"
+remove_block "$HOME/.ssh/config" "$SHELL_BEGIN" "$SHELL_END" ".ssh/config"
 remove_block "$HOME/.tmux.conf" "$SHELL_BEGIN" "$SHELL_END" ".tmux.conf"
 
 step "removing checkout directory if this script is from a checkout"

@@ -1,0 +1,16 @@
+Host github.com
+    HostName github.com
+    User git
+    IdentityFile ~/.ssh/kwak
+    LogLevel ERROR
+
+Host hf.co
+    HostName hf.co
+    User git
+    IdentityFile ~/.ssh/kwak
+    LogLevel ERROR
+
+Host kwak*
+    Port 10022
+    IdentityFile ~/.ssh/kwak
+    LogLevel ERROR

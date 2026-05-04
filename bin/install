@@ -278,6 +278,9 @@ git_payload="[include]
     path = \"$DOTFILES_DIR/git/gitconfig\""
 append_block "$HOME/.gitconfig" "$GIT_BEGIN" "$GIT_END" "$git_payload" ".gitconfig"
 
+# ssh
+append_block "$HOME/.ssh/config" "$SHELL_BEGIN" "$SHELL_END" "Include \"$DOTFILES_DIR/ssh/config\"" ".ssh/config"
+
 # tmux
 append_block "$HOME/.tmux.conf" "$SHELL_BEGIN" "$SHELL_END" "if-shell \"[ -f '$DOTFILES_DIR/tmux/tmux.conf' ]\" \"source-file '$DOTFILES_DIR/tmux/tmux.conf'\"" ".tmux.conf"
 
