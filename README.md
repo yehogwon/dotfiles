@@ -23,7 +23,6 @@ source ~/.bashrc  # (or ~/.zshrc)
 
 **tmux**
 - `tmux.conf`
-- plugins: `tmux-powerline`
 
 **config**
 - `gitconfig`

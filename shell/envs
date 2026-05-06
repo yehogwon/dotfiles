@@ -1,5 +1,4 @@
 export LC_ALL=en_US.UTF-8
-export TMUX_POWERLINE_CONFIG_FILE="$DOTFILES_HOME/tmux/powerline/config.sh"
 
 [ -d "$HOME/.local/bin" ] && export PATH="$HOME/.local/bin${PATH:+:$PATH}"
 
