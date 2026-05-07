@@ -17,18 +17,18 @@ c_inactive_fg=$6
 c_assh_bg=$7
 
 find_ssh_args() {
-    local parent=$1 children pid cmd args
-    children=$(pgrep -P "$parent" 2>/dev/null) || return 1
-    for pid in $children; do
-        cmd=$(ps -p "$pid" -o comm= 2>/dev/null)
-        cmd=${cmd##*/}
-        case "$cmd" in
-            ssh|mosh-client|autossh)
-                ps -p "$pid" -o args= 2>/dev/null
-                return 0
-                ;;
-        esac
-        if args=$(find_ssh_args "$pid"); then
+    local pid=$1 children child cmd args
+    cmd=$(ps -p "$pid" -o comm= 2>/dev/null)
+    cmd=${cmd##*/}
+    case "$cmd" in
+        ssh|mosh-client|autossh)
+            ps -p "$pid" -o args= 2>/dev/null
+            return 0
+            ;;
+    esac
+    children=$(pgrep -P "$pid" 2>/dev/null) || return 1
+    for child in $children; do
+        if args=$(find_ssh_args "$child"); then
             printf '%s\n' "$args"
             return 0
         fi

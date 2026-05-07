@@ -8,21 +8,21 @@ pane_pid=$1
 c_default=$2
 c_ssh=$3
 
-has_ssh_descendant() {
-    local parent=$1 children pid cmd
-    children=$(pgrep -P "$parent" 2>/dev/null) || return 1
-    for pid in $children; do
-        cmd=$(ps -p "$pid" -o comm= 2>/dev/null)
-        cmd=${cmd##*/}
-        case "$cmd" in
-            ssh|mosh-client|autossh) return 0 ;;
-        esac
-        has_ssh_descendant "$pid" && return 0
+has_ssh() {
+    local pid=$1 children child cmd
+    cmd=$(ps -p "$pid" -o comm= 2>/dev/null)
+    cmd=${cmd##*/}
+    case "$cmd" in
+        ssh|mosh-client|autossh) return 0 ;;
+    esac
+    children=$(pgrep -P "$pid" 2>/dev/null) || return 1
+    for child in $children; do
+        has_ssh "$child" && return 0
     done
     return 1
 }
 
-if has_ssh_descendant "$pane_pid"; then
+if has_ssh "$pane_pid"; then
     printf '%s' "$c_ssh"
 else
     printf '%s' "$c_default"
