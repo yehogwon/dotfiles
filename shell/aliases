@@ -36,7 +36,7 @@ alias gp='git push'
 alias gc='git commit'
 alias ga='git add'
 alias gd='git diff'
-alias gdi='git difftool --no-prompt --extcmd='uvx icdiff'
+alias gdi="git difftool --no-prompt --extcmd='uvx icdiff'"
 
 alias t='tmux'
 alias tls='tmux ls'
