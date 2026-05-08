@@ -10,6 +10,8 @@ Host hf.co
     IdentityFile ~/.ssh/kwak
     LogLevel ERROR
 
-Host kwak*
+Match host "kwak*" exec "test -r ~/.ssh/kwak"
     IdentityFile ~/.ssh/kwak
+
+Host kwak*
     LogLevel ERROR
