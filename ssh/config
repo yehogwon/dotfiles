@@ -1,15 +1,8 @@
-Match host "github.com" exec "test -r ~/.ssh/kwak"
-    HostName github.com
-    User git
+Match exec "test -r ~/.ssh/kwak"
     IdentityFile ~/.ssh/kwak
-    LogLevel ERROR
-
-Match host "hf.co" exec "test -r ~/.ssh/kwak"
-    HostName hf.co
-    User git
-    IdentityFile ~/.ssh/kwak
-    LogLevel ERROR
-
-Match host "kwak*" exec "test -r ~/.ssh/kwak"
-    IdentityFile ~/.ssh/kwak
+    IdentityFile ~/.ssh/id_rsa
+    IdentityFile ~/.ssh/id_ecdsa
+    IdentityFile ~/.ssh/id_ecdsa_sk
+    IdentityFile ~/.ssh/id_ed25519
+    IdentityFile ~/.ssh/id_ed25519_sk
     LogLevel ERROR
