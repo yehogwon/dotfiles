@@ -13,6 +13,15 @@ print_magenta() { _print_color 35 "$@"; }
 print_cyan() { _print_color 36 "$@"; }
 print_white() { _print_color 37 "$@"; }
 
+if command -v uvx >/dev/null 2>&1; then
+    icat() {
+        uvx imgcat -p \
+            -W "$(( $(tput cols) - 4 ))" \
+            -H "$(( $(tput lines) - 8 ))" \
+            "$@"
+    }
+fi
+
 _wwatch_eval_args() {
     local quoted
     quoted=$(printf '%q ' "$@")
