@@ -335,6 +335,25 @@ strip_managed_block() {
     ' "$input_file" > "$output_file"
 }
 
+reset_broken_symlink() {
+    local file="$1"
+    local label="$2"
+    local link_target
+
+    [[ -L "$file" && ! -e "$file" ]] || return 0
+
+    link_target="$(readlink "$file")"
+    log "[warn] $label is linked to $link_target, which does not exist"
+
+    if ! rm -f "$file"; then
+        log "[warn] failed to remove broken symlink at $file; skipping $label"
+        return 1
+    fi
+
+    log "[info] removed broken symlink; starting from a new empty $label"
+    return 0
+}
+
 append_block() {
     local file="$1"
     local begin_marker="$2"
@@ -346,6 +365,8 @@ append_block() {
     local tmp_file
 
     step "configuring $label"
+
+    reset_broken_symlink "$file" "$label" || return 0
 
     mkdir -p "$(dirname "$file")"
     touch "$file"
@@ -388,6 +409,8 @@ insert_block() {
     local first_match_line=""
 
     step "configuring $label"
+
+    reset_broken_symlink "$file" "$label" || return 0
 
     mkdir -p "$(dirname "$file")"
     touch "$file"
