@@ -536,6 +536,32 @@ copy_managed_file() {
     log "[ok] $label configured"
 }
 
+validate_managed_json() {
+    local source_file="$1"
+    local label="$2"
+
+    step "checking $label"
+
+    # The shell wrapper hands this file to `claude --settings`, which drops a
+    # malformed file at startup without saying so, so report it here instead.
+    if [[ ! -f "$source_file" ]]; then
+        log "[warn] $label not found at $source_file; the claude wrapper will launch without it"
+        return 0
+    fi
+
+    if ! command -v python3 >/dev/null 2>&1; then
+        log "[skip] python3 not found; cannot validate $label"
+        return 0
+    fi
+
+    if ! python3 -c 'import json,sys; sys.exit(0 if isinstance(json.load(open(sys.argv[1])), dict) else 1)' "$source_file" 2>/dev/null; then
+        log "[warn] $label is not a valid JSON object; claude will ignore it"
+        return 0
+    fi
+
+    log "[ok] $label is valid JSON"
+}
+
 SHELL_BEGIN="# >>> dotfiles >>>"
 SHELL_END="# <<< dotfiles <<<"
 VIM_BEGIN="\" >>> dotfiles >>>"
@@ -576,6 +602,9 @@ append_block "$HOME/.tmux.conf" "$SHELL_BEGIN" "$SHELL_END" "if-shell \"[ -f '$D
 
 # claude-hud
 copy_managed_file "$DOTFILES_DIR/claude/hud.json" "$(claude_config_dir)/plugins/claude-hud/config.json" "claude-hud config.json"
+
+# claude settings, layered by the shell wrapper rather than written to disk
+validate_managed_json "$DOTFILES_DIR/claude/settings.json" "claude/settings.json"
 
 enforce_permissions_manifest "$DOTFILES_DIR" "$PERMISSIONS_MANIFEST_NAME"
 

@@ -22,6 +22,21 @@ if command -v uvx >/dev/null 2>&1; then
     }
 fi
 
+# Layer this repo's Claude Code settings over ~/.claude/settings.json. JSON has
+# no include directive, but --settings adds a source that outranks the user
+# file, so the repo copy stays the source of truth without ever writing to it.
+# The flag is fatal when the file is missing, hence the check on every call;
+# run `command claude` to launch without it.
+claude() {
+    local _claude_settings="$DOTFILES_HOME/claude/settings.json"
+
+    if [ -f "$_claude_settings" ]; then
+        command claude --settings "$_claude_settings" "$@"
+    else
+        command claude "$@"
+    fi
+}
+
 _wwatch_eval_args() {
     local quoted
     quoted=$(printf '%q ' "$@")

@@ -1,0 +1,18 @@
+{
+  "remoteControlAtStartup": true,
+  "extraKnownMarketplaces": {
+    "claude-hud": {
+      "source": {
+        "source": "github",
+        "repo": "jarrodwatts/claude-hud"
+      }
+    }
+  },
+  "enabledPlugins": {
+    "claude-hud@claude-hud": true
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "\"${DOTFILES_HOME:-$HOME/.dotfiles}/claude/hud-statusline\""
+  }
+}

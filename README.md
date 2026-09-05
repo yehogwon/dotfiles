@@ -29,6 +29,7 @@ source ~/.bashrc  # (or ~/.zshrc)
 - `vimrc`
 
 **claude**
+- `settings.json`, layered onto `~/.claude/settings.json` at launch
 - [`claude-hud`](https://github.com/jarrodwatts/claude-hud) plugin, its statusline wiring, and `config.json`
 
 When `claude` is on `PATH`, the installer offers to set up the HUD end to end:
@@ -46,15 +47,39 @@ does not survive being carried to another machine; the launcher resolves the
 plugin directory and the runtime (bun, else node) on every call instead, so a
 single `settings.json` entry works everywhere.
 
-Two things are handled differently from every other managed file, both because
-JSON has no include directive:
+`~/.claude/settings.json` is **not** managed wholesale — Claude Code rewrites it as
+you change settings, and `bin/install-claude-hud` only ever writes the `statusLine`
+key into it (`bin/uninstall` removes that key while it still points at this repo's
+launcher). Settings worth carrying between machines live in `claude/settings.json`
+instead, layered in from the outside: `shell/tools` defines a `claude` wrapper that
+passes the file to `claude --settings`, which Claude Code treats as its own settings
+source, ranked above `~/.claude/settings.json` and below managed policy. Nothing is
+written to the live file, and the repo copy is read at every launch, so an edit
+applies to the next session rather than the next `bin/install`.
 
-- `config.json` is **copied**, not included. `claude/hud.json` is the source of
-  truth, and a live file that differs is backed up beside itself before being
-  replaced. `bin/uninstall` leaves it in place.
-- `settings.json` is **not** managed wholesale — Claude Code rewrites it as you
-  change settings. Only the `statusLine` key is written, and `bin/uninstall`
-  removes it only while it still points at this repo's launcher.
+What that file carries, and why each key has to be there rather than in the live file:
+
+- `remoteControlAtStartup` — only honored from managed, `--settings`, or user
+  settings; a repo-scoped `.claude/settings.json` can only turn it off.
+- `extraKnownMarketplaces` and `enabledPlugins` — declaring the HUD makes a fresh
+  machine install it on first launch, with no `bin/install-claude-hud` run.
+- `statusLine` — the command runs through a shell, so `$DOTFILES_HOME` expands and
+  one entry survives a checkout at any path.
+
+Two limits come with the wrapper:
+
+- It only covers `claude` started from a shell that sourced these dotfiles. The IDE
+  extensions, the desktop app, scripts, and daemon-respawned sessions read
+  `~/.claude/settings.json` directly and never see the repo copy — which is why
+  `bin/install-claude-hud` still wires the HUD into the live file.
+- A key here outranks the live file, so `/config` toggles for that key write to
+  `~/.claude/settings.json` and silently do nothing. Remove the key to hand it back;
+  `command claude` launches without the flag entirely.
+
+`config.json` is handled differently again, because JSON has no include directive
+and the plugin's own tooling writes that file: `claude/hud.json` is **copied** into
+place, and a live file that differs is backed up beside itself before being
+replaced. `bin/uninstall` leaves it there.
 
 Because the config is a copy rather than an include, the two directions are manual:
 
@@ -66,7 +91,8 @@ cp ~/.claude/plugins/claude-hud/config.json ~/.dotfiles/claude/hud.json
 ~/.dotfiles/bin/install
 ```
 
-Editing `settings.json` needs `python3`; without it the installer says so and
+Editing `~/.claude/settings.json` needs `python3`, as does the JSON check the
+installer runs over `claude/settings.json`; without it the installer says so and
 points at `/claude-hud:setup`. The plugin itself needs `bun` or `node` at runtime.
 
 **also automatically installs**
