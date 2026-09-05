@@ -1,0 +1,129 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+MARKETPLACE_NAME="claude-hud"
+MARKETPLACE_SOURCE="jarrodwatts/claude-hud"
+PLUGIN_ID="claude-hud@claude-hud"
+
+DOTFILES_DIR=""
+CLAUDE_DIR="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
+SETTINGS_FILE="$CLAUDE_DIR/settings.json"
+
+log() {
+    printf "%s\n" "$*"
+}
+
+step() {
+    log "[info] $*"
+}
+
+resolve_dotfiles_dir() {
+    local script_dir
+
+    script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+    DOTFILES_DIR="$(cd -- "$script_dir/.." && pwd -P)"
+}
+
+marketplace_is_known() {
+    claude plugin marketplace list 2>/dev/null | grep -Fq "$MARKETPLACE_NAME"
+}
+
+plugin_is_installed() {
+    claude plugin list 2>/dev/null | grep -Fq "$PLUGIN_ID"
+}
+
+# Only the statusLine key is touched. Claude Code owns the rest of this file
+# and rewrites it as settings change, so it cannot be managed wholesale.
+write_statusline() {
+    local launcher="$1"
+
+    python3 - "$SETTINGS_FILE" "$launcher" <<'PY'
+import json, os, shutil, sys, time
+
+settings_path, launcher = sys.argv[1], sys.argv[2]
+desired = {"type": "command", "command": launcher}
+
+settings = {}
+if os.path.exists(settings_path):
+    try:
+        with open(settings_path, encoding="utf-8") as handle:
+            settings = json.load(handle)
+    except (OSError, ValueError) as err:
+        print(f"[error] could not parse {settings_path}: {err}")
+        sys.exit(1)
+    if not isinstance(settings, dict):
+        print(f"[error] {settings_path} is not a JSON object")
+        sys.exit(1)
+    if settings.get("statusLine") == desired:
+        print("[ok] statusLine already points at the dotfiles launcher")
+        sys.exit(0)
+    backup = f"{settings_path}.bak.{time.strftime('%Y%m%d-%H%M%S')}"
+    shutil.copy2(settings_path, backup)
+    print(f"[warn] replacing statusLine; backed up to {backup}")
+
+settings["statusLine"] = desired
+
+os.makedirs(os.path.dirname(settings_path), exist_ok=True)
+tmp_path = f"{settings_path}.tmp"
+with open(tmp_path, "w", encoding="utf-8") as handle:
+    json.dump(settings, handle, indent=2)
+    handle.write("\n")
+os.replace(tmp_path, settings_path)
+print("[ok] statusLine configured")
+PY
+}
+
+step "starting claude-hud installation"
+
+resolve_dotfiles_dir
+LAUNCHER="$DOTFILES_DIR/claude/hud-statusline"
+
+if ! command -v claude >/dev/null 2>&1; then
+    log "[skip] claude executable not found; nothing to install"
+    exit 0
+fi
+
+if [[ ! -x "$LAUNCHER" ]]; then
+    log "[error] statusline launcher missing or not executable at $LAUNCHER"
+    exit 1
+fi
+
+if marketplace_is_known; then
+    log "[info] marketplace $MARKETPLACE_NAME already registered"
+else
+    step "adding marketplace $MARKETPLACE_SOURCE (this may take a minute)"
+    if ! claude plugin marketplace add "$MARKETPLACE_SOURCE" </dev/null; then
+        log "[error] failed to add marketplace $MARKETPLACE_SOURCE"
+        exit 1
+    fi
+    log "[ok] marketplace $MARKETPLACE_NAME registered"
+fi
+
+if plugin_is_installed; then
+    log "[info] plugin $PLUGIN_ID already installed"
+else
+    step "installing plugin $PLUGIN_ID"
+    if ! claude plugin install "$PLUGIN_ID" --yes </dev/null; then
+        log "[error] failed to install plugin $PLUGIN_ID"
+        exit 1
+    fi
+    log "[ok] plugin $PLUGIN_ID installed"
+fi
+
+step "configuring statusLine in $SETTINGS_FILE"
+
+if ! command -v python3 >/dev/null 2>&1; then
+    log "[warn] python3 not found; cannot edit $SETTINGS_FILE"
+    log "[hint] run /claude-hud:setup inside Claude Code to wire the statusline"
+    exit 0
+fi
+
+if ! write_statusline "$LAUNCHER"; then
+    log "[warn] failed to configure statusLine"
+    log "[hint] run /claude-hud:setup inside Claude Code to wire the statusline"
+    exit 0
+fi
+
+log "[ok] claude-hud installed"
+log "[hint] restart Claude Code to pick up the statusline"

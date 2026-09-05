@@ -297,6 +297,29 @@ run_linuxbrew_installer() {
     return 0
 }
 
+run_claude_hud_installer() {
+    local installer_path="$DOTFILES_DIR/bin/install-claude-hud"
+
+    if [[ ! -f "$installer_path" ]]; then
+        log "[warn] claude-hud installer not found at $installer_path"
+        return 1
+    fi
+
+    if [[ -x "$installer_path" ]]; then
+        if ! "$installer_path"; then
+            return 1
+        fi
+
+        return 0
+    fi
+
+    if ! bash "$installer_path"; then
+        return 1
+    fi
+
+    return 0
+}
+
 is_linux_platform() {
     [[ "$(uname -s)" == "Linux" ]]
 }
@@ -567,6 +590,19 @@ if is_linux_platform; then
     else
         log "[skip] Homebrew installation skipped"
     fi
+fi
+
+if command -v claude >/dev/null 2>&1; then
+    step "optional claude-hud installation"
+    if prompt_yes_no "Install the claude-hud statusline plugin?" "y" "INSTALL_CLAUDE_HUD"; then
+        if ! run_claude_hud_installer; then
+            log "[warn] claude-hud installation failed; dotfiles installation will continue"
+        fi
+    else
+        log "[skip] claude-hud installation skipped"
+    fi
+else
+    log "[skip] claude executable not found; skipping claude-hud installation"
 fi
 
 log "Done. Restart your shell (or source your rc file) to apply changes."

@@ -156,6 +156,59 @@ report_managed_copy() {
     log "[skip] $label left in place at $target_file"
 }
 
+remove_managed_statusline() {
+    local launcher="$1"
+    local settings_file="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/settings.json"
+
+    step "checking claude-hud statusLine"
+
+    if [[ ! -f "$settings_file" ]]; then
+        log "[skip] $settings_file not found"
+        return 0
+    fi
+
+    if ! command -v python3 >/dev/null 2>&1; then
+        log "[warn] python3 not found; leaving statusLine in $settings_file"
+        return 0
+    fi
+
+    # Only drop the key when it still points at the launcher this repo owns;
+    # anything else belongs to the user or to /claude-hud:setup.
+    python3 - "$settings_file" "$launcher" <<'PY'
+import json, os, shutil, sys, time
+
+settings_path, launcher = sys.argv[1], sys.argv[2]
+
+try:
+    with open(settings_path, encoding="utf-8") as handle:
+        settings = json.load(handle)
+except (OSError, ValueError) as err:
+    print(f"[warn] could not parse {settings_path}: {err}")
+    sys.exit(0)
+
+if not isinstance(settings, dict):
+    print(f"[warn] {settings_path} is not a JSON object; leaving it alone")
+    sys.exit(0)
+
+status_line = settings.get("statusLine")
+if not isinstance(status_line, dict) or status_line.get("command") != launcher:
+    print("[skip] statusLine is not managed by dotfiles")
+    sys.exit(0)
+
+backup = f"{settings_path}.bak.{time.strftime('%Y%m%d-%H%M%S')}"
+shutil.copy2(settings_path, backup)
+
+del settings["statusLine"]
+
+tmp_path = f"{settings_path}.tmp"
+with open(tmp_path, "w", encoding="utf-8") as handle:
+    json.dump(settings, handle, indent=2)
+    handle.write("\n")
+os.replace(tmp_path, settings_path)
+print(f"[ok] removed statusLine; backed up to {backup}")
+PY
+}
+
 resolve_checkout_from_script_path() {
     local source_path="${BASH_SOURCE[0]:-}"
     local script_dir
@@ -259,6 +312,12 @@ remove_block "$HOME/.ssh/config" "$SHELL_BEGIN" "$SHELL_END" ".ssh/config"
 remove_block "$HOME/.tmux.conf" "$SHELL_BEGIN" "$SHELL_END" ".tmux.conf"
 
 report_managed_copy "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/plugins/claude-hud/config.json" "claude-hud config.json"
+
+# Piped from curl there is no checkout to detect, so fall back to the default
+# location; the key is only dropped on an exact match, so a wrong guess is a
+# no-op rather than a way to clobber someone else's statusLine.
+CHECKOUT_DIR="$(resolve_checkout_from_script_path || true)"
+remove_managed_statusline "${CHECKOUT_DIR:-$HOME/.dotfiles}/claude/hud-statusline"
 
 step "removing checkout directory if this script is from a checkout"
 remove_checkout_dir

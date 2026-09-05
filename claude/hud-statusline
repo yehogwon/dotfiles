@@ -1,0 +1,98 @@
+#!/usr/bin/env bash
+#
+# statusLine command for the claude-hud plugin.
+#
+# `/claude-hud:setup` normally bakes a one-liner into settings.json with the
+# runtime path resolved at setup time, which does not survive being carried to
+# another machine. This resolves the plugin and the runtime on every call
+# instead, so the same settings.json entry works anywhere.
+#
+# Reads the Claude Code status payload on stdin and writes the HUD to stdout.
+
+set -u
+
+CLAUDE_DIR="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
+
+# Claude Code pipes our stdout, so the runtime cannot read the terminal width
+# itself. Prefer the inherited COLUMNS, then the tty, then a sane default, and
+# drop 4 columns for Claude Code's input padding (2 on each side).
+resolve_columns() {
+    local cols="${COLUMNS:-}"
+
+    case "$cols" in
+        # The redirection itself fails when there is no controlling terminal,
+        # and the shell reports that, so the whole group needs silencing.
+        ''|*[!0-9]*) cols="$({ stty size </dev/tty | awk '{print $2}'; } 2>/dev/null)" ;;
+    esac
+
+    case "$cols" in
+        ''|*[!0-9]*) cols=120 ;;
+    esac
+
+    if [ "$cols" -gt 4 ]; then
+        printf '%s\n' "$((cols - 4))"
+    else
+        printf '1\n'
+    fi
+}
+
+# Newest installed version, across whichever marketplace provided the plugin.
+resolve_plugin_dir() {
+    ls -d "$CLAUDE_DIR"/plugins/cache/*/claude-hud/*/ 2>/dev/null \
+        | awk -F/ '{ print $(NF-1) "\t" $0 }' \
+        | grep -E '^[0-9]+\.[0-9]+\.[0-9]+[[:space:]]' \
+        | sort -t. -k1,1n -k2,2n -k3,3n -k4,4n \
+        | tail -1 \
+        | cut -f2-
+}
+
+# The statusLine subprocess does not always inherit an interactive PATH, so
+# check the usual package-manager prefixes before giving up.
+find_runtime() {
+    local name="$1"
+    local candidate
+    local found
+
+    found="$(command -v "$name" 2>/dev/null)"
+    if [ -n "$found" ]; then
+        printf '%s\n' "$found"
+        return 0
+    fi
+
+    for candidate in \
+        "$HOME/.linuxbrew/bin/$name" \
+        "/home/linuxbrew/.linuxbrew/bin/$name" \
+        "/opt/homebrew/bin/$name" \
+        "/usr/local/bin/$name" \
+        "$HOME/.bun/bin/$name" \
+        "$HOME/.local/bin/$name"
+    do
+        if [ -x "$candidate" ]; then
+            printf '%s\n' "$candidate"
+            return 0
+        fi
+    done
+
+    return 1
+}
+
+plugin_dir="$(resolve_plugin_dir)"
+if [ -z "$plugin_dir" ]; then
+    # Not installed: stay silent rather than filling the statusline with noise.
+    exit 0
+fi
+
+COLUMNS="$(resolve_columns)"
+export COLUMNS
+
+# bun runs the TypeScript entrypoint directly; --env-file /dev/null stops it
+# from auto-loading a project .env. node needs the compiled output.
+if runtime="$(find_runtime bun)"; then
+    exec "$runtime" --env-file /dev/null "${plugin_dir}src/index.ts"
+fi
+
+if runtime="$(find_runtime node)"; then
+    exec "$runtime" "${plugin_dir}dist/index.js"
+fi
+
+exit 0
