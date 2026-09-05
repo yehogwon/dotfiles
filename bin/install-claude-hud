@@ -33,6 +33,19 @@ plugin_is_installed() {
     claude plugin list 2>/dev/null | grep -Fq "$PLUGIN_ID"
 }
 
+# --yes only exists on newer Claude Code versions, and older ones fail the
+# whole install on an unknown option, so ask before using it.
+plugin_install_confirm_flag() {
+    local help_text
+
+    help_text="$(claude plugin install --help 2>&1 || true)"
+
+    case "$help_text" in
+        *--yes*) printf '%s\n' "--yes" ;;
+        *) printf '\n' ;;
+    esac
+}
+
 # Only the statusLine key is touched. Claude Code owns the rest of this file
 # and rewrites it as settings change, so it cannot be managed wholesale.
 write_statusline() {
@@ -104,7 +117,8 @@ if plugin_is_installed; then
     log "[info] plugin $PLUGIN_ID already installed"
 else
     step "installing plugin $PLUGIN_ID"
-    if ! claude plugin install "$PLUGIN_ID" --yes </dev/null; then
+    CONFIRM_FLAG="$(plugin_install_confirm_flag)"
+    if ! claude plugin install "$PLUGIN_ID" ${CONFIRM_FLAG:+"$CONFIRM_FLAG"} </dev/null; then
         log "[error] failed to install plugin $PLUGIN_ID"
         exit 1
     fi
