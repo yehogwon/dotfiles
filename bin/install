@@ -459,6 +459,60 @@ insert_block() {
     log "[ok] $label configured"
 }
 
+claude_config_dir() {
+    printf '%s\n' "${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
+}
+
+copy_managed_file() {
+    local source_file="$1"
+    local target_file="$2"
+    local label="$3"
+    local backup_file
+    local replace_reason=""
+
+    step "configuring $label"
+
+    if [[ ! -f "$source_file" ]]; then
+        log "[warn] managed source not found at $source_file; skipping $label"
+        return 0
+    fi
+
+    # JSON has no include directive, so this file is copied rather than
+    # wrapped in a managed block: the repo copy is the whole config.
+    if [[ -e "$target_file" || -L "$target_file" ]]; then
+        if [[ -L "$target_file" ]]; then
+            log "[warn] $label is a symlink; the plugin's own tooling cannot write to it"
+            replace_reason="replaced symlink"
+        elif [[ ! -f "$target_file" ]]; then
+            log "[warn] $label is not a regular file; skipping"
+            return 0
+        elif cmp -s "$source_file" "$target_file"; then
+            log "[ok] $label already up to date"
+            return 0
+        else
+            replace_reason="$label differs from the managed copy"
+        fi
+
+        backup_file="$target_file.bak.$(date +%Y%m%d-%H%M%S)"
+        if ! cp -P "$target_file" "$backup_file"; then
+            log "[warn] failed to back up $label; skipping"
+            return 0
+        fi
+
+        log "[warn] $replace_reason; backed up to $backup_file"
+        rm -f "$target_file"
+    fi
+
+    mkdir -p "$(dirname "$target_file")"
+
+    if ! cp "$source_file" "$target_file"; then
+        log "[warn] failed to install $label"
+        return 0
+    fi
+
+    log "[ok] $label configured"
+}
+
 SHELL_BEGIN="# >>> dotfiles >>>"
 SHELL_END="# <<< dotfiles <<<"
 VIM_BEGIN="\" >>> dotfiles >>>"
@@ -496,6 +550,9 @@ insert_block "$HOME/.ssh/config" "$SHELL_BEGIN" "$SHELL_END" "Include \"$DOTFILE
 
 # tmux
 append_block "$HOME/.tmux.conf" "$SHELL_BEGIN" "$SHELL_END" "if-shell \"[ -f '$DOTFILES_DIR/tmux/tmux.conf' ]\" \"source-file '$DOTFILES_DIR/tmux/tmux.conf'\"" ".tmux.conf"
+
+# claude-hud
+copy_managed_file "$DOTFILES_DIR/claude/hud.json" "$(claude_config_dir)/plugins/claude-hud/config.json" "claude-hud config.json"
 
 enforce_permissions_manifest "$DOTFILES_DIR" "$PERMISSIONS_MANIFEST_NAME"
 

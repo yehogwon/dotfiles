@@ -1,0 +1,12 @@
+{
+  "display": {
+    "showAgents": true,
+    "showTodos": true,
+    "showDuration": true,
+    "showConfigCounts": true,
+    "showEffortLevel": true,
+    "showUsage": true,
+    "usageThreshold": 0,
+    "sevenDayThreshold": 0
+  }
+}
