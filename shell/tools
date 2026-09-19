@@ -15,10 +15,29 @@ print_white() { _print_color 37 "$@"; }
 
 if command -v uvx >/dev/null 2>&1; then
     icat() {
-        uvx imgcat \
-            --width "$(( $(tput cols) - 4 ))" \
-            --height "$(( $(tput lines) - 8 ))" \
-            "$@"
+        uv run --no-project --with pillow --with imgcat python - "$@" <<'PY'
+import io, os, sys
+from PIL import Image
+from imgcat import imgcat
+
+CAP = 700_000  # tmux drops a DCS passthrough over 1 MiB of base64 (~786 KB raw)
+cols, lines = os.get_terminal_size()
+w, h = cols - 4, lines - 8
+
+for path in sys.argv[1:]:
+    im = Image.open(path)
+    im.thumbnail((w * 8, h * 18))
+    while True:
+        buf = io.BytesIO()
+        if im.mode in ("RGBA", "LA", "P"):
+            im.save(buf, "PNG", optimize=True)
+        else:
+            im.save(buf, "JPEG", quality=85)
+        if buf.tell() <= CAP or min(im.size) < 64:
+            break
+        im = im.resize((int(im.width * .8), int(im.height * .8)))
+    imgcat(buf.getvalue(), filename=os.path.basename(path), width=w, height=h)
+PY
     }
 fi
 
