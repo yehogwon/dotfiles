@@ -1,0 +1,9 @@
+ITERM2_HOME="$DOTFILES_HOME/modules/iterm2-shell-integration"
+
+[ -d "$ITERM2_HOME/utilities" ] && export PATH="$ITERM2_HOME/utilities${PATH:+:$PATH}"
+
+if [ -n "${ZSH_VERSION-}" ]; then
+  [ -f "$ITERM2_HOME/shell_integration/zsh" ] && source "$ITERM2_HOME/shell_integration/zsh"
+elif [ -n "${BASH_VERSION-}" ]; then
+  [ -f "$ITERM2_HOME/shell_integration/bash" ] && source "$ITERM2_HOME/shell_integration/bash"
+fi
