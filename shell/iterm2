@@ -1,9 +1,5 @@
-# iTerm2 shell integration and utilities, as installed by
-# install_shell_integration_and_utilities.sh. The integration scripts skip
-# themselves in non-interactive shells, inside tmux, and when already loaded.
 ITERM2_HOME="$DOTFILES_HOME/modules/iterm2-shell-integration"
 
-# utilities go on PATH rather than behind the installer's aliases
 [ -d "$ITERM2_HOME/utilities" ] && export PATH="$ITERM2_HOME/utilities${PATH:+:$PATH}"
 
 if [ -n "${ZSH_VERSION-}" ]; then
