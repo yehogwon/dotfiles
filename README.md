@@ -36,6 +36,7 @@ source ~/.bashrc  # (or ~/.zshrc)
 - `fzf`
 - `oh-my-zsh`
 - `tpm`
+- iTerm2 [shell integration](https://iterm2.com/documentation-shell-integration.html) and utilities (`imgcat`, `it2dl`, `it2ul`, ...) for bash and zsh
 
 **misc.**
 

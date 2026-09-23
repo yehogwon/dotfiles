@@ -1,3 +1,5 @@
 source "$DOTFILES_HOME/shell/envs"
 source "$DOTFILES_HOME/shell/tools"
 source "$DOTFILES_HOME/shell/aliases"
+# last, so bash-preexec wraps the final PROMPT_COMMAND
+source "$DOTFILES_HOME/shell/iterm2"
