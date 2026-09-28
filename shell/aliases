@@ -21,6 +21,12 @@ if command -v nvim 2>&1 >/dev/null; then
     alias vi='nvim'
 fi
 
+# uv (always use managed python)
+if command -v uv 2>&1 >/dev/null; then
+    alias uv='uv --managed-python'
+    alias uvx='uvx --managed-python'
+fi
+
 # dotfiles bin
 if [ -d "$DOTFILES_HOME/bin" ]; then
     while IFS= read -r _dot_cmd; do
