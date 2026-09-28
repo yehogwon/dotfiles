@@ -30,3 +30,6 @@ fi
 if command -v thefuck >/dev/null 2>&1; then
   eval "$(thefuck --alias)"
 fi
+
+# always use uv managed python
+export UV_MANAGED_PYTHON=1
