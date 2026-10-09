@@ -1,5 +1,8 @@
 {
   "remoteControlAtStartup": true,
+  "env": {
+    "CLAUDE_CODE_SHELL": "/bin/bash"
+  },
   "extraKnownMarketplaces": {
     "claude-hud": {
       "source": {
