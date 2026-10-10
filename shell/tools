@@ -53,79 +53,212 @@ if command -v claude >/dev/null 2>&1; then
     }
 fi
 
-_wwatch_eval_args() {
-    local quoted
-    quoted=$(printf '%q ' "$@")
-    eval "${quoted% }"
+_wwatch_usage() {
+    printf 'usage: wwatch [-n SECONDS] [--] <command> [args...]\n' >&2
 }
 
-_wwatch_named_exec() {
-    local proc_name="wwatch"
+# Start one run of the watched command. Under zsh it runs in a pseudo-terminal
+# (zsh/zpty), so it keeps its colors and lays itself out for the pane; otherwise
+# its output is captured from a background job.
+_wwatch_start() {
+    _ww_running=1
+    sleep "$_ww_interval" &
+    _ww_timer=$!
 
-    if [[ $# -eq 1 ]]; then
+    if (( _ww_pty )); then
+        : >| "$_ww_dir/out"
+        : >| "$_ww_dir/rc"
+        zpty -b _wwatch_cmd 'stty rows $(( _ww_rows - 1 )) cols $_ww_cols 2>/dev/null; eval "$_ww_cmd"; print -r -- $? >| "$_ww_dir/rc"'
+    else
         (
-            eval "$1"
-        )
-        return $?
+            # bash turns alias expansion off in background subshells.
+            [[ -n ${BASH_VERSION-} ]] && shopt -s expand_aliases
+            export LINES=$(( _ww_rows - 1 )) COLUMNS=$_ww_cols
+            eval "$_ww_cmd"
+        ) >| "$_ww_dir/out" 2>&1 </dev/null &
+        _ww_job=$!
+    fi
+}
+
+# Collect what the running command has printed so far. Returns 0 once it has
+# exited and its output is in _ww_output.
+_wwatch_collect() {
+    local exited=0
+
+    if (( _ww_pty )); then
+        # Copy whatever the pty has buffered; drain it fully once the command
+        # is gone.
+        zpty -t _wwatch_cmd || exited=1
+        zpty -rt _wwatch_cmd >> "$_ww_dir/out"
+        (( exited )) || return 1
+        while zpty -rt _wwatch_cmd >> "$_ww_dir/out"; do :; done
+        zpty -d _wwatch_cmd
+        _ww_rc=$(<"$_ww_dir/rc")
+    else
+        kill -0 "$_ww_job" 2>/dev/null && return 1
+        wait "$_ww_job"
+        _ww_rc=$?
+        _ww_job=""
     fi
 
-    if alias -- "$1" >/dev/null 2>&1 || typeset -f -- "$1" >/dev/null 2>&1; then
-        (
-            _wwatch_eval_args "$@"
-        )
-        return $?
+    # Only the head can ever be on screen.
+    _ww_output=$(head -n 1000 "$_ww_dir/out")
+    _ww_output=${_ww_output//$'\r'/}
+    _ww_clock=$(date +%H:%M:%S)
+    _ww_running=0
+}
+
+# Rewrite only the screen rows that changed since the last frame, in one write.
+_wwatch_render() {
+    [[ -n ${ZSH_VERSION-} ]] && setopt localoptions ksharrays
+    local -a rows
+    local left right badge="" pad line frame="" room i
+
+    left="Every ${_ww_interval}s: $_ww_title"
+    right=$_ww_host
+    [[ -n $_ww_clock ]] && right+="  $_ww_clock"
+    [[ ${_ww_rc:-0} != 0 ]] && badge="[exit $_ww_rc]  "
+    room=$(( _ww_cols - ${#badge} - ${#right} - 1 ))
+    (( room < 0 )) && room=0
+    (( ${#left} > room )) && left=${left:0:$room}
+    i=$(( _ww_cols - ${#left} - ${#badge} - ${#right} ))
+    (( i < 1 )) && i=1
+    printf -v pad '%*s' "$i" ''
+    rows=($'\e[1;33m'"$left$pad"$'\e[1;31m'"$badge"$'\e[1;33m'"$right"$'\e[m')
+
+    if (( _ww_rows > 1 )); then
+        while IFS= read -r line || [[ -n $line ]]; do
+            rows+=("$line")
+            (( ${#rows[@]} >= _ww_rows )) && break
+        done <<< "$_ww_output"
     fi
 
-    # Use bash+exec -a when available to keep a stable process name.
-    if command -v bash >/dev/null 2>&1; then
-        command bash -c 'exec -a "$1" "${@:2}"' _ "$proc_name" "$@"
-        return $?
-    fi
+    for (( i = 0; i < _ww_rows; i++ )); do
+        line=${rows[i]-}
+        if (( i >= ${#_ww_drawn[@]} )) || [[ ${_ww_drawn[i]} != "$line" ]]; then
+            frame+=$'\e['"$(( i + 1 ))"$';1H\e[m\e[K'"$line"
+            _ww_drawn[i]=$line
+        fi
+    done
 
-    # Fallback without process renaming support.
-    "$@"
+    [[ -n $frame ]] && printf '%s' $'\e[?2026h'"$frame"$'\e[m\e[?2026l'
+}
+
+_wwatch_cleanup() {
+    # A closing pane can deliver SIGHUP twice; don't let the second one cut
+    # the cleanup short.
+    trap '' INT HUP TERM
+    exec 2>/dev/null
+    (( _ww_pty )) && zpty -d _wwatch_cmd
+    if [[ -n $_ww_job ]]; then
+        pkill -P "$_ww_job"
+        kill "$_ww_job"
+    fi
+    [[ -n $_ww_timer ]] && kill "$_ww_timer"
+    rm -rf "$_ww_dir"
+
+    # Restore the terminal last: if the pane is already gone, zsh abandons the
+    # rest of this trap at the failed /dev/tty redirection.
+    printf '\e[?7h\e[?25h\e[?1049l'
+    [[ -n $_ww_tty ]] && stty "$_ww_tty" </dev/tty
 }
 
 wwatch() {
-    if [[ $# -lt 1 ]]; then
+    local _ww_interval=1
+
+    while (( $# )); do
+        case $1 in
+            -n|--interval)
+                if (( $# < 2 )); then
+                    _wwatch_usage
+                    return 2
+                fi
+                _ww_interval=$2
+                shift 2
+                ;;
+            -n?*) _ww_interval=${1#-n}; shift ;;
+            --interval=*) _ww_interval=${1#*=}; shift ;;
+            -h|--help) _wwatch_usage; return 0 ;;
+            --) shift; break ;;
+            *) break ;;
+        esac
+    done
+
+    if (( $# == 0 )); then
+        _wwatch_usage
+        return 2
+    fi
+
+    if [[ $_ww_interval == *[!0-9.]* || $_ww_interval == *.*.* || $_ww_interval != *[1-9]* ]]; then
+        printf 'wwatch: invalid interval: %s\n' "$_ww_interval" >&2
+        return 2
+    fi
+
+    if [[ ! -t 1 ]] || ! : </dev/tty 2>/dev/null; then
+        printf 'wwatch: needs a terminal\n' >&2
         return 1
     fi
 
-    local interval=1 alt=1
-    local -a cmd_argv=("$@")
+    # A single argument is a shell snippet; several are a command and its
+    # arguments. Both go through eval so aliases and functions keep working.
+    local _ww_cmd _ww_title=$* _ww_host
+    if (( $# == 1 )); then
+        _ww_cmd=$1
+    else
+        _ww_cmd=$(printf '%q ' "$@")
+        _ww_cmd=${_ww_cmd% }
+    fi
+    _ww_host=$(hostname -s 2>/dev/null) || _ww_host=$(hostname)
 
-    # Terminal control only makes sense for an interactive terminal.
-    if [[ ! -t 1 ]]; then
-        alt=0
+    local _ww_dir="" _ww_tty="" _ww_job="" _ww_timer="" _ww_pty=0 _ww_poll=0.1
+    local _ww_running=0 _ww_force=0 _ww_rows=0 _ww_cols=0 _ww_size="" _ww_key=""
+    local _ww_output="" _ww_rc=0 _ww_clock=""
+    local -a _ww_drawn
+
+    if [[ -n ${ZSH_VERSION-} ]]; then
+        zmodload zsh/zpty 2>/dev/null && _ww_pty=1
+    elif (( BASH_VERSINFO[0] < 4 )); then
+        _ww_poll=1  # bash 3 only takes whole-second read timeouts
     fi
 
     (
-        local interrupted=0
-        trap 'interrupted=1' INT TERM HUP
-        trap 'printf "\e[?25h"; if (( alt )); then if command -v tput >/dev/null 2>&1; then tput rmcup; else printf "\e[?1049l"; fi; fi' EXIT
+        _ww_dir=$(mktemp -d "${TMPDIR:-/tmp}/wwatch.XXXXXX") || exit 1
+        _ww_tty=$(stty -g </dev/tty)
+        trap _wwatch_cleanup EXIT
+        trap 'exit 130' INT
+        trap 'exit 129' HUP
+        trap 'exit 143' TERM
 
-        if (( alt )); then
-            if command -v tput >/dev/null 2>&1; then
-                tput smcup
-            else
-                printf '\e[?1049h'
+        stty -echo -icanon </dev/tty
+        printf '\e[?1049h\e[?25l\e[?7l\e[2J'
+
+        while :; do
+            _ww_size=$(stty size </dev/tty)
+            if [[ $_ww_size != "$_ww_rows $_ww_cols" ]]; then
+                _ww_rows=${_ww_size% *}
+                _ww_cols=${_ww_size#* }
+                _ww_drawn=()
+                _wwatch_render
             fi
-        fi
 
-        printf '\e[?25l'
+            if (( _ww_running )); then
+                _wwatch_collect && _wwatch_render
+            elif (( _ww_force )) || [[ -z $_ww_timer ]] || ! kill -0 "$_ww_timer" 2>/dev/null; then
+                _ww_force=0
+                _wwatch_start
+            fi
 
-        while (( !interrupted )); do
-            printf '\033[H\033[K'
-            print_yellow "wwatch :: $(hostname) :: $(date)"
-            _wwatch_named_exec "${cmd_argv[@]}"
-            printf '\033[J'
-
-            (( interrupted )) && break
-            _wwatch_named_exec sleep "$interval" || interrupted=1
+            _ww_key=""
+            if [[ -n ${ZSH_VERSION-} ]]; then
+                read -t "$_ww_poll" -k 1 _ww_key
+            else
+                IFS= read -r -s -n 1 -t "$_ww_poll" _ww_key </dev/tty
+            fi
+            case $_ww_key in
+                q|Q) exit 0 ;;
+                ' ') _ww_force=1 ;;
+            esac
         done
-
-        (( interrupted )) && exit 130
-        exit 0
     )
 }
 
