@@ -15,6 +15,11 @@ print_white() { _print_color 37 "$@"; }
 
 if command -v uvx >/dev/null 2>&1; then
     icat() {
+        # outside tmux iTerm2 owns the screen, so its own imgcat is fine
+        if [ -z "${TMUX-}" ] && command -v imgcat >/dev/null 2>&1; then
+            imgcat "$@"
+            return
+        fi
         uv run --no-project --with pillow --with imgcat python - "$@" <<'PY'
 import io, os, sys
 from PIL import Image
