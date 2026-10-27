@@ -297,29 +297,6 @@ run_linuxbrew_installer() {
     return 0
 }
 
-run_claude_hud_installer() {
-    local installer_path="$DOTFILES_DIR/bin/install-claude-hud"
-
-    if [[ ! -f "$installer_path" ]]; then
-        log "[warn] claude-hud installer not found at $installer_path"
-        return 1
-    fi
-
-    if [[ -x "$installer_path" ]]; then
-        if ! "$installer_path"; then
-            return 1
-        fi
-
-        return 0
-    fi
-
-    if ! bash "$installer_path"; then
-        return 1
-    fi
-
-    return 0
-}
-
 is_linux_platform() {
     [[ "$(uname -s)" == "Linux" ]]
 }
@@ -482,60 +459,6 @@ insert_block() {
     log "[ok] $label configured"
 }
 
-claude_config_dir() {
-    printf '%s\n' "${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
-}
-
-copy_managed_file() {
-    local source_file="$1"
-    local target_file="$2"
-    local label="$3"
-    local backup_file
-    local replace_reason=""
-
-    step "configuring $label"
-
-    if [[ ! -f "$source_file" ]]; then
-        log "[warn] managed source not found at $source_file; skipping $label"
-        return 0
-    fi
-
-    # JSON has no include directive, so this file is copied rather than
-    # wrapped in a managed block: the repo copy is the whole config.
-    if [[ -e "$target_file" || -L "$target_file" ]]; then
-        if [[ -L "$target_file" ]]; then
-            log "[warn] $label is a symlink; the plugin's own tooling cannot write to it"
-            replace_reason="replaced symlink"
-        elif [[ ! -f "$target_file" ]]; then
-            log "[warn] $label is not a regular file; skipping"
-            return 0
-        elif cmp -s "$source_file" "$target_file"; then
-            log "[ok] $label already up to date"
-            return 0
-        else
-            replace_reason="$label differs from the managed copy"
-        fi
-
-        backup_file="$target_file.bak.$(date +%Y%m%d-%H%M%S)"
-        if ! cp -P "$target_file" "$backup_file"; then
-            log "[warn] failed to back up $label; skipping"
-            return 0
-        fi
-
-        log "[warn] $replace_reason; backed up to $backup_file"
-        rm -f "$target_file"
-    fi
-
-    mkdir -p "$(dirname "$target_file")"
-
-    if ! cp "$source_file" "$target_file"; then
-        log "[warn] failed to install $label"
-        return 0
-    fi
-
-    log "[ok] $label configured"
-}
-
 validate_managed_json() {
     local source_file="$1"
     local label="$2"
@@ -600,9 +523,6 @@ insert_block "$HOME/.ssh/config" "$SHELL_BEGIN" "$SHELL_END" "Include \"$DOTFILE
 # tmux
 append_block "$HOME/.tmux.conf" "$SHELL_BEGIN" "$SHELL_END" "if-shell \"[ -f '$DOTFILES_DIR/tmux/tmux.conf' ]\" \"source-file '$DOTFILES_DIR/tmux/tmux.conf'\"" ".tmux.conf"
 
-# claude-hud
-copy_managed_file "$DOTFILES_DIR/claude/hud.json" "$(claude_config_dir)/plugins/claude-hud/config.json" "claude-hud config.json"
-
 # claude settings, layered by the shell wrapper rather than written to disk
 validate_managed_json "$DOTFILES_DIR/claude/settings.json" "claude/settings.json"
 
@@ -619,19 +539,6 @@ if is_linux_platform; then
     else
         log "[skip] Homebrew installation skipped"
     fi
-fi
-
-if command -v claude >/dev/null 2>&1; then
-    step "optional claude-hud installation"
-    if prompt_yes_no "Install the claude-hud statusline plugin?" "y" "INSTALL_CLAUDE_HUD"; then
-        if ! run_claude_hud_installer; then
-            log "[warn] claude-hud installation failed; dotfiles installation will continue"
-        fi
-    else
-        log "[skip] claude-hud installation skipped"
-    fi
-else
-    log "[skip] claude executable not found; skipping claude-hud installation"
 fi
 
 log "Done. Restart your shell (or source your rc file) to apply changes."

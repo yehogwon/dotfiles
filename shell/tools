@@ -49,9 +49,11 @@ fi
 if command -v claude >/dev/null 2>&1; then
     claude() {
         local _claude_settings="$DOTFILES_HOME/claude/settings.json"
+        local _claude_hud="$DOTFILES_HOME/claude/mods/hud"
 
         if [ -f "$_claude_settings" ]; then
-            command claude --settings "$_claude_settings" "$@"
+            CLAUDE_CODE_PLUGIN_DIRS="$_claude_hud${CLAUDE_CODE_PLUGIN_DIRS:+:$CLAUDE_CODE_PLUGIN_DIRS}" \
+                command claude --settings "$_claude_settings" "$@"
         else
             command claude "$@"
         fi

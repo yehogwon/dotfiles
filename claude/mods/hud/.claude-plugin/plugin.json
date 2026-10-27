@@ -1,0 +1,6 @@
+{
+  "name": "hud",
+  "version": "0.1.0",
+  "description": "Session HUD above the prompt that follows the viewed agent: model, effort, context, usage, git, agents, todos.",
+  "types": "./types/index.d.ts"
+}
