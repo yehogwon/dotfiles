@@ -2,6 +2,7 @@ export type HudLimit = { kind: string; percentUsed: number; resetsAt?: string }
 
 export type HudMain = {
   model: string
+  plan?: string
   project: string
   branch: string | null
   isDirty: boolean

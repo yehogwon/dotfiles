@@ -20,8 +20,12 @@ const BAND = {
 
 const START = { cwd: '/home/u/obsidian', surface: 'terminal', isInteractive: true } as const
 
-function engine(on: On, mcpServers: string[] = ['notion']) {
+const MAX_LOGIN = { oauthAccount: { organizationType: 'claude_max', organizationRateLimitTier: 'default_claude_max_20x' } }
+
+function engine(on: On, mcpServers: string[] = ['notion'], config: object = MAX_LOGIN) {
   const clock = mock.clock(on, { now: NOW })
+  mock.env(on, { HOME: '/home/u' })
+  on('fs.read', (_, e) => ({ value: e.path === '/home/u/.claude.json' ? JSON.stringify(config) : '' }))
   on('session.start', (_, e) => ({ cwd: e.cwd }))
   on('session.messages', () => ({
     value: [
@@ -101,7 +105,7 @@ test('the main view shows model, git, context, usage, counts and todos', async (
   await $.session.start(START)
   const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
 
-  expect(await rowText(ui, /^\[Opus/)).toBe('[Opus 5.5] │ obsidian git:(main*) │ ⏱ 1h 5m')
+  expect(await rowText(ui, /^\[Opus/)).toBe('[Opus 5.5 | Max 20x] │ obsidian git:(main*) │ ⏱ 1h 5m')
   expect(await rowText(ui, /^Context/)).toBe(
     'Context ████░░░░░░ 41% │ Usage ██░░░░░░░░ 23% (resets in 2h 3m) | Weekly ██████░░░░ 61% (resets in 3d 4h)',
   )
@@ -111,6 +115,14 @@ test('the main view shows model, git, context, usage, counts and todos', async (
   await $.tool.call({ tool: 'TaskUpdate', taskId: '1', status: 'completed' } as never)
   await $.tool.call({ tool: 'TaskUpdate', taskId: '2', status: 'in_progress' } as never)
   expect(await rowText(ui, /^▸/)).toBe('▸ Test it (1/2)')
+  await ui.unmount()
+})
+
+test('a session with no subscription login shows no plan', async ($, on) => {
+  engine(on, ['notion'], {})
+  await $.session.start(START)
+  const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
+  expect(await rowText(ui, /^\[Opus/)).toBe('[Opus 5.5] │ obsidian git:(main*) │ ⏱ 1h 5m')
   await ui.unmount()
 })
 

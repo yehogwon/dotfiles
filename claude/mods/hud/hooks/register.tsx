@@ -36,6 +36,8 @@ export const register: Register = on => {
     const result = await next(e)
     isGitStale = true
     areCountsStale = true
+    const plan = await readPlan($)
+    await update($, main, ({ plan: _, ...m }) => ({ ...m, ...(plan !== undefined && { plan }) }))
     $.clock.every(TICK_MS, () => void tick($))
     await tick($)
     const messages = await $.session.messages()
@@ -194,6 +196,26 @@ async function readGit($: EngineInterface, cwd: string): Promise<Pick<HudMain, '
   return { branch, isDirty: changes.some(line => line.trim() !== '') }
 }
 
+// The login record in .claude.json, not .credentials.json, which holds the tokens.
+async function readPlan($: EngineInterface): Promise<string | undefined> {
+  const dir = (await $.env.get('CLAUDE_CONFIG_DIR')) ?? (await $.env.get('HOME'))
+  if (dir === undefined) {
+    return undefined
+  }
+  const account = await $.fs
+    .read(`${dir}/.claude.json`)
+    .then(text => (JSON.parse(text) as { oauthAccount?: Record<string, unknown> }).oauthAccount)
+    .catch(() => undefined)
+  const type = account?.organizationType
+  if (typeof type !== 'string' || type === '') {
+    return undefined
+  }
+  const name = type.replace(/^claude_/, '').replace(/_/g, ' ')
+  const tier = account?.organizationRateLimitTier
+  const multiplier = typeof tier === 'string' ? /_(\d+x)$/.exec(tier)?.[1] : undefined
+  return `${name.charAt(0).toUpperCase()}${name.slice(1)}${multiplier === undefined ? '' : ` ${multiplier}`}`
+}
+
 async function refreshCounts($: EngineInterface): Promise<void> {
   const [usage, hooks] = await Promise.all([
     $.session.usage({ breakdown: 'summary' }),
@@ -245,7 +267,8 @@ function toLimit(limit: HudLimit): HudLimit {
 function identityRow(m: HudMain, loop: HudLoop | undefined, at: number): Seg[] {
   const row: Seg[] = []
   if (m.model) {
-    row.push({ text: `[${modelName(m.model)}${effortSuffix(loop?.effort)}]`, color: 'cyan' })
+    const plan = m.plan === undefined ? '' : ` | ${m.plan}`
+    row.push({ text: `[${modelName(m.model)}${effortSuffix(loop?.effort)}${plan}]`, color: 'cyan' })
   }
   if (m.project) {
     row.push(...(row.length > 0 ? [SEP] : []), { text: m.project, color: 'yellow' })
