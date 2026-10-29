@@ -1,5 +1,5 @@
 {
-  "remoteControlAtStartup": true,
+  "remoteControlAtStartup": false,
   "disableAgentView": true,
   "env": {
     "CLAUDE_CODE_SHELL": "/bin/bash"
