@@ -74,6 +74,7 @@ plugins=(
   docker docker-compose
   python pip
   node npm rust
+  kubectl
   extract
 )
 
