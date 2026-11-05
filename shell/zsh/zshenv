@@ -1,0 +1,11 @@
+# ignore an inherited fpath; it makes oh-my-zsh rebuild its completion dump
+if [[ ${(t)FPATH} == *export* ]]; then
+  typeset +x FPATH
+  () {
+    local zsh_bin=zsh
+    [[ $SHELL == */zsh ]] && zsh_bin=$SHELL
+    local -a default_fpath
+    default_fpath=( ${(f)"$(command $zsh_bin -f -c 'print -rl -- $fpath' 2>/dev/null)"} )
+    (( $#default_fpath )) && fpath=( $default_fpath )
+  }
+fi
