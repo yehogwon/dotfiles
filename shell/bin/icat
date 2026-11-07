@@ -1,0 +1,41 @@
+#!/bin/bash
+
+# kitten icat, with a fallback for terminals that don't report pixel sizes (e.g. Herdr).
+
+source "$(dirname "${BASH_SOURCE[0]}")/../tools"
+
+_install_hint() {
+    local os arch
+    case "$(uname -s)" in
+        Darwin) os=darwin ;;
+        Linux) os=linux ;;
+        FreeBSD) os=freebsd ;;
+        *) os=$(uname -s | tr '[:upper:]' '[:lower:]') ;;
+    esac
+    case "$(uname -m)" in
+        x86_64 | amd64) arch=amd64 ;;
+        arm64 | aarch64) arch=arm64 ;;
+        i?86) arch=386 ;;
+        armv7l | armv6l) arch=arm ;;
+        *) arch=$(uname -m) ;;
+    esac
+
+    if command -v brew >/dev/null 2>&1; then
+        echo "  brew install --cask kitty" >&2
+        echo "or" >&2
+    fi
+    echo "  mkdir -p ~/.local/bin && curl -fL https://github.com/kovidgoyal/kitty/releases/latest/download/kitten-$os-$arch -o ~/.local/bin/kitten && chmod +x ~/.local/bin/kitten" >&2
+}
+
+if ! kitten --version >/dev/null 2>&1; then
+    print_red "icat: kitten not found or not runnable; install it with:" >&2
+    _install_hint
+    exit 1
+fi
+
+kitten icat "$@" 2>/dev/null && exit 0
+
+cols=${COLUMNS:-$(tput cols)}
+rows=${LINES:-$(tput lines)}
+exec kitten icat --transfer-mode=stream \
+    --use-window-size "$cols,$rows,$((cols * ${ICAT_CW:-9})),$((rows * ${ICAT_CH:-19}))" "$@"
