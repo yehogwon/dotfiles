@@ -1,4 +1,3 @@
 source "$DOTFILES_HOME/shell/envs"
 source "$DOTFILES_HOME/shell/tools"
 source "$DOTFILES_HOME/shell/aliases"
-source "$DOTFILES_HOME/shell/iterm2"
