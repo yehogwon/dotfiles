@@ -30,6 +30,7 @@ const now = atom({ plugin: 'hud', key: 'now' } as const, 0)
 
 let isGitStale = true
 let areCountsStale = true
+let labeledEffort = ''
 
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
@@ -47,6 +48,7 @@ export const register: Register = on => {
   })
 
   on('session.end', async ($, e, next) => {
+    await labelEffort($, '')
     if (e.reason === 'clear') {
       await update($, loops, () => ({}))
       await update($, agents, () => [])
@@ -75,6 +77,9 @@ export const register: Register = on => {
         ...(e.effort !== undefined && { effort: e.effort }),
       }
       await update($, loops, all => ({ ...all, [e.agentId ?? MAIN]: loop }))
+    }
+    if (e.agentId === undefined && e.effort !== undefined) {
+      await labelEffort($, String(e.effort))
     }
     return response
   })
@@ -184,6 +189,22 @@ async function tick($: EngineInterface): Promise<void> {
   const statuses = new Map(listed.map(a => [a.id, a.status as string]))
   await update($, agents, list => list.map(a => settle(a, statuses.get(a.id), at)))
   await update($, now, () => at)
+}
+
+// Herdr reads this herdr-core label to show the effort in its status bar.
+// Only when the effort changes, so a turn costs nothing extra.
+async function labelEffort($: EngineInterface, effort: string): Promise<void> {
+  if (effort === labeledEffort) {
+    return
+  }
+  const terminal = await $.env.get('HC_TERMINAL_ID')
+  if (terminal === undefined || terminal === '') {
+    return
+  }
+  labeledEffort = effort
+  await $.process
+    .run(['hc', 'label', terminal, `claude.effort=${effort}`], { timeoutMs: 3000 })
+    .catch(() => undefined)
 }
 
 async function readGit($: EngineInterface, cwd: string): Promise<Pick<HudMain, 'branch' | 'isDirty'>> {
