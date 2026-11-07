@@ -100,16 +100,16 @@ async function rowText(ui: { find: (q: { type: string; text: RegExp }) => Promis
   return (await ui.find({ type: 'Text', text }))?.text
 }
 
-test('the main view shows model, git, context, usage, counts and todos', async ($, on) => {
+test('the main view shows model, plan, git, context, usage and todos', async ($, on) => {
   engine(on)
   await $.session.start(START)
+  const step = $.turn.step({ turnId: 't', index: 0, model: 'claude-opus-5-5', effort: 'xhigh', messageCount: 1 })
+  for await (const _ of step) {
+  }
   const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
 
-  expect(await rowText(ui, /^\[Opus/)).toBe('[Opus 5.5 | Max 20x] │ obsidian git:(main*) │ ⏱ 1h 5m')
-  expect(await rowText(ui, /^Context/)).toBe(
-    'Context ████░░░░░░ 41% │ Usage ██░░░░░░░░ 23% (resets in 2h 3m) | Weekly ██████░░░░ 61% (resets in 3d 4h)',
-  )
-  expect(await rowText(ui, /CLAUDE\.md/)).toBe('1 CLAUDE.md | 1 rules | 1 MCPs | 2 hooks')
+  expect(await rowText(ui, /^opus/)).toBe('opus 5.5 xhigh | max 20x | obsidian git:(main*)')
+  expect(await rowText(ui, /^context/)).toBe('context 41% | 5hr 23% (in 2h 3m) | wk 61% (in 3d 4h)')
   expect(await rowText(ui, /^▸/)).toBe('▸ Write the band (0/2)')
 
   await $.tool.call({ tool: 'TaskUpdate', taskId: '1', status: 'completed' } as never)
@@ -122,21 +122,7 @@ test('a session with no subscription login shows no plan', async ($, on) => {
   engine(on, ['notion'], {})
   await $.session.start(START)
   const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
-  expect(await rowText(ui, /^\[Opus/)).toBe('[Opus 5.5] │ obsidian git:(main*) │ ⏱ 1h 5m')
-  await ui.unmount()
-})
-
-test('counts catch up with MCP servers that connect after start', async ($, on) => {
-  const servers: string[] = []
-  const clock = engine(on, servers)
-  await $.session.start(START)
-  const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
-  expect(await rowText(ui, /CLAUDE\.md/)).toBe('1 CLAUDE.md | 1 rules | 2 hooks')
-
-  servers.push('notion')
-  await $.turn.complete({ turnId: 't', answer: '', durationMs: 1, isAborted: false, reason: 'answer' } as never)
-  await clock.advance(5000)
-  expect(await rowText(ui, /CLAUDE\.md/)).toBe('1 CLAUDE.md | 1 rules | 1 MCPs | 2 hooks')
+  expect(await rowText(ui, /^opus/)).toBe('opus 5.5 | obsidian git:(main*)')
   await ui.unmount()
 })
 
@@ -157,12 +143,12 @@ test('viewing an agent shows its model, effort and context', async ($, on) => {
   }
 
   const ui = await $.ui.mount({ ...BAND, props: { ...BAND.props, view: { agentId: 'a1' } }, surface: 'terminal' })
-  expect(await rowText(ui, /^⤷/)).toBe('⤷ Explore: find run configs │ [Haiku 5.5 ○ low]')
-  expect(await rowText(ui, /^Context/)).toMatch(/^Context 84k │ Usage /)
-  expect(await rowText(ui, /^◐/)).toBe('◐ Explore [Haiku 5.5]: find run configs (<1s)')
+  expect(await rowText(ui, /^haiku/)).toBe('haiku 5.5 low | ⤷ Explore: find run configs')
+  expect(await rowText(ui, /^context/)).toMatch(/^context 84k \| 5hr /)
+  expect(await rowText(ui, /^◐/)).toBe('◐ Explore [haiku 5.5]: find run configs (<1s)')
 
   await $.turn.complete({ turnId: 't', answer: '', durationMs: 1, isAborted: false, reason: 'answer', agentId: 'a1' } as never)
-  expect(await rowText(ui, /^✓/)).toBe('✓ Explore [Haiku 5.5]: find run configs (<1s)')
+  expect(await rowText(ui, /^✓/)).toBe('✓ Explore [haiku 5.5]: find run configs (<1s)')
   await ui.unmount()
 })
 

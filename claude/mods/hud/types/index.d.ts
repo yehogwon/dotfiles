@@ -6,10 +6,8 @@ export type HudMain = {
   project: string
   branch: string | null
   isDirty: boolean
-  startedAt: number | null
   contextPercent: number | null
   limits: HudLimit[]
-  counts: { claudeMd: number; rules: number; mcps: number; hooks: number }
 }
 
 export type HudLoop = {

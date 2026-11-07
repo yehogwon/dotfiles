@@ -8,20 +8,17 @@ type TodoRow = { tool: string; input: Record<string, unknown>; result?: unknown 
 
 const MAIN = ''
 const TICK_MS = 5000
-const EFFORT_SYMBOLS: Record<string, string> = { low: '○', medium: '◔', high: '◑', xhigh: '◕', max: '●' }
 const TODO_TOOLS = new Set(['TodoWrite', 'TaskCreate', 'TaskUpdate'])
 const ENDED = new Set(['completed', 'failed', 'killed'])
-const SEP: Seg = { text: ' │ ' }
+const SEP: Seg = { text: ' | ', dim: true }
 
 const main = atom({ plugin: 'hud', key: 'main' } as const, {
   model: '',
   project: '',
   branch: null,
   isDirty: false,
-  startedAt: null,
   contextPercent: null,
   limits: [],
-  counts: { claudeMd: 0, rules: 0, mcps: 0, hooks: 0 },
 })
 const loops = atom({ plugin: 'hud', key: 'loops' } as const, {})
 const agents = atom({ plugin: 'hud', key: 'agents' } as const, [])
@@ -29,13 +26,11 @@ const todos = atom({ plugin: 'hud', key: 'todos' } as const, [])
 const now = atom({ plugin: 'hud', key: 'now' } as const, 0)
 
 let isGitStale = true
-let areCountsStale = true
 
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
     const result = await next(e)
     isGitStale = true
-    areCountsStale = true
     const plan = await readPlan($)
     await update($, main, ({ plan: _, ...m }) => ({ ...m, ...(plan !== undefined && { plan }) }))
     $.clock.every(TICK_MS, () => void tick($))
@@ -99,7 +94,6 @@ export const register: Register = on => {
   on('turn.complete', async ($, e, next) => {
     if (e.agentId === undefined) {
       isGitStale = true
-      areCountsStale = true
     } else {
       const at = await $.clock.now()
       await update($, agents, list => list.map(a => (a.id === e.agentId ? settle(a, 'completed', at) : a)))
@@ -135,9 +129,9 @@ export const register: Register = on => {
     const viewed = viewedId === undefined ? undefined : agentList.find(a => a.id === viewedId)
     const rows: Seg[][] =
       viewedId === undefined
-        ? [identityRow(m, loopMap[MAIN], at), [...contextRow(m, loopMap[MAIN]), ...usageRow(m.limits, at)]]
+        ? [identityRow(m, loopMap[MAIN]), [...contextRow(m), ...usageRow(m.limits, at)]]
         : [agentIdentityRow(viewedId, viewed, loopMap[viewedId]), [...agentContextRow(loopMap[viewedId]), ...usageRow(m.limits, at)]]
-    rows.push(countsRow(m.counts), ...agentRows(agentList, at), todoRow(todoList))
+    rows.push(...agentRows(agentList, at), todoRow(todoList))
 
     const { Box, Text } = $.ui.resolve(e)
     return (
@@ -168,16 +162,11 @@ async function tick($: EngineInterface): Promise<void> {
   ])
   const git = isGitStale ? await readGit($, cwd) : {}
   isGitStale = false
-  if (areCountsStale) {
-    areCountsStale = false
-    await refreshCounts($)
-  }
   await update($, main, m => ({
     ...m,
     ...git,
     model,
     project: cwd.split('/').filter(Boolean).pop() ?? '/',
-    startedAt: usage.startedAt,
     contextPercent: usage.context.percent ?? null,
     limits: usage.rateLimits.map(toLimit),
   }))
@@ -210,25 +199,10 @@ async function readPlan($: EngineInterface): Promise<string | undefined> {
   if (typeof type !== 'string' || type === '') {
     return undefined
   }
-  const name = type.replace(/^claude_/, '').replace(/_/g, ' ')
+  const name = type.replace(/^claude_/, '').replace(/_/g, ' ').toLowerCase()
   const tier = account?.organizationRateLimitTier
   const multiplier = typeof tier === 'string' ? /_(\d+x)$/.exec(tier)?.[1] : undefined
-  return `${name.charAt(0).toUpperCase()}${name.slice(1)}${multiplier === undefined ? '' : ` ${multiplier}`}`
-}
-
-async function refreshCounts($: EngineInterface): Promise<void> {
-  const [usage, hooks] = await Promise.all([
-    $.session.usage({ breakdown: 'summary' }),
-    $.settings.read({ key: 'hooks' }),
-  ])
-  const files = usage.context.breakdown?.memoryFiles ?? []
-  const counts = {
-    claudeMd: files.filter(f => /(^|\/)CLAUDE(\.local)?\.md$/.test(f.path)).length,
-    rules: files.filter(f => f.path.includes('/rules/')).length,
-    mcps: new Set((usage.context.breakdown?.mcpTools ?? []).map(t => t.serverName)).size,
-    hooks: hooks !== null && typeof hooks === 'object' ? Object.keys(hooks).length : 0,
-  }
-  await update($, main, m => ({ ...m, counts }))
+  return multiplier === undefined ? name : `${name} ${multiplier}`
 }
 
 function applyTodo(list: HudTodo[], row: TodoRow): HudTodo[] {
@@ -264,11 +238,13 @@ function toLimit(limit: HudLimit): HudLimit {
   return { kind: limit.kind, percentUsed: limit.percentUsed, ...(limit.resetsAt !== undefined && { resetsAt: limit.resetsAt }) }
 }
 
-function identityRow(m: HudMain, loop: HudLoop | undefined, at: number): Seg[] {
+function identityRow(m: HudMain, loop: HudLoop | undefined): Seg[] {
   const row: Seg[] = []
   if (m.model) {
-    const plan = m.plan === undefined ? '' : ` | ${m.plan}`
-    row.push({ text: `[${modelName(m.model)}${effortSuffix(loop?.effort)}${plan}]`, color: 'cyan' })
+    row.push({ text: modelName(m.model) + effortSuffix(loop?.effort), color: 'cyan' })
+  }
+  if (m.plan !== undefined) {
+    row.push(...(row.length > 0 ? [SEP] : []), { text: m.plan, color: 'cyan', dim: true })
   }
   if (m.project) {
     row.push(...(row.length > 0 ? [SEP] : []), { text: m.project, color: 'yellow' })
@@ -280,69 +256,41 @@ function identityRow(m: HudMain, loop: HudLoop | undefined, at: number): Seg[] {
       { text: ')', color: 'magenta' },
     )
   }
-  if (m.startedAt !== null && at > 0) {
-    row.push(SEP, { text: `⏱ ${span(at - m.startedAt)}`, dim: true })
-  }
   return row
 }
 
 function agentIdentityRow(id: string, agent: HudAgent | undefined, loop: HudLoop | undefined): Seg[] {
   const model = loop?.model ?? agent?.model
   return [
+    ...(model === undefined ? [] : [{ text: modelName(model) + effortSuffix(loop?.effort), color: 'cyan' }, SEP]),
     { text: '⤷ ' },
     { text: agent?.type ?? id, color: 'magenta' },
     ...(agent?.description ? [{ text: `: ${truncate(agent.description, 40)}`, dim: true }] : []),
-    ...(model === undefined ? [] : [SEP, { text: `[${modelName(model)}${effortSuffix(loop?.effort)}]`, color: 'cyan' }]),
   ]
 }
 
-function contextRow(m: HudMain, loop: HudLoop | undefined): Seg[] {
+function contextRow(m: HudMain): Seg[] {
   const percent = m.contextPercent ?? 0
   const color = percent >= 85 ? 'red' : percent >= 70 ? 'yellow' : 'green'
-  const breakdown =
-    percent >= 85 && loop !== undefined ? [{ text: ` (in: ${tokens(loop.input)}, cache: ${tokens(loop.cache)})`, dim: true }] : []
-  return [{ text: 'Context ', dim: true }, ...bar(percent, color), { text: ` ${percent}%`, color }, ...breakdown]
+  return [{ text: 'context ', dim: true }, { text: `${percent}%`, color }]
 }
 
 function agentContextRow(loop: HudLoop | undefined): Seg[] {
-  return [{ text: 'Context ', dim: true }, { text: loop === undefined ? '…' : tokens(loop.input + loop.cache), color: 'green' }]
+  return [{ text: 'context ', dim: true }, { text: loop === undefined ? '…' : tokens(loop.input + loop.cache), color: 'green' }]
 }
 
 function usageRow(limits: HudLimit[], at: number): Seg[] {
-  const five = limits.find(l => l.kind === 'five_hour')
-  const seven = limits.find(l => l.kind === 'seven_day')
-  if (five === undefined && seven === undefined) {
-    return []
-  }
-  const head: Seg[] = [SEP, { text: 'Usage ', dim: true }]
-  const full = [five, seven].find(l => l !== undefined && l.percentUsed >= 100)
-  if (full !== undefined) {
-    return [...head, { text: `⚠ Limit reached${resetText(full, at)}`, color: 'red' }]
-  }
-  const window = (limit: HudLimit): Seg[] => {
-    const color = limit.percentUsed >= 90 ? 'red' : limit.percentUsed >= 75 ? 'magentaBright' : 'blueBright'
-    const percent = Math.round(limit.percentUsed)
-    return [...bar(percent, color), { text: ` ${percent}%`, color }, { text: resetText(limit, at), dim: true }]
-  }
-  const weekly = seven === undefined ? [] : [{ text: 'Weekly ', dim: true }, ...window(seven)]
-  if (five === undefined) {
-    return [...head, ...weekly]
-  }
-  return [...head, ...window(five), ...(weekly.length > 0 ? [{ text: ' | ' }, ...weekly] : [])]
-}
-
-function countsRow(counts: HudMain['counts']): Seg[] {
-  const parts = [
-    [counts.claudeMd, 'CLAUDE.md'],
-    [counts.rules, 'rules'],
-    [counts.mcps, 'MCPs'],
-    [counts.hooks, 'hooks'],
+  const windows = [
+    ['5hr', limits.find(l => l.kind === 'five_hour')],
+    ['wk', limits.find(l => l.kind === 'seven_day')],
   ] as const
-  const text = parts
-    .filter(([n]) => n > 0)
-    .map(([n, label]) => `${n} ${label}`)
-    .join(' | ')
-  return text ? [{ text, dim: true }] : []
+  return windows.flatMap(([label, limit]) => {
+    if (limit === undefined) {
+      return []
+    }
+    const color = limit.percentUsed >= 90 ? 'red' : limit.percentUsed >= 75 ? 'magentaBright' : 'blueBright'
+    return [SEP, { text: `${label} `, dim: true }, { text: `${Math.round(limit.percentUsed)}%`, color }, { text: resetText(limit, at), dim: true }]
+  })
 }
 
 function agentRows(list: HudAgent[], at: number): Seg[][] {
@@ -382,35 +330,23 @@ function todoRow(list: HudTodo[]): Seg[] {
   return []
 }
 
-function bar(percent: number, color: string): Seg[] {
-  const filled = Math.round(Math.min(100, Math.max(0, percent)) / 10)
-  return [
-    { text: '█'.repeat(filled), color },
-    { text: '░'.repeat(10 - filled), dim: true },
-  ]
-}
-
 function resetText(limit: HudLimit, at: number): string {
   const resetsAt = limit.resetsAt === undefined ? NaN : Date.parse(limit.resetsAt)
-  return Number.isNaN(resetsAt) || at === 0 ? '' : ` (resets in ${span(resetsAt - at)})`
+  return Number.isNaN(resetsAt) || at === 0 ? '' : ` (in ${span(resetsAt - at)})`
 }
 
 function modelName(model: string): string {
   const bare = model.replace(/\[[^\]]*\]$/, '').replace(/\s*\([^)]*context[^)]*\)/i, '').trim()
   const id = /claude-([a-z]+)-(\d+)(?:-(\d{1,2}))?(?!\d)/i.exec(bare)
   if (id === null) {
-    return bare.charAt(0).toUpperCase() + bare.slice(1)
+    return bare.toLowerCase()
   }
   const [, family = '', major, minor] = id
-  return `${family.charAt(0).toUpperCase()}${family.slice(1)} ${major}${minor === undefined ? '' : `.${minor}`}`
+  return `${family.toLowerCase()} ${major}${minor === undefined ? '' : `.${minor}`}`
 }
 
 function effortSuffix(effort: string | number | undefined): string {
-  if (effort === undefined) {
-    return ''
-  }
-  const symbol = typeof effort === 'string' ? EFFORT_SYMBOLS[effort] : undefined
-  return symbol === undefined ? ` ${effort}` : ` ${symbol} ${effort}`
+  return effort === undefined ? '' : ` ${effort}`
 }
 
 function span(ms: number): string {
