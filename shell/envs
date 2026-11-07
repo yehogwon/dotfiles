@@ -14,15 +14,6 @@ if command -v fzf >/dev/null 2>&1; then
   fi
 fi
 
-# herdr
-if command -v herdr >/dev/null 2>&1; then
-  if [ -n "${ZSH_VERSION-}" ]; then
-    eval "$(herdr completion zsh)"
-  elif [ -n "${BASH_VERSION-}" ]; then
-    eval "$(herdr completion bash)"
-  fi
-fi
-
 # linuxbrew
 if [ -x "$HOME/.linuxbrew/bin/brew" ]; then
   eval "$("$HOME/.linuxbrew/bin/brew" shellenv)"
