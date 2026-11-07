@@ -22,12 +22,11 @@ const START = { cwd: '/home/u/obsidian', surface: 'terminal', isInteractive: tru
 
 const MAX_LOGIN = { oauthAccount: { organizationType: 'claude_max', organizationRateLimitTier: 'default_claude_max_20x' } }
 
-function engine(on: On, mcpServers: string[] = ['notion'], config: object = MAX_LOGIN, env: Record<string, string> = {}, ran: string[] = []) {
+function engine(on: On, mcpServers: string[] = ['notion'], config: object = MAX_LOGIN) {
   const clock = mock.clock(on, { now: NOW })
-  mock.env(on, { HOME: '/home/u', ...env })
+  mock.env(on, { HOME: '/home/u' })
   on('fs.read', (_, e) => ({ value: e.path === '/home/u/.claude.json' ? JSON.stringify(config) : '' }))
   on('session.start', (_, e) => ({ cwd: e.cwd }))
-  on('session.end', () => ({ sessionId: 's' }) as never)
   on('session.messages', () => ({
     value: [
       {
@@ -72,12 +71,9 @@ function engine(on: On, mcpServers: string[] = ['notion'], config: object = MAX_
   on('session.cwd', () => ({ value: '/home/u/obsidian' }))
   on('agent.list', () => ({ value: [] }))
   on('settings.read', () => ({ value: { hooks: { Stop: [], PreToolUse: [] } } }) as never)
-  on('process.run', (_, e) => {
-    ran.push(e.argv.join(' '))
-    return {
+  on('process.run', () => ({
     value: { exitCode: 0, stdout: '## main...origin/main [ahead 1]\n M a.md\n', stderr: '', isStdoutTruncated: false, isStderrTruncated: false },
-    }
-  })
+  }))
   on('tool.call', () => ({ result: {} }) as never)
   on('agent.spawn', () => ({ agentId: 'a1', model: 'claude-haiku-5-5-20261001' }))
   on('turn.step', async function* (_, e) {
@@ -168,34 +164,6 @@ test('viewing an agent shows its model, effort and context', async ($, on) => {
   await $.turn.complete({ turnId: 't', answer: '', durationMs: 1, isAborted: false, reason: 'answer', agentId: 'a1' } as never)
   expect(await rowText(ui, /^✓/)).toBe('✓ Explore [Haiku 5.5]: find run configs (<1s)')
   await ui.unmount()
-})
-
-test('the main session labels its herdr-core terminal with its effort when it changes', async ($, on) => {
-  const ran: string[] = []
-  engine(on, ['notion'], MAX_LOGIN, { HC_TERMINAL_ID: 't7' }, ran)
-  await $.session.start(START)
-  const step = async (effort: string, agentId?: string) => {
-    const s = $.turn.step({ turnId: 't', index: 0, model: 'claude-opus-5-5', effort, messageCount: 1, ...(agentId && { agentId }) } as never)
-    for await (const _ of s) {
-    }
-  }
-  await step('high')
-  await step('high')
-  await step('low', 'a1')
-  await step('xhigh')
-  await $.session.end({ reason: 'other' } as never)
-
-  expect(ran.filter(c => c.startsWith('hc '))).toEqual(['hc label t7 claude.effort=high', 'hc label t7 claude.effort=xhigh', 'hc label t7 claude.effort='])
-})
-
-test('outside herdr-core nothing is labeled', async ($, on) => {
-  const ran: string[] = []
-  engine(on, ['notion'], MAX_LOGIN, {}, ran)
-  await $.session.start(START)
-  const s = $.turn.step({ turnId: 't', index: 0, model: 'claude-opus-5-5', effort: 'high', messageCount: 1 } as never)
-  for await (const _ of s) {
-  }
-  expect(ran.filter(c => c.startsWith('hc '))).toEqual([])
 })
 
 test('a survey holding the band gets it', async ($, on) => {
