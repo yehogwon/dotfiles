@@ -1,0 +1,2 @@
+shell-integration-features = ssh-env,ssh-terminfo
+confirm-close-surface = false

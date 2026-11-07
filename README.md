@@ -28,6 +28,9 @@ source ~/.bashrc  # (or ~/.zshrc)
 - `gitconfig`
 - `vimrc`
 
+**ghostty**
+- `config`, included from Ghostty's own config file; on conflicts, settings here win.
+
 **claude**
 - `settings.json`, layered onto `~/.claude/settings.json` at launch
 - `mods/hud`, a Claude Code mod that draws a HUD above the prompt (model, effort, context, usage, git, agents, todos) and follows the agent in view; the `claude` shell wrapper loads it through `CLAUDE_CODE_PLUGIN_DIRS`

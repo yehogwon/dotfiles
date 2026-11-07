@@ -216,6 +216,15 @@ remove_checkout_dir() {
     return 0
 }
 
+ghostty_config_file() {
+    # Keep in sync with bin/install.
+    if [[ "$(uname -s)" == "Darwin" ]]; then
+        printf '%s\n' "$HOME/Library/Application Support/com.mitchellh.ghostty/config.ghostty"
+    else
+        printf '%s\n' "${XDG_CONFIG_HOME:-$HOME/.config}/ghostty/config.ghostty"
+    fi
+}
+
 SHELL_BEGIN="# >>> dotfiles >>>"
 SHELL_END="# <<< dotfiles <<<"
 VIM_BEGIN="\" >>> dotfiles >>>"
@@ -241,6 +250,7 @@ remove_block "$HOME/.vimrc" "$VIM_BEGIN" "$VIM_END" ".vimrc"
 remove_block "$HOME/.gitconfig" "$GIT_BEGIN" "$GIT_END" ".gitconfig"
 remove_block "$HOME/.ssh/config" "$SHELL_BEGIN" "$SHELL_END" ".ssh/config"
 remove_block "$HOME/.tmux.conf" "$SHELL_BEGIN" "$SHELL_END" ".tmux.conf"
+remove_block "$(ghostty_config_file)" "$SHELL_BEGIN" "$SHELL_END" "ghostty config"
 
 step "removing checkout directory if this script is from a checkout"
 remove_checkout_dir

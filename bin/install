@@ -301,6 +301,14 @@ is_linux_platform() {
     [[ "$(uname -s)" == "Linux" ]]
 }
 
+ghostty_config_file() {
+    if [[ "$(uname -s)" == "Darwin" ]]; then
+        printf '%s\n' "$HOME/Library/Application Support/com.mitchellh.ghostty/config.ghostty"
+    else
+        printf '%s\n' "${XDG_CONFIG_HOME:-$HOME/.config}/ghostty/config.ghostty"
+    fi
+}
+
 ensure_trailing_newline() {
     local file="$1"
 
@@ -522,6 +530,9 @@ insert_block "$HOME/.ssh/config" "$SHELL_BEGIN" "$SHELL_END" "Include \"$DOTFILE
 
 # tmux
 append_block "$HOME/.tmux.conf" "$SHELL_BEGIN" "$SHELL_END" "if-shell \"[ -f '$DOTFILES_DIR/tmux/tmux.conf' ]\" \"source-file '$DOTFILES_DIR/tmux/tmux.conf'\"" ".tmux.conf"
+
+# ghostty
+append_block "$(ghostty_config_file)" "$SHELL_BEGIN" "$SHELL_END" "config-file = ?$DOTFILES_DIR/ghostty/config" "ghostty config"
 
 # claude settings, layered by the shell wrapper rather than written to disk
 validate_managed_json "$DOTFILES_DIR/claude/settings.json" "claude/settings.json"
