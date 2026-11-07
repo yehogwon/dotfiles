@@ -2,6 +2,7 @@
   "remoteControlAtStartup": true,
   "disableAgentView": true,
   "env": {
-    "CLAUDE_CODE_SHELL": "/bin/bash"
+    "CLAUDE_CODE_SHELL": "/bin/bash",
+    "CLAUDE_CODE_DISABLE_MOUSE_CLICKS": "1"
   }
 }
