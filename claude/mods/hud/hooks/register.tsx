@@ -274,11 +274,11 @@ function agentIdentityRow(id: string, agent: HudAgent | undefined, loop: HudLoop
 function contextRow(m: HudMain): Seg[] {
   const percent = m.contextPercent ?? 0
   const color = percent >= 85 ? 'red' : percent >= 70 ? 'yellow' : 'green'
-  return [{ text: 'context ', dim: true }, { text: `${percent}%`, color }]
+  return [{ text: 'ctx ', dim: true }, { text: `${percent}%`, color }]
 }
 
 function agentContextRow(loop: HudLoop | undefined): Seg[] {
-  return [{ text: 'context ', dim: true }, { text: loop === undefined ? '…' : tokens(loop.input + loop.cache), color: 'green' }]
+  return [{ text: 'ctx ', dim: true }, { text: loop === undefined ? '…' : tokens(loop.input + loop.cache), color: 'green' }]
 }
 
 function usageRow(limits: HudLimit[], at: number): Seg[] {

@@ -110,7 +110,7 @@ test('the main view shows model, plan, git, context, usage and todos', async ($,
   const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
 
   expect(await rowText(ui, /^▎ opus/)).toBe('▎ opus 5.5 xhigh  | max 20x  | obsidian git:(main*)')
-  expect(await rowText(ui, /^▎ context/)).toBe('▎ context 41%  | 5hr 23% (in 2h 3m)  | wk 61% (in 3d 4h)')
+  expect(await rowText(ui, /^▎ ctx/)).toBe('▎ ctx 41%  | 5hr 23% (in 2h 3m)  | wk 61% (in 3d 4h)')
   expect(await rowText(ui, /^▎ ▸/)).toBe('▎ ▸ Write the band (0/2)')
 
   await $.tool.call({ tool: 'TaskUpdate', taskId: '1', status: 'completed' } as never)
@@ -145,7 +145,7 @@ test('viewing an agent shows its model, effort and context', async ($, on) => {
 
   const ui = await $.ui.mount({ ...BAND, props: { ...BAND.props, view: { agentId: 'a1' } }, surface: 'terminal' })
   expect(await rowText(ui, /^▎ haiku/)).toBe('▎ haiku 5.5 low  | ⤷ Explore: find run configs')
-  expect(await rowText(ui, /^▎ context/)).toMatch(/^▎ context 84k  \| 5hr /)
+  expect(await rowText(ui, /^▎ ctx/)).toMatch(/^▎ ctx 84k  \| 5hr /)
   expect(await rowText(ui, /^▎ ◐/)).toBe('▎ ◐ Explore [haiku 5.5]')
 
   await $.turn.complete({ turnId: 't', answer: '', durationMs: 1, isAborted: false, reason: 'answer', agentId: 'a1' } as never)
