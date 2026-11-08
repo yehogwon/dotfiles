@@ -1,2 +1,7 @@
 shell-integration-features = ssh-env,ssh-terminfo
 confirm-close-surface = false
+
+# disable ligatures (e.g. != rendering as a single glyph)
+font-feature = -calt
+font-feature = -liga
+font-feature = -dlig
