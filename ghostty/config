@@ -1,4 +1,9 @@
-shell-integration-features = ssh-env,ssh-terminfo
+# Advertise xterm-256color like iTerm2, so no host ever needs xterm-ghostty's
+# terminfo (a missing entry kills tmux, e.g. vast.ai's auto-tmux on login).
+# ssh-terminfo stays off: it would re-upgrade remotes to xterm-ghostty
+# based on a cache that can go stale. ssh-env still sends TERM_PROGRAM etc.
+term = xterm-256color
+shell-integration-features = ssh-env,no-ssh-terminfo
 confirm-close-surface = false
 
 # disable ligatures (e.g. != rendering as a single glyph)
