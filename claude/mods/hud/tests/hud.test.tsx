@@ -75,7 +75,8 @@ function engine(on: On, mcpServers: string[] = ['notion'], config: object = MAX_
     value: { exitCode: 0, stdout: '## main...origin/main [ahead 1]\n M a.md\n', stderr: '', isStdoutTruncated: false, isStderrTruncated: false },
   }))
   on('tool.call', () => ({ result: {} }) as never)
-  on('agent.spawn', () => ({ agentId: 'a1', model: 'claude-haiku-5-5-20261001' }))
+  let spawned = 0
+  on('agent.spawn', () => ({ agentId: `a${++spawned}`, model: 'claude-haiku-5-5-20261001' }))
   on('turn.step', async function* (_, e) {
     return {
       turnId: e.turnId,
@@ -108,13 +109,13 @@ test('the main view shows model, plan, git, context, usage and todos', async ($,
   }
   const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
 
-  expect(await rowText(ui, /^opus/)).toBe('opus 5.5 xhigh | max 20x | obsidian git:(main*)')
-  expect(await rowText(ui, /^context/)).toBe('context 41% | 5hr 23% (in 2h 3m) | wk 61% (in 3d 4h)')
-  expect(await rowText(ui, /^▸/)).toBe('▸ Write the band (0/2)')
+  expect(await rowText(ui, /^▎ opus/)).toBe('▎ opus 5.5 xhigh  | max 20x  | obsidian git:(main*)')
+  expect(await rowText(ui, /^▎ context/)).toBe('▎ context 41%  | 5hr 23% (in 2h 3m)  | wk 61% (in 3d 4h)')
+  expect(await rowText(ui, /^▎ ▸/)).toBe('▎ ▸ Write the band (0/2)')
 
   await $.tool.call({ tool: 'TaskUpdate', taskId: '1', status: 'completed' } as never)
   await $.tool.call({ tool: 'TaskUpdate', taskId: '2', status: 'in_progress' } as never)
-  expect(await rowText(ui, /^▸/)).toBe('▸ Test it (1/2)')
+  expect(await rowText(ui, /^▎ ▸/)).toBe('▎ ▸ Test it (1/2)')
   await ui.unmount()
 })
 
@@ -122,7 +123,7 @@ test('a session with no subscription login shows no plan', async ($, on) => {
   engine(on, ['notion'], {})
   await $.session.start(START)
   const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
-  expect(await rowText(ui, /^opus/)).toBe('opus 5.5 | obsidian git:(main*)')
+  expect(await rowText(ui, /^▎ opus/)).toBe('▎ opus 5.5  | obsidian git:(main*)')
   await ui.unmount()
 })
 
@@ -143,12 +144,38 @@ test('viewing an agent shows its model, effort and context', async ($, on) => {
   }
 
   const ui = await $.ui.mount({ ...BAND, props: { ...BAND.props, view: { agentId: 'a1' } }, surface: 'terminal' })
-  expect(await rowText(ui, /^haiku/)).toBe('haiku 5.5 low | ⤷ Explore: find run configs')
-  expect(await rowText(ui, /^context/)).toMatch(/^context 84k \| 5hr /)
-  expect(await rowText(ui, /^◐/)).toBe('◐ Explore [haiku 5.5]: find run configs (<1s)')
+  expect(await rowText(ui, /^▎ haiku/)).toBe('▎ haiku 5.5 low  | ⤷ Explore: find run configs')
+  expect(await rowText(ui, /^▎ context/)).toMatch(/^▎ context 84k  \| 5hr /)
+  expect(await rowText(ui, /^▎ ◐/)).toBe('▎ ◐ Explore [haiku 5.5]')
 
   await $.turn.complete({ turnId: 't', answer: '', durationMs: 1, isAborted: false, reason: 'answer', agentId: 'a1' } as never)
-  expect(await rowText(ui, /^✓/)).toBe('✓ Explore [haiku 5.5]: find run configs (<1s)')
+  expect(await rowText(ui, /^▎ ✓/)).toBe('▎ ✓ Explore [haiku 5.5]')
+  await ui.unmount()
+})
+
+test('agents share one line of at most three, running ones first', async ($, on) => {
+  engine(on)
+  await $.session.start(START)
+  for (const subagentType of ['Explore', 'Plan', 'general-purpose', 'claude-code-guide']) {
+    await $.agent.spawn({
+      tool_use_id: subagentType,
+      prompt: 'p',
+      description: 'd',
+      subagentType,
+      parentModel: 'claude-opus-5-5',
+      background: true,
+      fork: false,
+    } as never)
+  }
+  const done = (agentId: string) =>
+    $.turn.complete({ turnId: agentId, answer: '', durationMs: 1, isAborted: false, reason: 'answer', agentId } as never)
+  const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
+
+  await done('a1')
+  expect(await rowText(ui, /^▎ ◐ Plan/)).toBe('▎ ◐ Plan [haiku 5.5]  | ◐ general-purpose [haiku 5.5]  | ◐ claude-code-guide [haiku 5.5]')
+
+  await done('a3')
+  expect(await rowText(ui, /^▎ ◐ Plan/)).toBe('▎ ◐ Plan [haiku 5.5]  | ✓ general-purpose [haiku 5.5]  | ◐ claude-code-guide [haiku 5.5]')
   await ui.unmount()
 })
 

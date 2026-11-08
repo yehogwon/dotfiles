@@ -8,9 +8,11 @@ type TodoRow = { tool: string; input: Record<string, unknown>; result?: unknown 
 
 const MAIN = ''
 const TICK_MS = 5000
+const MAX_AGENTS = 3
 const TODO_TOOLS = new Set(['TodoWrite', 'TaskCreate', 'TaskUpdate'])
 const ENDED = new Set(['completed', 'failed', 'killed'])
-const SEP: Seg = { text: ' | ', dim: true }
+const SEP: Seg = { text: '  | ', dim: true }
+const GUTTER: Seg = { text: '▎ ', dim: true }
 
 const main = atom({ plugin: 'hud', key: 'main' } as const, {
   model: '',
@@ -131,16 +133,16 @@ export const register: Register = on => {
       viewedId === undefined
         ? [identityRow(m, loopMap[MAIN]), [...contextRow(m), ...usageRow(m.limits, at)]]
         : [agentIdentityRow(viewedId, viewed, loopMap[viewedId]), [...agentContextRow(loopMap[viewedId]), ...usageRow(m.limits, at)]]
-    rows.push(...agentRows(agentList, at), todoRow(todoList))
+    rows.push(agentRow(agentList), todoRow(todoList))
 
     const { Box, Text } = $.ui.resolve(e)
     return (
-      <Box flexDirection="column" borderStyle="round" borderDimColor paddingX={1}>
+      <Box flexDirection="column">
         {rows
           .filter(row => row.length > 0)
           .map(row => (
             <Text wrap="truncate-end">
-              {row.map(s => (
+              {[GUTTER, ...row].map(s => (
                 <Text color={s.color ?? 'text'} dimColor={s.dim === true}>
                   {s.text}
                 </Text>
@@ -293,25 +295,24 @@ function usageRow(limits: HudLimit[], at: number): Seg[] {
   })
 }
 
-function agentRows(list: HudAgent[], at: number): Seg[][] {
-  const running = list.filter(a => !ENDED.has(a.status))
-  const finished = list.filter(a => ENDED.has(a.status)).slice(-2)
-  return [...running, ...finished].slice(-3).map(a => {
-    const icon: Seg =
+// Running agents take the slots first, the newest finished fill the rest, shown in spawn order.
+function agentRow(list: HudAgent[]): Seg[] {
+  const running = list.filter(a => !ENDED.has(a.status)).slice(-MAX_AGENTS)
+  const room = MAX_AGENTS - running.length
+  const finished = room > 0 ? list.filter(a => ENDED.has(a.status)).slice(-room) : []
+  const shown = new Set([...running, ...finished])
+  return list
+    .filter(a => shown.has(a))
+    .flatMap((a, i) => [
+      ...(i > 0 ? [SEP] : []),
       a.status === 'completed'
         ? { text: '✓', color: 'green' }
         : ENDED.has(a.status)
           ? { text: '✗', color: 'red' }
-          : { text: '◐', color: 'yellow' }
-    return [
-      icon,
-      { text: ' ' },
-      { text: a.type, color: 'magenta' },
+          : { text: '◐', color: 'yellow' },
+      { text: ` ${a.type}`, color: 'magenta' },
       ...(a.model === undefined ? [] : [{ text: ` [${modelName(a.model)}]`, dim: true }]),
-      ...(a.description ? [{ text: `: ${truncate(a.description, 40)}`, dim: true }] : []),
-      { text: ` (${elapsed((a.endedAt ?? at) - a.startedAt)})`, dim: true },
-    ]
-  })
+    ])
 }
 
 function todoRow(list: HudTodo[]): Seg[] {
@@ -356,14 +357,6 @@ function span(ms: number): string {
   const hours = Math.floor(mins / 60)
   if (hours < 24) return `${hours}h ${mins % 60}m`
   return `${Math.floor(hours / 24)}d ${hours % 24}h`
-}
-
-function elapsed(ms: number): string {
-  const secs = Math.floor(Math.max(0, ms) / 1000)
-  if (secs < 1) return '<1s'
-  if (secs < 60) return `${secs}s`
-  if (secs < 3600) return `${Math.floor(secs / 60)}m ${secs % 60}s`
-  return span(ms)
 }
 
 function tokens(n: number): string {
