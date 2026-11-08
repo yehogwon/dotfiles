@@ -1,0 +1,30 @@
+# dot: complete subcommands from $DOTFILES_HOME/bin
+_dot_commands() {
+    local f
+    for f in "$DOTFILES_HOME"/bin/*; do
+        [ -f "$f" ] && [ -x "$f" ] || continue
+        printf '%s\n' "${f##*/}"
+    done
+}
+
+if [ -n "${ZSH_VERSION-}" ]; then
+    _dot() {
+        if (( CURRENT == 2 )); then
+            local -a cmds
+            cmds=( ${(f)"$(_dot_commands)"} )
+            _describe 'dot command' cmds
+        else
+            _files
+        fi
+    }
+    (( $+functions[compdef] )) && compdef _dot dot
+elif [ -n "${BASH_VERSION-}" ]; then
+    _dot() {
+        if [ "$COMP_CWORD" -eq 1 ]; then
+            COMPREPLY=( $(compgen -W "$(_dot_commands)" -- "${COMP_WORDS[1]}") )
+        else
+            COMPREPLY=( $(compgen -f -- "${COMP_WORDS[COMP_CWORD]}") )
+        fi
+    }
+    complete -o filenames -F _dot dot
+fi

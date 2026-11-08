@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+# dot <command> [args...]: run $DOTFILES_HOME/bin/<command>
+
+set -euo pipefail
+
+bin_dir="${DOTFILES_HOME:?DOTFILES_HOME is not set}/bin"
+
+list_commands() {
+    local f
+    for f in "$bin_dir"/*; do
+        [ -f "$f" ] && [ -x "$f" ] || continue
+        printf '%s\n' "${f##*/}"
+    done
+}
+
+usage() {
+    printf 'usage: dot <command> [args...]\n\ncommands:\n'
+    list_commands | sed 's/^/  /'
+}
+
+case "${1:-}" in
+    ""|-h|--help|help)
+        usage
+        exit 0
+        ;;
+    --commands)
+        list_commands
+        exit 0
+        ;;
+esac
+
+cmd="$1"
+shift
+
+if [ ! -f "$bin_dir/$cmd" ] || [ ! -x "$bin_dir/$cmd" ]; then
+    printf 'dot: unknown command: %s\n\n' "$cmd" >&2
+    usage >&2
+    exit 1
+fi
+
+exec "$bin_dir/$cmd" "$@"
