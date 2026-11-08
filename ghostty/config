@@ -10,3 +10,9 @@ confirm-close-surface = false
 font-feature = -calt
 font-feature = -liga
 font-feature = -dlig
+
+# Option word-deletes as Meta, like Herdr's keys.json: ESC DEL / ESC d stop at
+# punctuation (abc-def -> abc-). Without these, Opt+Delete sends CSI 3;3~,
+# which Claude Code reads as "delete to end of line".
+keybind = alt+backspace=text:\x1b\x7f
+keybind = alt+delete=text:\x1bd
