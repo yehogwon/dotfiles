@@ -163,4 +163,10 @@ fi
 
 enforce_permissions_manifest "$DOTFILES_HOME" "$PERMISSIONS_MANIFEST_NAME"
 
+DOTFILES_DIR="$DOTFILES_HOME"
+if [[ -f "$DOTFILES_DIR/bin/lib/links.sh" ]]; then
+    source "$DOTFILES_DIR/bin/lib/links.sh"
+    apply_links
+fi
+
 log "[ok] dotfiles update complete"

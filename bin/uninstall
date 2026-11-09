@@ -216,6 +216,27 @@ remove_checkout_dir() {
     return 0
 }
 
+remove_links() {
+    local checkout lib
+
+    checkout="$(resolve_checkout_from_script_path || true)"
+    for lib in "$checkout/bin/lib/links.sh" "${DOTFILES_HOME:-$HOME/.dotfiles}/bin/lib/links.sh"; do
+        [[ -f "$lib" ]] && break
+    done
+
+    if [[ ! -f "$lib" ]]; then
+        log "[skip] no checkout found; recorded links were left in place"
+        return 0
+    fi
+
+    DOTFILES_DIR="$(cd -- "$(dirname -- "$lib")/../.." && pwd -P)"
+    source "$lib"
+    unlink_links
+    rm -f "$UNPLUGGED_DB"
+    [[ -s "$LINKS_DB" ]] || rm -f "$LINKS_DB"
+    rmdir "$DOTFILES_STATE/backups" "$DOTFILES_STATE" 2>/dev/null || true
+}
+
 ghostty_config_file() {
     # Keep in sync with bin/install.
     if [[ "$(uname -s)" == "Darwin" ]]; then
@@ -251,6 +272,9 @@ remove_block "$HOME/.gitconfig" "$GIT_BEGIN" "$GIT_END" ".gitconfig"
 remove_block "$HOME/.ssh/config" "$SHELL_BEGIN" "$SHELL_END" ".ssh/config"
 remove_block "$HOME/.tmux.conf" "$SHELL_BEGIN" "$SHELL_END" ".tmux.conf"
 remove_block "$(ghostty_config_file)" "$SHELL_BEGIN" "$SHELL_END" "ghostty config"
+
+step "removing app config links"
+remove_links
 
 step "removing checkout directory if this script is from a checkout"
 remove_checkout_dir

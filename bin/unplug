@@ -1,0 +1,75 @@
+#!/usr/bin/env bash
+# unplug|plug AREA...: switch an area off or on for this machine
+
+set -euo pipefail
+
+log() {
+    printf "%s\n" "$*"
+}
+
+step() {
+    log "[info] $*"
+}
+
+DOTFILES_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)"
+source "$DOTFILES_DIR/bin/lib/links.sh"
+
+cmd="${0##*/}"
+
+status() {
+    local area
+
+    for area in $LINK_AREAS; do
+        if is_unplugged "$area"; then
+            log "$area: unplugged"
+        else
+            log "$area: plugged"
+        fi
+    done
+}
+
+check_areas() {
+    local area
+
+    for area in "$@"; do
+        if [[ " $LINK_AREAS " != *" $area "* ]]; then
+            log "[error] unknown area: $area (areas: $LINK_AREAS)"
+            exit 1
+        fi
+    done
+}
+
+if [[ $# -eq 0 || "$1" == "-h" || "$1" == "--help" ]]; then
+    log "usage: dot $cmd AREA...   (areas: $LINK_AREAS)"
+    status
+    exit 0
+fi
+
+check_areas "$@"
+mkdir -p "$DOTFILES_STATE"
+touch "$UNPLUGGED_DB"
+
+for area in "$@"; do
+    tmp="$(mktemp)"
+    grep -vxF "$area" "$UNPLUGGED_DB" > "$tmp" || true
+    if [[ "$cmd" == "unplug" ]]; then
+        printf '%s\n' "$area" >> "$tmp"
+        mv "$tmp" "$UNPLUGGED_DB"
+        step "unplugging $area"
+        unlink_links "$area"
+        log "[ok] $area unplugged"
+    else
+        mv "$tmp" "$UNPLUGGED_DB"
+        log "[ok] $area plugged"
+    fi
+done
+
+[[ -s "$UNPLUGGED_DB" ]] || rm -f "$UNPLUGGED_DB"
+
+if [[ "$cmd" == "plug" ]]; then
+    apply_links
+fi
+
+if [[ " $* " == *" claude "* ]]; then
+    log "[hint] running claude sessions keep their settings until restarted"
+fi

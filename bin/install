@@ -473,10 +473,10 @@ validate_managed_json() {
 
     step "checking $label"
 
-    # The shell wrapper hands this file to `claude --settings`, which drops a
+    # The claude shim hands this file to `claude --settings`, which drops a
     # malformed file at startup without saying so, so report it here instead.
     if [[ ! -f "$source_file" ]]; then
-        log "[warn] $label not found at $source_file; the claude wrapper will launch without it"
+        log "[warn] $label not found at $source_file; the claude shim will launch without it"
         return 0
     fi
 
@@ -491,6 +491,25 @@ validate_managed_json() {
     fi
 
     log "[ok] $label is valid JSON"
+}
+
+validate_managed_toml() {
+    local source_file="$1"
+    local label="$2"
+
+    [[ -f "$source_file" ]] || return 0
+
+    if ! command -v python3 >/dev/null 2>&1 || ! python3 -c 'import tomllib' 2>/dev/null; then
+        log "[skip] python3 with tomllib not found; cannot validate $label"
+        return 0
+    fi
+
+    if ! python3 -c 'import sys, tomllib; tomllib.load(open(sys.argv[1], "rb"))' "$source_file" 2>/dev/null; then
+        log "[warn] $label is not valid TOML; hc will refuse to run until it is fixed"
+        return 0
+    fi
+
+    log "[ok] $label is valid TOML"
 }
 
 SHELL_BEGIN="# >>> dotfiles >>>"
@@ -534,8 +553,16 @@ append_block "$HOME/.tmux.conf" "$SHELL_BEGIN" "$SHELL_END" "if-shell \"[ -f '$D
 # ghostty
 append_block "$(ghostty_config_file)" "$SHELL_BEGIN" "$SHELL_END" "config-file = ?$DOTFILES_DIR/ghostty/config" "ghostty config"
 
-# claude settings, layered by the shell wrapper rather than written to disk
+# claude settings, layered by shell/bin/claude rather than written to disk
 validate_managed_json "$DOTFILES_DIR/claude/settings.json" "claude/settings.json"
+if [[ ! "$DOTFILES_DIR" -ef "$HOME/.dotfiles" ]]; then
+    log "[warn] claude/settings.json loads the hud from ~/.dotfiles, but this checkout is at $DOTFILES_DIR"
+fi
+
+# app configs without includes
+source "$DOTFILES_DIR/bin/lib/links.sh"
+validate_managed_toml "$DOTFILES_DIR/herdr/core/config.toml" "herdr/core/config.toml"
+apply_links
 
 enforce_permissions_manifest "$DOTFILES_DIR" "$PERMISSIONS_MANIFEST_NAME"
 
