@@ -1,0 +1,8 @@
+# hc settings, read fresh on every use; defaults shown
+# notes = true
+# notes_quiet = 3
+# wait_timeout = 180
+# detach_key = "ctrl+\\"
+# headless = "200x120"
+# history_mb = 5
+# machine_timeout = 30

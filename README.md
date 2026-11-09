@@ -32,8 +32,15 @@ source ~/.bashrc  # (or ~/.zshrc)
 - `config`, included from Ghostty's own config file; on conflicts, settings here win.
 
 **claude**
-- `settings.json`, layered onto `~/.claude/settings.json` at launch
-- `mods/hud`, a Claude Code mod that draws a HUD above the prompt (model, effort, context, usage, git, agents, todos) and follows the agent in view; the `claude` shell wrapper loads it through `CLAUDE_CODE_PLUGIN_DIRS`
+- `settings.json`, layered over your own `~/.claude/settings.json`; on conflicts, settings here win
+- `mods/hud`, a HUD above the prompt (model, effort, context, usage, git, agents, todos)
+- `skills/herdr-app`, `skills/herdr-core`
+
+**herdr**
+- `app`: Herdr's keys, the `tui` layout and mods
+- `core`: hc's `config.toml` and agent templates
+
+To override a linked file on one machine, replace the link with a real file.
 
 **also automatically installs**
 - `fzf`
@@ -43,6 +50,15 @@ source ~/.bashrc  # (or ~/.zshrc)
 **misc.**
 
 The `misc` directory contains some useful tools (at least for me) for managing clusters or doing fun stuff.
+
+## Unplugging
+
+Switch an area (`claude`, `herdr-app`, `herdr-core`) off on one machine, or back on:
+
+```sh
+dot unplug herdr-app
+dot plug herdr-app
+```
 
 ## Uninstallation
 
