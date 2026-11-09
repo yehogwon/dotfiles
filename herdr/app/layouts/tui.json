@@ -170,7 +170,7 @@
           "id": "status",
           "type": "block",
           "content": {
-            "mod": "tmux-status"
+            "mod": "status-bar"
           },
           "size": {
             "px": 28

@@ -1,4 +1,4 @@
-// node mods/my-picker/fuzzy.test.js
+// node mods/fuzzy-picker/fuzzy.test.js
 import assert from "node:assert/strict";
 import { terms, match, rank } from "./fuzzy.js";
 

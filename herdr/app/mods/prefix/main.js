@@ -1,5 +1,5 @@
 // tmux-style prefix: ctrl-b opens this invisible popup, the next key runs a command from KEYS.
-// The tmux-status mod shows "prefix" while shared("prefix") is true.
+// The status-bar mod shows "prefix" while shared("prefix") is true.
 
 import { View, div } from "gpui-kit";
 import { run, hc, focused, props, closeOverlay, nextCommand, setShared } from "herdr";
