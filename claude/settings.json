@@ -10,6 +10,6 @@
   "agentPushNotifEnabled": true,
   "env": {
     "CLAUDE_CODE_SHELL": "/bin/bash",
-    "CLAUDE_CODE_PLUGIN_DIRS": "~/.dotfiles/claude/mods/hud"
+    "CLAUDE_CODE_PLUGIN_DIRS": "~/.dotfiles/claude/mods"
   }
 }

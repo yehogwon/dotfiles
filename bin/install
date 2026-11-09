@@ -556,7 +556,7 @@ append_block "$(ghostty_config_file)" "$SHELL_BEGIN" "$SHELL_END" "config-file =
 # claude settings, layered by shell/bin/claude rather than written to disk
 validate_managed_json "$DOTFILES_DIR/claude/settings.json" "claude/settings.json"
 if [[ ! "$DOTFILES_DIR" -ef "$HOME/.dotfiles" ]]; then
-    log "[warn] claude/settings.json loads the hud from ~/.dotfiles, but this checkout is at $DOTFILES_DIR"
+    log "[warn] claude/settings.json loads mods from ~/.dotfiles, but this checkout is at $DOTFILES_DIR"
 fi
 
 # app configs without includes
