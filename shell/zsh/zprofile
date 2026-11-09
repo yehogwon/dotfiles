@@ -1,0 +1,2 @@
+# login PATH too (zsh -lc, herdr-app's core), after path_helper reorders it
+[ -d "$DOTFILES_HOME/shell/bin" ] && export PATH="$DOTFILES_HOME/shell/bin${PATH:+:$PATH}"

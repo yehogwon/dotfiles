@@ -1,3 +1,6 @@
+# login PATH too, even when ~/.bashrc returns early for non-interactive shells
+[ -d "$DOTFILES_HOME/shell/bin" ] && export PATH="$DOTFILES_HOME/shell/bin${PATH:+:$PATH}"
+
 if [ -f "$HOME/.bashrc" ]; then
   source "$HOME/.bashrc"
 fi

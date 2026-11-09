@@ -1,0 +1,37 @@
+#!/bin/sh
+# Run the real claude with claude/settings.json layered on top (`dot unplug claude` to skip).
+
+self=$0
+case $self in
+    */*) ;;
+    *) self=$(command -v -- "$self") ;;
+esac
+bin_dir=$(cd -P -- "$(dirname -- "$self")" && pwd)
+dotfiles=${bin_dir%/shell/bin}
+settings="$dotfiles/claude/settings.json"
+unplugged="${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles/unplugged"
+
+real=""
+set -f
+old_ifs=$IFS
+IFS=:
+for dir in $PATH "$HOME/.local/bin" "$HOME/.claude/local" /opt/homebrew/bin /usr/local/bin; do
+    candidate="${dir:-.}/claude"
+    [ -f "$candidate" ] && [ -x "$candidate" ] || continue
+    [ "$candidate" -ef "$self" ] && continue
+    real=$candidate
+    break
+done
+IFS=$old_ifs
+set +f
+
+if [ -z "$real" ]; then
+    echo "claude: Claude Code not found on PATH or in ~/.local/bin" >&2
+    exit 127
+fi
+
+if [ ! -f "$settings" ] || grep -qx claude "$unplugged" 2>/dev/null; then
+    exec "$real" "$@"
+fi
+
+exec "$real" --settings "$settings" "$@"

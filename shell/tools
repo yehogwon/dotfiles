@@ -12,17 +12,3 @@ print_blue() { _print_color 34 "$@"; }
 print_magenta() { _print_color 35 "$@"; }
 print_cyan() { _print_color 36 "$@"; }
 print_white() { _print_color 37 "$@"; }
-
-if command -v claude >/dev/null 2>&1; then
-    claude() {
-        local _claude_settings="$DOTFILES_HOME/claude/settings.json"
-        local _claude_hud="$DOTFILES_HOME/claude/mods/hud"
-
-        if [ -f "$_claude_settings" ]; then
-            CLAUDE_CODE_PLUGIN_DIRS="$_claude_hud${CLAUDE_CODE_PLUGIN_DIRS:+:$CLAUDE_CODE_PLUGIN_DIRS}" \
-                command claude --settings "$_claude_settings" "$@"
-        else
-            command claude "$@"
-        fi
-    }
-fi
