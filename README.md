@@ -8,38 +8,6 @@
 curl -fsSL https://raw.githubusercontent.com/yehogwon/dotfiles/main/bin/install | bash
 source ~/.bashrc  # (or ~/.zshrc)
 ```
-
-## What It Manages
-
-**shell**
-- `bashrc`
-- `bash_profile`
-- `inputrc`
-- `zshrc`
-- `zprofile`
-- `zshenv`
-- `zlogin`
-- `zlogout`
-
-**tmux**
-- `tmux.conf`
-
-**config**
-- `gitconfig`
-- `vimrc`
-
-**ghostty**
-- `config`, included from Ghostty's own config file; on conflicts, settings here win.
-
-**also automatically installs**
-- `fzf`
-- `oh-my-zsh`
-- `tpm`
-
-**misc.**
-
-The `misc` directory contains some useful tools (at least for me) for managing clusters or doing fun stuff.
-
 ## Uninstallation
 
 ```sh
