@@ -1,17 +1,10 @@
-# dot: complete subcommands from $DOTFILES_HOME/bin
-_dot_commands() {
-    local f
-    for f in "$DOTFILES_HOME"/bin/*; do
-        [ -f "$f" ] && [ -x "$f" ] || continue
-        printf '%s\n' "${f##*/}"
-    done
-}
+# dot: complete subcommands from dot --commands
 
 if [ -n "${ZSH_VERSION-}" ]; then
     _dot() {
         if (( CURRENT == 2 )); then
             local -a cmds
-            cmds=( ${(f)"$(_dot_commands)"} )
+            cmds=( ${(f)"$(command dot --commands 2>/dev/null)"} )
             _describe 'dot command' cmds
         else
             _files
@@ -21,7 +14,7 @@ if [ -n "${ZSH_VERSION-}" ]; then
 elif [ -n "${BASH_VERSION-}" ]; then
     _dot() {
         if [ "$COMP_CWORD" -eq 1 ]; then
-            COMPREPLY=( $(compgen -W "$(_dot_commands)" -- "${COMP_WORDS[1]}") )
+            COMPREPLY=( $(compgen -W "$(command dot --commands 2>/dev/null)" -- "${COMP_WORDS[1]}") )
         else
             COMPREPLY=( $(compgen -f -- "${COMP_WORDS[COMP_CWORD]}") )
         fi
