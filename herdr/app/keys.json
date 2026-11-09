@@ -59,7 +59,7 @@
     "ctrl-8": "space.select:8",
     "ctrl-9": "space.select:9",
     "ctrl-b": "mod.open:prefix",
-    "cmd-shift-f": "mod.open:fork"
+    "cmd-shift-f": "mod.open:forkr"
   },
   "mod:prefix": {
     "ctrl-b": "prefix.literal"
