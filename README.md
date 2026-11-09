@@ -8,6 +8,14 @@
 curl -fsSL https://raw.githubusercontent.com/yehogwon/dotfiles/main/bin/install | bash
 source ~/.bashrc  # (or ~/.zshrc)
 ```
+
+## Usage
+
+```sh
+dot pull    # pull, update submodules and reapply permissions
+dot push    # push committed changes upstream (commit them yourself first)
+```
+
 ## Uninstallation
 
 ```sh

@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# pull: pull the latest checkout, update submodules and reapply permissions
 
 set -euo pipefail
 
@@ -122,7 +123,7 @@ enforce_permissions_manifest() {
 resolve_dotfiles_home() {
     if [[ -z "${DOTFILES_HOME:-}" ]]; then
         log "[error] DOTFILES_HOME is not set"
-        log "[hint] dotfiles is not set up yet, so there is nothing to update"
+        log "[hint] dotfiles is not set up yet, so there is nothing to pull"
         exit 1
     fi
 
@@ -139,7 +140,7 @@ resolve_dotfiles_home() {
     fi
 }
 
-step "starting dotfiles update"
+step "starting dotfiles pull"
 
 if ! command -v git >/dev/null 2>&1; then
     log "[error] git is required"
@@ -163,4 +164,4 @@ fi
 
 enforce_permissions_manifest "$DOTFILES_HOME" "$PERMISSIONS_MANIFEST_NAME"
 
-log "[ok] dotfiles update complete"
+log "[ok] dotfiles pull complete"

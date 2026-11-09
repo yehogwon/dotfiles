@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# push: push committed changes in the checkout to its upstream
+
+set -euo pipefail
+
+DOTFILES_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)"
+
+if [[ -n "$(git -C "$DOTFILES_DIR" status --porcelain)" ]]; then
+    echo "[warn] $DOTFILES_DIR has uncommitted changes; they will not be pushed"
+fi
+
+echo "[info] pushing $DOTFILES_DIR"
+git -C "$DOTFILES_DIR" push "$@"
