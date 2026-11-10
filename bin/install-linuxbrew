@@ -16,7 +16,7 @@ step() {
 }
 
 run_quiet() {
-    "$@" >/dev/null 2>&1
+    "$@" </dev/null >/dev/null 2>&1
 }
 
 is_linux_platform() {
@@ -90,13 +90,6 @@ if ! ln -sfn "$BREW_REPO/bin/brew" "$BREW_BIN"; then
     exit 1
 fi
 log "[ok] brew executable linked"
-
-step "updating Homebrew metadata (this may take a minute)"
-if ! run_quiet "$BREW_BIN" update -fq; then
-    log "[error] failed to update Homebrew"
-    exit 1
-fi
-log "[ok] Homebrew metadata updated"
 
 step "disabling Homebrew analytics"
 if ! run_quiet "$BREW_BIN" analytics off; then
