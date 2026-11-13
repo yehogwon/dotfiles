@@ -2,9 +2,8 @@ alias grep='grep --color=auto'
 alias fgrep='fgrep --color=auto'
 alias egrep='egrep --color=auto'
 
+alias l='ls -lF'
 alias ll='ls -alF'
-alias la='ls -A'
-alias l='ls -CF'
 
 # nvitop
 if ! command -v nvitop >/dev/null 2>&1; then
@@ -36,4 +35,4 @@ alias tat='tmux attach -t'
 
 alias squeue='squeue -o   "%8i %30j  %9T %12u %8g %9P %4D %12R %4C %13b %8m %11l %11L %p"'
 alias sq='squeue'
-alias sqyh='squeue -u yehok117'
+alias sqyh='squeue -u $USER'
