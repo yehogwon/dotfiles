@@ -14,6 +14,7 @@ source ~/.bashrc  # (or ~/.zshrc)
 ```sh
 dot pull    # pull, update submodules and reapply permissions
 dot push    # push committed changes upstream (commit them yourself first)
+dot version # show the checked-out commit and how far it is from upstream main (fetches first)
 ```
 
 ## Uninstallation

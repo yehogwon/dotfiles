@@ -1,0 +1,102 @@
+#!/usr/bin/env bash
+# version: show the checked-out commit and how far it is from the upstream main
+
+set -euo pipefail
+
+DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)"
+SPINNER=(⠋ ⠙ ⠹ ⠸ ⠼ ⠴ ⠦ ⠧ ⠇ ⠏)
+SPINNER_COLOR='38;5;74'
+
+remote="$(git -C "$DIR" config branch.main.remote 2>/dev/null || echo origin)"
+upstream="$remote/main"
+
+# A read-only fetch needs no auth, and GitHub answers HTTPS much faster than SSH,
+# so fetch a git@github.com remote over HTTPS, falling back to the remote itself.
+fetch() {
+    local url
+    url="$(git -C "$DIR" remote get-url "$remote" 2>/dev/null || true)"
+    if [[ "$url" =~ ^(ssh://)?git@github\.com[:/](.+)$ ]]; then
+        GIT_TERMINAL_PROMPT=0 git -C "$DIR" fetch --quiet "https://github.com/${BASH_REMATCH[2]}" \
+            "+refs/heads/main:refs/remotes/$upstream" && return 0
+    fi
+    GIT_TERMINAL_PROMPT=0 git -C "$DIR" fetch --quiet "$remote" main
+}
+
+fetch < /dev/null > /dev/null 2>&1 &
+fetch_pid=$!
+if [[ -t 0 && -t 1 ]]; then
+    # Keys typed meanwhile still echo, but are dropped before the shell gets them back.
+    tty_state="$(stty -g)"
+    restore() {
+        perl -MPOSIX -e 'tcflush(0, TCIFLUSH)' 2>/dev/null || true
+        stty "$tty_state"
+        printf '\r\e[K\e[?25h'
+    }
+    trap restore EXIT
+    trap 'exit 130' INT TERM
+    printf '\e[?25l'
+    i=0
+    while kill -0 "$fetch_pid" 2>/dev/null; do
+        printf '\r\e[%sm%s\e[0m checking version' "$SPINNER_COLOR" "${SPINNER[i++ % ${#SPINNER[@]}]}"
+        sleep 0.1
+    done
+    restore
+    trap - EXIT INT TERM
+fi
+fetched=1
+wait "$fetch_pid" || fetched=0
+
+# "1 commit", "3 commits"
+plural() { (( $1 == 1 )) && echo "1 $2" || echo "$1 $2s"; }
+
+# Commit time as "<two largest units> ago (<clock time>)", e.g. "1 day 3 hr ago (yesterday 20:25)".
+when() { date -r "$1" "+$2" 2>/dev/null || date -d "@$1" "+$2"; }
+
+ago() {
+    local t="$1" now s i v r out clock
+    local names=(year month week day hr min) secs=(31536000 2592000 604800 86400 3600 60)
+    now="$(date +%s)"
+    s=$(( now - t ))
+    (( s < 60 )) && { echo "just now"; return; }
+
+    for (( i = 0; i < ${#secs[@]}; i++ )); do (( s >= secs[i] )) && break; done
+    unit() { [[ "$2" == hr || "$2" == min ]] && echo "$1 $2" || plural "$1" "$2"; }
+    v=$(( s / secs[i] ))
+    out="$(unit "$v" "${names[i]}")"
+    if (( i + 1 < ${#secs[@]} )); then
+        r=$(( s % secs[i] / secs[i + 1] ))
+        (( r > 0 )) && out+=" $(unit "$r" "${names[i + 1]}")"
+    fi
+
+    if [[ "$(when "$t" %F)" == "$(when "$now" %F)" ]]; then clock="$(when "$t" %H:%M)"
+    elif [[ "$(when "$t" %F)" == "$(when $(( now - 86400 )) %F)" ]]; then clock="yesterday $(when "$t" %H:%M)"
+    elif (( s < 86400 * 6 )); then clock="$(when "$t" '%a %H:%M')"
+    elif [[ "$(when "$t" %Y)" == "$(when "$now" %Y)" ]]; then clock="$(when "$t" '%b %-d')"
+    else clock="$(when "$t" %F)"
+    fi
+    echo "$out ago ($clock)"
+}
+
+echo "$(git -C "$DIR" rev-parse --short HEAD) $(ago "$(git --no-pager -C "$DIR" log -1 --format=%ct HEAD)")"
+
+if ! git -C "$DIR" rev-parse --verify --quiet "$upstream" >/dev/null; then
+    echo "$upstream not found"
+    exit 1
+fi
+
+read -r ahead behind < <(git -C "$DIR" rev-list --left-right --count "HEAD...$upstream")
+
+if (( ahead == 0 && behind == 0 )); then
+    msg="up to date with $upstream"
+elif (( ahead == 0 )); then
+    msg="$(plural "$behind" commit) behind $upstream"
+elif (( behind == 0 )); then
+    msg="$(plural "$ahead" commit) ahead of $upstream"
+else
+    msg="$(plural "$behind" commit) behind, $ahead ahead of $upstream"
+fi
+(( fetched )) || msg+=" (could not fetch; as of the last fetch)"
+echo "$msg"
+
+changes="$(git -C "$DIR" status --porcelain | wc -l | tr -d ' ')"
+(( changes == 0 )) || echo "$(plural "$changes" "uncommitted change")"
