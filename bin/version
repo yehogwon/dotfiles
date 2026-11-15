@@ -77,26 +77,39 @@ ago() {
     echo "$out ago ($clock)"
 }
 
-echo "$(git -C "$DIR" rev-parse --short HEAD) $(ago "$(git --no-pager -C "$DIR" log -1 --format=%ct HEAD)")"
+# Colors only on a terminal, and never with NO_COLOR set.
+if [[ -t 1 && -z "${NO_COLOR:-}" ]]; then
+    accent=$'\e[1;'"${SPINNER_COLOR}m" dim=$'\e[2m' green=$'\e[32m' yellow=$'\e[33m' red=$'\e[31m' reset=$'\e[0m'
+else
+    accent='' dim='' green='' yellow='' red='' reset=''
+fi
+line() { printf "  $1%s$reset %s\n" "$2" "$3"; }
+
+hash="$(git -C "$DIR" rev-parse --short HEAD)"
+subject="$(git --no-pager -C "$DIR" log -1 --format=%s HEAD)"
+width="$(tput cols 2>/dev/null || echo 80)"
+room=$(( width - ${#hash} - 4 ))
+(( ${#subject} <= room )) || subject="${subject:0:room-1}…"
+printf "${accent}●$reset ${accent}%s$reset %s\n" "$hash" "$subject"
+printf "  ${dim}%s$reset\n" "committed $(ago "$(git --no-pager -C "$DIR" log -1 --format=%ct HEAD)")"
 
 if ! git -C "$DIR" rev-parse --verify --quiet "$upstream" >/dev/null; then
-    echo "$upstream not found"
+    line "$red" ✗ "$upstream not found"
     exit 1
 fi
 
 read -r ahead behind < <(git -C "$DIR" rev-list --left-right --count "HEAD...$upstream")
 
 if (( ahead == 0 && behind == 0 )); then
-    msg="up to date with $upstream"
+    line "$green" ✓ "up to date with $upstream"
 elif (( ahead == 0 )); then
-    msg="$(plural "$behind" commit) behind $upstream"
+    line "$yellow" ↓ "$(plural "$behind" commit) behind $upstream ${dim}(dot pull)$reset"
 elif (( behind == 0 )); then
-    msg="$(plural "$ahead" commit) ahead of $upstream"
+    line "$yellow" ↑ "$(plural "$ahead" commit) ahead of $upstream ${dim}(dot push)$reset"
 else
-    msg="$(plural "$behind" commit) behind, $ahead ahead of $upstream"
+    line "$yellow" ↕ "$(plural "$behind" commit) behind, $ahead ahead of $upstream"
 fi
-(( fetched )) || msg+=" (could not fetch; as of the last fetch)"
-echo "$msg"
+(( fetched )) || line "$red" ! "could not fetch; as of the last fetch"
 
 changes="$(git -C "$DIR" status --porcelain | wc -l | tr -d ' ')"
-(( changes == 0 )) || echo "$(plural "$changes" "uncommitted change")"
+(( changes == 0 )) || line "$yellow" ± "$(plural "$changes" "uncommitted change")"
