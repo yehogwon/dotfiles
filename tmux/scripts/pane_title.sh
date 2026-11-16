@@ -10,7 +10,7 @@
 #                      <pane_path>
 #                      <c_active_fg> <c_active_bg>
 #                      <c_inactive_fg>
-#                      <c_active_ssh_bg>
+#                      <c_active_ssh_bg> <c_active_ssh_fg>
 
 pane_tty=$1
 pcc=$2
@@ -20,10 +20,12 @@ c_active_fg=$5
 c_active_bg=$6
 c_inactive_fg=$7
 c_assh_bg=$8
+c_assh_fg=${9:-$c_active_fg}
 
 tty_name=${pane_tty##*/}
 label=""
 active_bg=$c_active_bg
+active_fg=$c_active_fg
 
 case "$pcc" in
     ssh|mosh-client|autossh)
@@ -51,6 +53,7 @@ case "$pcc" in
                     *)
                         label=${1##*@}
                         active_bg=$c_assh_bg
+                        active_fg=$c_assh_fg
                         break ;;
                 esac
             done
@@ -90,6 +93,7 @@ if [ -z "$label" ]; then
         done
         label="su:$target"
         active_bg=$c_assh_bg
+        active_fg=$c_assh_fg
     fi
 fi
 
@@ -98,7 +102,7 @@ if [ -z "$label" ]; then
 fi
 
 if [ "$pane_active" = "1" ]; then
-    printf '#[fg=%s,bg=%s,bold] %s ' "$c_active_fg" "$active_bg" "$label"
+    printf '#[fg=%s,bg=%s,bold] %s ' "$active_fg" "$active_bg" "$label"
 else
     printf '#[fg=%s] %s ' "$c_inactive_fg" "$label"
 fi
