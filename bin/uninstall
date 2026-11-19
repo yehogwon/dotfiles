@@ -252,6 +252,9 @@ remove_block "$HOME/.ssh/config" "$SHELL_BEGIN" "$SHELL_END" ".ssh/config"
 remove_block "$HOME/.tmux.conf" "$SHELL_BEGIN" "$SHELL_END" ".tmux.conf"
 remove_block "$(ghostty_config_file)" "$SHELL_BEGIN" "$SHELL_END" "ghostty config"
 
+step "removing VS Code theme"
+bash "$(dirname -- "${BASH_SOURCE[0]}")/vscode-theme" uninstall || log "[warn] VS Code theme removal failed"
+
 step "removing checkout directory if this script is from a checkout"
 remove_checkout_dir
 

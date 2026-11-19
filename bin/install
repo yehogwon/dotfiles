@@ -508,6 +508,10 @@ append_block "$HOME/.tmux.conf" "$SHELL_BEGIN" "$SHELL_END" "if-shell \"[ -f '$D
 # ghostty
 append_block "$(ghostty_config_file)" "$SHELL_BEGIN" "$SHELL_END" "config-file = ?$DOTFILES_DIR/ghostty/config" "ghostty config"
 
+# vscode theme
+step "configuring VS Code theme"
+bash "$DOTFILES_DIR/bin/vscode-theme" install || log "[warn] VS Code theme setup failed"
+
 enforce_permissions_manifest "$DOTFILES_DIR" "$PERMISSIONS_MANIFEST_NAME"
 
 BOOTSTRAP_CLONED=0

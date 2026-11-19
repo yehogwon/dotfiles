@@ -1,0 +1,27 @@
+{
+  "name": "dotfiles-theme",
+  "displayName": "Dotfiles Theme",
+  "description": "Light and dark themes from DESIGN.md: neutral paper, one navy accent, hairline rules.",
+  "publisher": "yehogwon",
+  "version": "0.1.0",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Themes"
+  ],
+  "contributes": {
+    "themes": [
+      {
+        "label": "Dotfiles Light",
+        "uiTheme": "vs",
+        "path": "./themes/light-color-theme.json"
+      },
+      {
+        "label": "Dotfiles Dark",
+        "uiTheme": "vs-dark",
+        "path": "./themes/dark-color-theme.json"
+      }
+    ]
+  }
+}

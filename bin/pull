@@ -164,4 +164,7 @@ fi
 
 enforce_permissions_manifest "$DOTFILES_HOME" "$PERMISSIONS_MANIFEST_NAME"
 
+step "updating VS Code theme"
+bash "$DOTFILES_HOME/bin/vscode-theme" install || log "[warn] VS Code theme update failed"
+
 log "[ok] dotfiles pull complete"

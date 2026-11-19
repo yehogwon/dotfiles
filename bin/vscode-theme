@@ -1,0 +1,138 @@
+#!/usr/bin/env bash
+# vscode-theme: install or remove the DESIGN.md color theme in local VS Code (macOS only)
+
+set -euo pipefail
+
+EXT_ID="yehogwon.dotfiles-theme"
+THEME_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../vscode/theme" && pwd -P)"
+
+log() {
+    printf "%s\n" "$*"
+}
+
+find_code_cli() {
+    local app_cli="/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code"
+
+    if [[ -x "$app_cli" ]]; then
+        printf '%s\n' "$app_cli"
+    elif command -v code >/dev/null 2>&1; then
+        command -v code
+    else
+        return 1
+    fi
+}
+
+json_field() {
+    sed -n "s/^  \"$1\": \"\(.*\)\",$/\1/p" "$THEME_DIR/package.json"
+}
+
+installed_dir() {
+    printf '%s\n' "$HOME/.vscode/extensions/$EXT_ID-$(json_field version)"
+}
+
+# A .vsix is a zip of extension/ plus a manifest; VS Code ignores folders dropped into its extensions dir.
+build_vsix() {
+    local out="$1"
+    local stage
+
+    stage="$(mktemp -d)"
+    mkdir -p "$stage/extension"
+    cp -R "$THEME_DIR/." "$stage/extension/"
+
+    cat > "$stage/extension.vsixmanifest" <<EOF
+<?xml version="1.0" encoding="utf-8"?>
+<PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011">
+  <Metadata>
+    <Identity Language="en-US" Id="$(json_field name)" Version="$(json_field version)" Publisher="$(json_field publisher)" />
+    <DisplayName>$(json_field displayName)</DisplayName>
+    <Categories>Themes</Categories>
+  </Metadata>
+  <Installation>
+    <InstallationTarget Id="Microsoft.VisualStudio.Code" />
+  </Installation>
+  <Assets>
+    <Asset Type="Microsoft.VisualStudio.Code.Manifest" Path="extension/package.json" Addressable="true" />
+  </Assets>
+</PackageManifest>
+EOF
+
+    cat > "$stage/[Content_Types].xml" <<'EOF'
+<?xml version="1.0" encoding="utf-8"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension=".json" ContentType="application/json" />
+  <Default Extension=".vsixmanifest" ContentType="text/xml" />
+</Types>
+EOF
+
+    (cd "$stage" && zip -qr -X "$out" "[Content_Types].xml" extension.vsixmanifest extension)
+    rm -rf "$stage"
+}
+
+# VS Code rewrites the installed package.json, so compare a hash of the sources instead.
+source_hash() {
+    cat "$THEME_DIR/package.json" "$THEME_DIR"/themes/*.json | shasum | cut -d' ' -f1
+}
+
+is_current() {
+    local code_cli="$1"
+    local stamp
+
+    stamp="$(installed_dir)/.dotfiles-hash"
+    [[ -f "$stamp" && "$(cat "$stamp")" == "$(source_hash)" ]] \
+        && "$code_cli" --list-extensions | grep -qx "$EXT_ID"
+}
+
+install_theme() {
+    local code_cli
+    local tmp_dir
+    local output
+
+    if [[ "$(uname -s)" != "Darwin" ]]; then
+        log "[skip] VS Code theme is installed on macOS only"
+        return 0
+    fi
+
+    if ! code_cli="$(find_code_cli)"; then
+        log "[skip] VS Code CLI not found; theme not installed"
+        return 0
+    fi
+
+    if is_current "$code_cli"; then
+        log "[ok] VS Code theme is up to date"
+        return 0
+    fi
+
+    tmp_dir="$(mktemp -d)"
+    build_vsix "$tmp_dir/dotfiles-theme.vsix"
+
+    if output="$("$code_cli" --install-extension "$tmp_dir/dotfiles-theme.vsix" --force 2>&1)"; then
+        source_hash > "$(installed_dir)/.dotfiles-hash"
+        log "[ok] VS Code theme installed (reload VS Code windows to apply)"
+    else
+        log "[warn] failed to install VS Code theme:"
+        log "$output"
+    fi
+
+    rm -rf "$tmp_dir"
+}
+
+uninstall_theme() {
+    local code_cli
+
+    [[ "$(uname -s)" == "Darwin" ]] || return 0
+    code_cli="$(find_code_cli)" || return 0
+
+    "$code_cli" --list-extensions | grep -qx "$EXT_ID" || return 0
+
+    if "$code_cli" --uninstall-extension "$EXT_ID" >/dev/null 2>&1; then
+        log "[ok] removed VS Code theme"
+    else
+        log "[warn] failed to remove VS Code theme"
+    fi
+}
+
+case "${1:-install}" in
+    install) install_theme ;;
+    uninstall) uninstall_theme ;;
+    *) log "usage: $0 [install|uninstall]"; exit 1 ;;
+esac
