@@ -4,10 +4,7 @@
 set -euo pipefail
 
 DOTFILES_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)"
+source "$DOTFILES_DIR/bin/lib/ui.sh"
 
-if [[ -n "$(git -C "$DOTFILES_DIR" status --porcelain)" ]]; then
-    echo "[warn] $DOTFILES_DIR has uncommitted changes; they will not be pushed"
-fi
-
-echo "[info] pushing $DOTFILES_DIR"
-git -C "$DOTFILES_DIR" push "$@"
+header "dot push"
+git_push_line "$DOTFILES_DIR" "$@"

@@ -6,9 +6,7 @@ set -euo pipefail
 EXT_ID="yehogwon.dotfiles-theme"
 THEME_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../vscode/theme" && pwd -P)"
 
-log() {
-    printf "%s\n" "$*"
-}
+source "$(dirname -- "${BASH_SOURCE[0]}")/lib/ui.sh"
 
 find_code_cli() {
     local app_cli="/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code"
@@ -87,18 +85,19 @@ install_theme() {
     local tmp_dir
     local output
 
+    # Run from install or pull (UI_NESTED), the expected cases stay quiet.
     if [[ "$(uname -s)" != "Darwin" ]]; then
-        log "[skip] VS Code theme is installed on macOS only"
+        [[ -n "${UI_NESTED:-}" ]] || skip "VS Code theme is installed on macOS only"
         return 0
     fi
 
     if ! code_cli="$(find_code_cli)"; then
-        log "[skip] VS Code CLI not found; theme not installed"
+        skip "VS Code CLI not found; theme not installed"
         return 0
     fi
 
     if is_current "$code_cli"; then
-        log "[ok] VS Code theme is up to date"
+        [[ -n "${UI_NESTED:-}" ]] || ok "VS Code theme is up to date"
         return 0
     fi
 
@@ -107,10 +106,11 @@ install_theme() {
 
     if output="$("$code_cli" --install-extension "$tmp_dir/dotfiles-theme.vsix" --force 2>&1)"; then
         source_hash > "$(installed_dir)/.dotfiles-hash"
-        log "[ok] VS Code theme installed (reload VS Code windows to apply)"
+        ok "installed the VS Code theme"
+        note "reload VS Code windows to apply it"
     else
-        log "[warn] failed to install VS Code theme:"
-        log "$output"
+        warn "could not install the VS Code theme"
+        err_output "$output" 2>&1
     fi
 
     rm -rf "$tmp_dir"
@@ -125,14 +125,15 @@ uninstall_theme() {
     "$code_cli" --list-extensions | grep -qx "$EXT_ID" || return 0
 
     if "$code_cli" --uninstall-extension "$EXT_ID" >/dev/null 2>&1; then
-        log "[ok] removed VS Code theme"
+        ok "removed the VS Code theme"
     else
-        log "[warn] failed to remove VS Code theme"
+        warn "could not remove the VS Code theme"
     fi
 }
 
+header "dot vscode-theme"
 case "${1:-install}" in
     install) install_theme ;;
     uninstall) uninstall_theme ;;
-    *) log "usage: $0 [install|uninstall]"; exit 1 ;;
+    *) err "usage: $0 [install|uninstall]"; exit 1 ;;
 esac

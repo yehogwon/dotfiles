@@ -11,117 +11,21 @@ DOTFILES_REPO_URL="${DOTFILES_REPO_URL:-$DEFAULT_DOTFILES_REPO_URL}"
 NONINTERACTIVE_DOTFILES="${NONINTERACTIVE_DOTFILES:-0}"
 BOOTSTRAP_CLONED=0
 
-log() {
-    echo "$*"
-}
-
-step() {
-    log "[info] $*"
-}
+# bin/lib/ui.sh, or plain marks while piped from curl, until the clone's own copy is sourced.
+ui_lib="$(dirname -- "${BASH_SOURCE[0]:-.}")/lib/ui.sh"
+if [[ -f "$ui_lib" ]]; then
+    source "$ui_lib"
+else
+    header() { printf '● %s\n' "$*"; }
+    ok() { printf '  ✓ %s\n' "$*"; }
+    warn() { printf '  ! %s\n' "$*"; }
+    skip() { printf '  – %s\n' "$*"; }
+    note() { printf '    %s\n' "$*"; }
+    err() { printf '  ✗ %s\n' "$*" >&2; }
+fi
 
 run_quiet() {
     "$@" >/dev/null 2>&1
-}
-
-contains_parent_traversal() {
-    local path="$1"
-
-    [[ "/$path/" == *"/../"* ]]
-}
-
-is_valid_permission_mode() {
-    local mode="$1"
-
-    [[ "$mode" =~ ^[0-7]{3,4}$ ]]
-}
-
-is_within_dir() {
-    local path="$1"
-    local root_dir="$2"
-
-    [[ "$path" == "$root_dir" || "$path" == "$root_dir"/* ]]
-}
-
-resolve_permissions_repo_path() {
-    local repo_root="$1"
-    local path="$2"
-
-    [[ "$path" != /* ]] || return 1
-    contains_parent_traversal "$path" && return 1
-
-    printf '%s\n' "$repo_root/$path"
-}
-
-enforce_permissions_manifest() {
-    local repo_root="$1"
-    local manifest_name="${2:-.permissions}"
-    local manifest_path="$repo_root/$manifest_name"
-    local repo_root_real
-    local line=""
-    local line_number=0
-    local entry_mode
-    local entry_path
-    local extra
-    local target_path
-    local target_path_real
-
-    if [[ ! -f "$manifest_path" ]]; then
-        log "[skip] permissions manifest not found at $manifest_path"
-        return 0
-    fi
-
-    repo_root_real="$(realpath "$repo_root")"
-
-    step "applying managed permissions"
-
-    while IFS= read -r line || [[ -n "$line" ]]; do
-        line_number=$((line_number + 1))
-
-        [[ "$line" =~ ^[[:space:]]*$ ]] && continue
-        [[ "$line" =~ ^[[:space:]]*# ]] && continue
-
-        read -r entry_mode entry_path extra <<< "$line"
-
-        if [[ -n "$extra" || -z "$entry_mode" || -z "$entry_path" ]]; then
-            log "[error] invalid permissions entry at $manifest_path:$line_number"
-            exit 1
-        fi
-
-        if ! is_valid_permission_mode "$entry_mode"; then
-            log "[error] invalid mode at $manifest_path:$line_number: $entry_mode"
-            exit 1
-        fi
-
-        target_path="$(resolve_permissions_repo_path "$repo_root" "$entry_path" || true)"
-        if [[ -z "$target_path" ]]; then
-            log "[error] invalid managed path at $manifest_path:$line_number: $entry_path"
-            exit 1
-        fi
-
-        if [[ ! -e "$target_path" ]]; then
-            log "[error] managed path not found at $manifest_path:$line_number: $entry_path"
-            exit 1
-        fi
-
-        if [[ -L "$target_path" ]]; then
-            log "[error] symlink targets are not allowed at $manifest_path:$line_number: $entry_path"
-            exit 1
-        fi
-
-        if [[ ! -f "$target_path" && ! -d "$target_path" ]]; then
-            log "[error] managed path must be a regular file or directory at $manifest_path:$line_number: $entry_path"
-            exit 1
-        fi
-
-        target_path_real="$(realpath "$target_path")"
-        if ! is_within_dir "$target_path_real" "$repo_root_real"; then
-            log "[error] managed path escapes DOTFILES_DIR at $manifest_path:$line_number: $entry_path"
-            exit 1
-        fi
-
-        chmod "$entry_mode" "$target_path"
-        log "[ok] enforced $entry_mode on $entry_path"
-    done < "$manifest_path"
 }
 
 prompt_yes_no() {
@@ -146,7 +50,7 @@ prompt_yes_no() {
             "")
                 ;;
             *)
-                log "[warn] invalid value for $env_var_name: $env_var_value"
+                warn "invalid value for $env_var_name: $env_var_value"
                 ;;
         esac
     fi
@@ -163,12 +67,12 @@ prompt_yes_no() {
         if [[ "$NONINTERACTIVE_DOTFILES" == "1" ]]; then
             answer="$default_answer"
         elif [[ -t 0 ]]; then
-            printf "%s %s (default: %s) " "$question" "$prompt_suffix" "$default_label"
+            printf "  ? %s %s " "$question" "$prompt_suffix"
             if ! IFS= read -r answer; then
                 return 1
             fi
         elif [[ -t 1 ]]; then
-            printf "%s %s (default: %s) " "$question" "$prompt_suffix" "$default_label" > /dev/tty
+            printf "  ? %s %s " "$question" "$prompt_suffix" > /dev/tty
             if ! IFS= read -r answer < /dev/tty 2>/dev/null; then
                 return 1
             fi
@@ -186,7 +90,7 @@ prompt_yes_no() {
                 return 1
                 ;;
             *)
-                log "[warn] please answer yes or no"
+                warn "please answer yes or no"
                 ;;
         esac
     done
@@ -196,7 +100,7 @@ cleanup_bootstrap_checkout_on_failure() {
     local exit_code=$?
 
     if [[ "$exit_code" -ne 0 && "$BOOTSTRAP_CLONED" -eq 1 && -d "$DEFAULT_DOTFILES_DIR" ]]; then
-        log "[info] removing failed checkout at $DEFAULT_DOTFILES_DIR"
+        note "removing the failed checkout at $DEFAULT_DOTFILES_DIR"
         rm -rf "$DEFAULT_DOTFILES_DIR" || true
     fi
 }
@@ -221,7 +125,6 @@ detect_repo_from_script_path() {
     script_dir="$(cd -- "$(dirname -- "$source_path")" && pwd -P)"
     dotfile_root="$(cd -- "$script_dir/.." && pwd -P)"
 
-    log "[info] using current checkout: $dotfile_root"
     DOTFILES_DIR="$dotfile_root"
     return 0
 }
@@ -231,35 +134,37 @@ ensure_checkout() {
     local fzf_installer
 
     if ! command -v git >/dev/null 2>&1; then
-        log "[error] git is required"
+        err "git is required"
         exit 1
     fi
 
     if [[ -e "$DEFAULT_DOTFILES_DIR" ]]; then
-        log "[error] $DEFAULT_DOTFILES_DIR already exists"
-        log "[hint] remove it first or run this script from an existing dotfiles checkout"
+        err "$DEFAULT_DOTFILES_DIR already exists"
+        note "remove it first or run this script from an existing dotfiles checkout"
         exit 1
     fi
 
     BOOTSTRAP_CLONED=1
 
-    log "[info] cloning dotfiles into $DEFAULT_DOTFILES_DIR"
+    note "cloning dotfiles into $DEFAULT_DOTFILES_DIR..."
     if ! run_quiet git clone --recurse-submodules "$repo_url" "$DEFAULT_DOTFILES_DIR"; then
-        log "[error] failed to clone dotfiles"
+        err "could not clone dotfiles"
         exit 1
     fi
+    ok "cloned dotfiles into $DEFAULT_DOTFILES_DIR"
 
     fzf_installer="$DEFAULT_DOTFILES_DIR/modules/fzf/install"
     if [[ ! -f "$fzf_installer" ]]; then
-        log "[error] fzf installer not found at $fzf_installer"
+        err "fzf installer not found at $fzf_installer"
         exit 1
     fi
 
-    log "[info] installing fzf binary"
+    note "installing fzf..."
     if ! run_quiet bash "$fzf_installer" --bin; then
-        log "[error] failed to install fzf binary"
+        err "could not install fzf"
         exit 1
     fi
+    ok "installed fzf"
 
     DOTFILES_DIR="$DEFAULT_DOTFILES_DIR"
 }
@@ -278,19 +183,19 @@ run_linuxbrew_installer() {
     local installer_path="$DOTFILES_DIR/bin/install-linuxbrew"
 
     if [[ ! -f "$installer_path" ]]; then
-        log "[warn] Homebrew installer not found at $installer_path"
+        warn "Homebrew installer not found at $installer_path"
         return 1
     fi
 
     if [[ -x "$installer_path" ]]; then
-        if ! "$installer_path"; then
+        if ! UI_NESTED=1 "$installer_path"; then
             return 1
         fi
 
         return 0
     fi
 
-    if ! bash "$installer_path"; then
+    if ! UI_NESTED=1 bash "$installer_path"; then
         return 1
     fi
 
@@ -329,17 +234,18 @@ write_managed_block() {
     printf '%s\n\n' "$end_marker"
 }
 
-strip_managed_block() {
+# The file with its first managed block replaced where it stands, and any later copies dropped.
+replace_managed_block() {
     local input_file="$1"
     local output_file="$2"
     local begin_marker="$3"
     local end_marker="$4"
+    local payload="$5"
 
-    awk -v begin_marker="$begin_marker" -v end_marker="$end_marker" '
-        $0 == begin_marker {skip = 1; next}
-        $0 == end_marker {skip = 0; trim_blank = 1; next}
-        trim_blank && $0 == "" {trim_blank = 0; next}
-        !skip {trim_blank = 0; print}
+    BLOCK_TEXT="$begin_marker"$'\n'"$payload"$'\n'"$end_marker" awk -v begin_marker="$begin_marker" -v end_marker="$end_marker" '
+        $0 == begin_marker {if (!done) print ENVIRON["BLOCK_TEXT"]; done = 1; skip = 1; next}
+        skip && $0 == end_marker {skip = 0; next}
+        !skip {print}
     ' "$input_file" > "$output_file"
 }
 
@@ -351,15 +257,30 @@ reset_broken_symlink() {
     [[ -L "$file" && ! -e "$file" ]] || return 0
 
     link_target="$(readlink "$file")"
-    log "[warn] $label is linked to $link_target, which does not exist"
-
     if ! rm -f "$file"; then
-        log "[warn] failed to remove broken symlink at $file; skipping $label"
+        warn "$label links to $link_target, which does not exist, and the link could not be removed; skipped"
         return 1
     fi
 
-    log "[info] removed broken symlink; starting from a new empty $label"
+    warn "$label linked to $link_target, which does not exist; replaced it with a new file"
     return 0
+}
+
+# Puts the new content in place only when it differs, and counts the file as hooked up either way.
+put_if_changed() {
+    local new_file="$1"
+    local file="$2"
+    local label="$3"
+
+    if cmp -s "$new_file" "$file"; then
+        rm -f "$new_file"
+    else
+        cat "$new_file" > "$file"    # in place, so the file keeps its mode and stays a link if it is one
+        rm -f "$new_file"
+        ok "updated $label"
+        BLOCKS_CHANGED=$((BLOCKS_CHANGED + 1))
+    fi
+    BLOCKS_IN_PLACE=$((BLOCKS_IN_PLACE + 1))
 }
 
 append_block() {
@@ -372,8 +293,6 @@ append_block() {
     local end_count
     local tmp_file
 
-    step "configuring $label"
-
     reset_broken_symlink "$file" "$label" || return 0
 
     mkdir -p "$(dirname "$file")"
@@ -383,24 +302,20 @@ append_block() {
     end_count="$(grep -Fxc "$end_marker" "$file" || true)"
 
     if [[ "$begin_count" -ne "$end_count" ]]; then
-        log "[warn] $label has mismatched markers; skipping"
+        warn "$label has mismatched markers; skipped"
         return 0
     fi
 
+    tmp_file="$(mktemp)"
     if [[ "$begin_count" -gt 0 ]]; then
-        tmp_file="$(mktemp)"
-
-        strip_managed_block "$file" "$tmp_file" "$begin_marker" "$end_marker"
-
-        mv "$tmp_file" "$file"
-        log "[info] refreshed existing $label block"
+        replace_managed_block "$file" "$tmp_file" "$begin_marker" "$end_marker" "$payload"
+    else
+        cat "$file" > "$tmp_file"
+        ensure_trailing_newline "$tmp_file"
+        write_managed_block "$begin_marker" "$end_marker" "$payload" >> "$tmp_file"
     fi
 
-    ensure_trailing_newline "$file"
-
-    write_managed_block "$begin_marker" "$end_marker" "$payload" >> "$file"
-
-    log "[ok] $label configured"
+    put_if_changed "$tmp_file" "$file" "$label"
 }
 
 insert_block() {
@@ -416,8 +331,6 @@ insert_block() {
     local block_file
     local first_match_line=""
 
-    step "configuring $label"
-
     reset_broken_symlink "$file" "$label" || return 0
 
     mkdir -p "$(dirname "$file")"
@@ -427,17 +340,15 @@ insert_block() {
     end_count="$(grep -Fxc "$end_marker" "$file" || true)"
 
     if [[ "$begin_count" -ne "$end_count" ]]; then
-        log "[warn] $label has mismatched markers; skipping"
+        warn "$label has mismatched markers; skipped"
         return 0
     fi
 
     if [[ "$begin_count" -gt 0 ]]; then
         tmp_file="$(mktemp)"
-
-        strip_managed_block "$file" "$tmp_file" "$begin_marker" "$end_marker"
-
-        mv "$tmp_file" "$file"
-        log "[info] refreshed existing $label block"
+        replace_managed_block "$file" "$tmp_file" "$begin_marker" "$end_marker" "$payload"
+        put_if_changed "$tmp_file" "$file" "$label"
+        return 0
     fi
 
     block_file="$(mktemp)"
@@ -462,9 +373,7 @@ insert_block() {
     fi
 
     rm -f "$block_file"
-    mv "$tmp_file" "$file"
-
-    log "[ok] $label configured"
+    put_if_changed "$tmp_file" "$file" "$label"
 }
 
 SHELL_BEGIN="# >>> dotfiles >>>"
@@ -474,57 +383,60 @@ VIM_END="\" <<< dotfiles <<<"
 GIT_BEGIN="; >>> dotfiles >>>"
 GIT_END="; <<< dotfiles <<<"
 
-step "starting dotfiles installation"
+BLOCKS_IN_PLACE=0
+BLOCKS_CHANGED=0
+
+header "dot install"
 resolve_dotfiles_dir
-log "[info] dotfiles path: $DOTFILES_DIR"
-step "updating shell and tool configuration files"
+source "$DOTFILES_DIR/bin/lib/ui.sh"
+source "$DOTFILES_DIR/bin/lib/permissions.sh"
 
 # bash shell
-append_block "$HOME/.bashrc" "$SHELL_BEGIN" "$SHELL_END" "[ -f \"$DOTFILES_DIR/shell/shellenv\" ] && eval \"\$(bash '$DOTFILES_DIR/shell/shellenv' --emit bashrc)\"" ".bashrc"
-append_block "$HOME/.bash_profile" "$SHELL_BEGIN" "$SHELL_END" "[ -f \"$DOTFILES_DIR/shell/shellenv\" ] && eval \"\$(bash '$DOTFILES_DIR/shell/shellenv' --emit bash_profile)\"" ".bash_profile"
-append_block "$HOME/.inputrc" "$SHELL_BEGIN" "$SHELL_END" "\$include $DOTFILES_DIR/shell/bash/inputrc" ".inputrc"
+append_block "$HOME/.bashrc" "$SHELL_BEGIN" "$SHELL_END" "[ -f \"$DOTFILES_DIR/shell/shellenv\" ] && eval \"\$(bash '$DOTFILES_DIR/shell/shellenv' --emit bashrc)\"" "~/.bashrc"
+append_block "$HOME/.bash_profile" "$SHELL_BEGIN" "$SHELL_END" "[ -f \"$DOTFILES_DIR/shell/shellenv\" ] && eval \"\$(bash '$DOTFILES_DIR/shell/shellenv' --emit bash_profile)\"" "~/.bash_profile"
+append_block "$HOME/.inputrc" "$SHELL_BEGIN" "$SHELL_END" "\$include $DOTFILES_DIR/shell/bash/inputrc" "~/.inputrc"
 
 # zsh shell
-append_block "$HOME/.zshrc" "$SHELL_BEGIN" "$SHELL_END" "[ -f \"$DOTFILES_DIR/shell/shellenv\" ] && eval \"\$(bash '$DOTFILES_DIR/shell/shellenv' --emit zshrc)\"" ".zshrc"
-append_block "$HOME/.zprofile" "$SHELL_BEGIN" "$SHELL_END" "[ -f \"$DOTFILES_DIR/shell/shellenv\" ] && eval \"\$(bash '$DOTFILES_DIR/shell/shellenv' --emit zprofile)\"" ".zprofile"
-append_block "$HOME/.zlogin" "$SHELL_BEGIN" "$SHELL_END" "[ -f \"$DOTFILES_DIR/shell/shellenv\" ] && eval \"\$(bash '$DOTFILES_DIR/shell/shellenv' --emit zlogin)\"" ".zlogin"
-append_block "$HOME/.zlogout" "$SHELL_BEGIN" "$SHELL_END" "[ -f \"$DOTFILES_DIR/shell/shellenv\" ] && eval \"\$(bash '$DOTFILES_DIR/shell/shellenv' --emit zlogout)\"" ".zlogout"
-append_block "$HOME/.zshenv" "$SHELL_BEGIN" "$SHELL_END" "[ -f \"$DOTFILES_DIR/shell/shellenv\" ] && eval \"\$(bash '$DOTFILES_DIR/shell/shellenv' --emit zshenv)\"" ".zshenv"
+append_block "$HOME/.zshrc" "$SHELL_BEGIN" "$SHELL_END" "[ -f \"$DOTFILES_DIR/shell/shellenv\" ] && eval \"\$(bash '$DOTFILES_DIR/shell/shellenv' --emit zshrc)\"" "~/.zshrc"
+append_block "$HOME/.zprofile" "$SHELL_BEGIN" "$SHELL_END" "[ -f \"$DOTFILES_DIR/shell/shellenv\" ] && eval \"\$(bash '$DOTFILES_DIR/shell/shellenv' --emit zprofile)\"" "~/.zprofile"
+append_block "$HOME/.zlogin" "$SHELL_BEGIN" "$SHELL_END" "[ -f \"$DOTFILES_DIR/shell/shellenv\" ] && eval \"\$(bash '$DOTFILES_DIR/shell/shellenv' --emit zlogin)\"" "~/.zlogin"
+append_block "$HOME/.zlogout" "$SHELL_BEGIN" "$SHELL_END" "[ -f \"$DOTFILES_DIR/shell/shellenv\" ] && eval \"\$(bash '$DOTFILES_DIR/shell/shellenv' --emit zlogout)\"" "~/.zlogout"
+append_block "$HOME/.zshenv" "$SHELL_BEGIN" "$SHELL_END" "[ -f \"$DOTFILES_DIR/shell/shellenv\" ] && eval \"\$(bash '$DOTFILES_DIR/shell/shellenv' --emit zshenv)\"" "~/.zshenv"
 
 # vim
-append_block "$HOME/.vimrc" "$VIM_BEGIN" "$VIM_END" "if filereadable(expand(\"$DOTFILES_DIR/vim/vimrc\")) | execute \"source \" . fnameescape(expand(\"$DOTFILES_DIR/vim/vimrc\")) | endif" ".vimrc"
+append_block "$HOME/.vimrc" "$VIM_BEGIN" "$VIM_END" "if filereadable(expand(\"$DOTFILES_DIR/vim/vimrc\")) | execute \"source \" . fnameescape(expand(\"$DOTFILES_DIR/vim/vimrc\")) | endif" "~/.vimrc"
 
 # git
 git_payload="[include]
     path = \"$DOTFILES_DIR/git/gitconfig\""
-append_block "$HOME/.gitconfig" "$GIT_BEGIN" "$GIT_END" "$git_payload" ".gitconfig"
+append_block "$HOME/.gitconfig" "$GIT_BEGIN" "$GIT_END" "$git_payload" "~/.gitconfig"
 
 # ssh
-insert_block "$HOME/.ssh/config" "$SHELL_BEGIN" "$SHELL_END" "Include \"$DOTFILES_DIR/ssh/config\"" ".ssh/config" '^(Host|Match)[[:space:]]'
+insert_block "$HOME/.ssh/config" "$SHELL_BEGIN" "$SHELL_END" "Include \"$DOTFILES_DIR/ssh/config\"" "~/.ssh/config" '^(Host|Match)[[:space:]]'
 
 # tmux
-append_block "$HOME/.tmux.conf" "$SHELL_BEGIN" "$SHELL_END" "if-shell \"[ -f '$DOTFILES_DIR/tmux/tmux.conf' ]\" \"source-file '$DOTFILES_DIR/tmux/tmux.conf'\"" ".tmux.conf"
+append_block "$HOME/.tmux.conf" "$SHELL_BEGIN" "$SHELL_END" "if-shell \"[ -f '$DOTFILES_DIR/tmux/tmux.conf' ]\" \"source-file '$DOTFILES_DIR/tmux/tmux.conf'\"" "~/.tmux.conf"
 
 # ghostty
 append_block "$(ghostty_config_file)" "$SHELL_BEGIN" "$SHELL_END" "config-file = ?$DOTFILES_DIR/ghostty/config" "ghostty config"
 
 # vscode theme
-step "configuring VS Code theme"
-bash "$DOTFILES_DIR/bin/vscode-theme" install || log "[warn] VS Code theme setup failed"
+UI_NESTED=1 bash "$DOTFILES_DIR/bin/vscode-theme" install || warn "VS Code theme setup failed"
 
 enforce_permissions_manifest "$DOTFILES_DIR" "$PERMISSIONS_MANIFEST_NAME"
 
 BOOTSTRAP_CLONED=0
 
-if is_linux_platform; then
-    step "optional Homebrew installation"
+if is_linux_platform && [[ ! -d "$HOME/.linuxbrew" ]]; then
     if prompt_yes_no "Install Homebrew in ~/.linuxbrew?" "n" "INSTALL_LINUXBREW"; then
         if ! run_linuxbrew_installer; then
-            log "[warn] Homebrew installation failed; dotfiles installation will continue"
+            warn "Homebrew installation failed; the rest of the install is done"
         fi
     else
-        log "[skip] Homebrew installation skipped"
+        skip "Homebrew not installed"
     fi
 fi
 
-log "Done. Restart your shell (or source your rc file) to apply changes."
+ok "$(plural "$BLOCKS_IN_PLACE" "config file") hooked up"
+(( BLOCKS_CHANGED == 0 )) || note "restart your shell (or source your rc file) to apply changes"
+exit 0

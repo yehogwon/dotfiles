@@ -7,13 +7,7 @@ BREW_REPO="$BREW_ROOT/Homebrew"
 BREW_BIN_DIR="$BREW_ROOT/bin"
 BREW_BIN="$BREW_BIN_DIR/brew"
 
-log() {
-    printf "%s\n" "$*"
-}
-
-step() {
-    log "[info] $*"
-}
+source "$(dirname -- "${BASH_SOURCE[0]}")/lib/ui.sh"
 
 run_quiet() {
     "$@" </dev/null >/dev/null 2>&1
@@ -27,76 +21,69 @@ is_root_user() {
     [[ "$(id -u)" -eq 0 ]]
 }
 
-step "starting Homebrew installation"
+header "install Homebrew"
 
 if ! is_linux_platform; then
-    log "[error] Homebrew installation at ~/.linuxbrew is only supported on Linux"
+    err "Homebrew installation at ~/.linuxbrew is only supported on Linux"
     exit 1
 fi
 
 # FIXME: installing linuxbrew this way requires building bin from source most of the time (almost always)
 if is_root_user; then
-    log "[error] running this installer as root is very dangerous"
-    log "[error] Homebrew does not support running as root"
+    err "running this installer as root is very dangerous; Homebrew does not support it"
     exit 1
 fi
 
 if [[ -e "$BREW_ROOT" ]]; then
     if [[ -d "$BREW_ROOT" ]]; then
-        log "[info] $BREW_ROOT already exists; skipping Homebrew installation"
+        skip "$BREW_ROOT already exists; Homebrew not installed again"
         exit 0
     fi
 
-    log "[error] $BREW_ROOT exists but is not a directory"
+    err "$BREW_ROOT exists but is not a directory"
     exit 1
 fi
 
 if ! command -v git >/dev/null 2>&1; then
-    log "[error] git is required to install Homebrew"
+    err "git is required to install Homebrew"
     exit 1
 fi
 
-step "preparing $BREW_ROOT"
 if ! mkdir -p "$BREW_ROOT"; then
-    log "[error] failed to create $BREW_ROOT"
+    err "could not create $BREW_ROOT"
     exit 1
 fi
-log "[ok] $BREW_ROOT is ready"
 
 if [[ -d "$BREW_REPO/.git" ]]; then
-    log "[info] Homebrew repository already exists at $BREW_REPO"
+    :
 elif [[ -e "$BREW_REPO" ]]; then
-    log "[error] $BREW_REPO exists and is not a git checkout"
+    err "$BREW_REPO exists and is not a git checkout"
     exit 1
 else
-    step "cloning Homebrew into $BREW_REPO (this may take a minute)"
+    note "cloning Homebrew into $BREW_REPO (this may take a minute)..."
     if ! run_quiet git clone https://github.com/Homebrew/brew "$BREW_REPO"; then
-        log "[error] failed to clone Homebrew"
+        err "could not clone Homebrew"
         exit 1
     fi
+    ok "cloned Homebrew into $BREW_REPO"
 fi
-log "[ok] Homebrew repository is ready"
 
-step "creating $BREW_BIN_DIR"
 if ! mkdir -p "$BREW_BIN_DIR"; then
-    log "[error] failed to create $BREW_BIN_DIR"
+    err "could not create $BREW_BIN_DIR"
     exit 1
 fi
-log "[ok] $BREW_BIN_DIR is ready"
 
-step "linking brew executable at $BREW_BIN"
 if ! ln -sfn "$BREW_REPO/bin/brew" "$BREW_BIN"; then
-    log "[error] failed to symlink brew to $BREW_BIN"
+    err "could not link brew at $BREW_BIN"
     exit 1
 fi
-log "[ok] brew executable linked"
+ok "linked brew at $BREW_BIN"
 
-step "disabling Homebrew analytics"
 if ! run_quiet "$BREW_BIN" analytics off; then
-    log "[error] failed to disable Homebrew analytics"
+    err "could not turn off Homebrew analytics"
     exit 1
 fi
-log "[ok] Homebrew analytics disabled"
+ok "turned off Homebrew analytics"
 
-log "[ok] Homebrew installed at $BREW_ROOT"
-log "[hint] remove Homebrew anytime by deleting ~/.linuxbrew"
+ok "Homebrew installed at $BREW_ROOT"
+note "remove Homebrew anytime by deleting ~/.linuxbrew"

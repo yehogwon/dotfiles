@@ -4,13 +4,18 @@ set -euo pipefail
 
 NONINTERACTIVE_DOTFILES="${NONINTERACTIVE_DOTFILES:-0}"
 
-log() {
-    printf "%s\n" "$*"
-}
-
-step() {
-    log "[info] $*"
-}
+source_path="${BASH_SOURCE[0]:-}"
+if [[ -f "$(dirname -- "$source_path")/lib/ui.sh" ]]; then
+    source "$(dirname -- "$source_path")/lib/ui.sh"
+else
+    # piped from curl: plain marks
+    header() { printf '● %s\n' "$*"; }
+    ok() { printf '  ✓ %s\n' "$*"; }
+    warn() { printf '  ! %s\n' "$*"; }
+    skip() { printf '  – %s\n' "$*"; }
+    note() { printf '    %s\n' "$*"; }
+    err() { printf '  ✗ %s\n' "$*" >&2; }
+fi
 
 ensure_trailing_newline() {
     local file="$1"
@@ -56,7 +61,7 @@ prompt_yes_no() {
             "")
                 ;;
             *)
-                log "[warn] invalid value for $env_var_name: $env_var_value"
+                warn "invalid value for $env_var_name: $env_var_value"
                 ;;
         esac
     fi
@@ -73,12 +78,12 @@ prompt_yes_no() {
         if [[ "$NONINTERACTIVE_DOTFILES" == "1" ]]; then
             answer="$default_answer"
         elif [[ -t 0 ]]; then
-            printf "%s %s (default: %s) " "$question" "$prompt_suffix" "$default_label"
+            printf "  ? %s %s " "$question" "$prompt_suffix"
             if ! IFS= read -r answer; then
                 return 1
             fi
         elif [[ -t 1 ]]; then
-            printf "%s %s (default: %s) " "$question" "$prompt_suffix" "$default_label" > /dev/tty
+            printf "  ? %s %s " "$question" "$prompt_suffix" > /dev/tty
             if ! IFS= read -r answer < /dev/tty 2>/dev/null; then
                 return 1
             fi
@@ -96,7 +101,7 @@ prompt_yes_no() {
                 return 1
                 ;;
             *)
-                log "[warn] please answer yes or no"
+                warn "please answer yes or no"
                 ;;
         esac
     done
@@ -108,12 +113,7 @@ remove_block() {
     local end_marker="$3"
     local label="$4"
 
-    step "checking $label"
-
-    if [[ ! -f "$file" ]]; then
-        log "[skip] $label not found"
-        return 0
-    fi
+    [[ -f "$file" ]] || return 0
 
     local begin_count
     local end_count
@@ -121,12 +121,11 @@ remove_block() {
     end_count="$(grep -Fxc "$end_marker" "$file" || true)"
 
     if [[ "$begin_count" -eq 0 && "$end_count" -eq 0 ]]; then
-        log "[skip] $label not configured"
         return 0
     fi
 
     if [[ "$begin_count" -ne "$end_count" ]]; then
-        log "[warn] $label has mismatched markers; skipping"
+        warn "$label has mismatched markers; skipped"
         return 0
     fi
 
@@ -137,7 +136,7 @@ remove_block() {
 
     mv "$tmp_file" "$file"
     ensure_trailing_newline "$file"
-    log "[ok] removed $label block"
+    ok "removed block from $label"
 }
 
 resolve_checkout_from_script_path() {
@@ -186,33 +185,33 @@ remove_checkout_dir() {
 
     checkout_dir="$(resolve_checkout_from_script_path || true)"
     if [[ -z "$checkout_dir" ]]; then
-        log "[skip] could not detect checkout path; repo directory left in place"
+        skip "could not find the checkout; left it in place"
         return 0
     fi
 
     if [[ ! -d "$checkout_dir" ]]; then
-        log "[skip] checkout path not found: $checkout_dir"
+        skip "checkout not found at $checkout_dir"
         return 0
     fi
 
     if ! is_checkout_dir_safe_to_remove "$checkout_dir"; then
-        log "[warn] refusing to remove unexpected path: $checkout_dir"
+        warn "$checkout_dir doesn't look like a dotfiles checkout; left it in place"
         return 0
     fi
 
     if ! prompt_yes_no "Remove dotfiles checkout directory at $checkout_dir?" "n" "REMOVE_DOTFILES_CHECKOUT"; then
-        log "[skip] checkout directory removal skipped"
+        skip "kept the checkout at $checkout_dir"
         return 0
     fi
 
     cd -- "$HOME"
 
     if rm -rf -- "$checkout_dir"; then
-        log "[ok] removed checkout directory: $checkout_dir"
+        ok "removed the checkout at $checkout_dir"
         return 0
     fi
 
-    log "[warn] failed to remove checkout directory: $checkout_dir"
+    warn "could not remove the checkout at $checkout_dir"
     return 0
 }
 
@@ -232,32 +231,27 @@ VIM_END="\" <<< dotfiles <<<"
 GIT_BEGIN="; >>> dotfiles >>>"
 GIT_END="; <<< dotfiles <<<"
 
-step "starting dotfiles uninstallation"
-log "[warn] this can remove your entire dotfiles checkout directory"
-step "removing shell and tool configuration blocks"
+header "dot uninstall"
 
-remove_block "$HOME/.bashrc" "$SHELL_BEGIN" "$SHELL_END" ".bashrc"
-remove_block "$HOME/.bash_profile" "$SHELL_BEGIN" "$SHELL_END" ".bash_profile"
-remove_block "$HOME/.inputrc" "$SHELL_BEGIN" "$SHELL_END" ".inputrc"
+remove_block "$HOME/.bashrc" "$SHELL_BEGIN" "$SHELL_END" "~/.bashrc"
+remove_block "$HOME/.bash_profile" "$SHELL_BEGIN" "$SHELL_END" "~/.bash_profile"
+remove_block "$HOME/.inputrc" "$SHELL_BEGIN" "$SHELL_END" "~/.inputrc"
 
-remove_block "$HOME/.zshrc" "$SHELL_BEGIN" "$SHELL_END" ".zshrc"
-remove_block "$HOME/.zprofile" "$SHELL_BEGIN" "$SHELL_END" ".zprofile"
-remove_block "$HOME/.zlogin" "$SHELL_BEGIN" "$SHELL_END" ".zlogin"
-remove_block "$HOME/.zlogout" "$SHELL_BEGIN" "$SHELL_END" ".zlogout"
-remove_block "$HOME/.zshenv" "$SHELL_BEGIN" "$SHELL_END" ".zshenv"
+remove_block "$HOME/.zshrc" "$SHELL_BEGIN" "$SHELL_END" "~/.zshrc"
+remove_block "$HOME/.zprofile" "$SHELL_BEGIN" "$SHELL_END" "~/.zprofile"
+remove_block "$HOME/.zlogin" "$SHELL_BEGIN" "$SHELL_END" "~/.zlogin"
+remove_block "$HOME/.zlogout" "$SHELL_BEGIN" "$SHELL_END" "~/.zlogout"
+remove_block "$HOME/.zshenv" "$SHELL_BEGIN" "$SHELL_END" "~/.zshenv"
 
-remove_block "$HOME/.vimrc" "$VIM_BEGIN" "$VIM_END" ".vimrc"
-remove_block "$HOME/.gitconfig" "$GIT_BEGIN" "$GIT_END" ".gitconfig"
-remove_block "$HOME/.ssh/config" "$SHELL_BEGIN" "$SHELL_END" ".ssh/config"
-remove_block "$HOME/.tmux.conf" "$SHELL_BEGIN" "$SHELL_END" ".tmux.conf"
+remove_block "$HOME/.vimrc" "$VIM_BEGIN" "$VIM_END" "~/.vimrc"
+remove_block "$HOME/.gitconfig" "$GIT_BEGIN" "$GIT_END" "~/.gitconfig"
+remove_block "$HOME/.ssh/config" "$SHELL_BEGIN" "$SHELL_END" "~/.ssh/config"
+remove_block "$HOME/.tmux.conf" "$SHELL_BEGIN" "$SHELL_END" "~/.tmux.conf"
 remove_block "$(ghostty_config_file)" "$SHELL_BEGIN" "$SHELL_END" "ghostty config"
 
-step "removing VS Code theme"
-bash "$(dirname -- "${BASH_SOURCE[0]}")/vscode-theme" uninstall || log "[warn] VS Code theme removal failed"
+UI_NESTED=1 bash "$(dirname -- "${BASH_SOURCE[0]}")/vscode-theme" uninstall || warn "VS Code theme removal failed"
 
-step "removing checkout directory if this script is from a checkout"
 remove_checkout_dir
 
-log "[hint] remove Homebrew anytime by deleting ~/.linuxbrew"
-
-log "Done. Restart your shell (or source your rc file) to apply changes."
+[[ ! -d "$HOME/.linuxbrew" ]] || note "remove Homebrew anytime by deleting ~/.linuxbrew"
+note "restart your shell (or source your rc file) to apply changes"
