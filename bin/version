@@ -1,11 +1,26 @@
 #!/usr/bin/env bash
-# version: show the checked-out commit and how far it is from the upstream main
+# version [-l|--log]: show the checked-out commit and how far it is from the upstream main;
+# --log also lists the commits a pull would bring in and those not yet pushed, or the last 10 when up to date
 
 set -euo pipefail
 
 DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)"
+source "$DIR/bin/lib/ui.sh"
 SPINNER=(⠋ ⠙ ⠹ ⠸ ⠼ ⠴ ⠦ ⠧ ⠇ ⠏)
-SPINNER_COLOR='38;5;74'
+
+usage() {
+    printf 'usage: dot version [-l|--log]\n\n'
+    printf '  -l, --log   also list the commits a pull would bring in and those not yet pushed,\n'
+    printf '              or the last 10 when up to date\n'
+}
+
+show_log=0
+case "$#:${1:-}" in
+    0:) ;;
+    1:--log|1:-l) show_log=1 ;;
+    1:--help|1:-h) usage; exit 0 ;;
+    *) usage >&2; exit 1 ;;
+esac
 
 remote="$(git -C "$DIR" config branch.main.remote 2>/dev/null || echo origin)"
 upstream="$remote/main"
@@ -37,7 +52,7 @@ if [[ -t 0 && -t 1 ]]; then
     printf '\e[?25l'
     i=0
     while kill -0 "$fetch_pid" 2>/dev/null; do
-        printf '\r\e[%sm%s\e[0m checking version' "$SPINNER_COLOR" "${SPINNER[i++ % ${#SPINNER[@]}]}"
+        printf '\r\e[%sm%s\e[0m checking version' "$UI_ACCENT" "${SPINNER[i++ % ${#SPINNER[@]}]}"
         sleep 0.1
     done
     restore
@@ -45,9 +60,6 @@ if [[ -t 0 && -t 1 ]]; then
 fi
 fetched=1
 wait "$fetch_pid" || fetched=0
-
-# "1 commit", "3 commits"
-plural() { (( $1 == 1 )) && echo "1 $2" || echo "$1 $2s"; }
 
 # Commit time as "<two largest units> ago (<clock time>)", e.g. "1 day 3 hr ago (yesterday 20:25)".
 when() { date -r "$1" "+$2" 2>/dev/null || date -d "@$1" "+$2"; }
@@ -77,39 +89,41 @@ ago() {
     echo "$out ago ($clock)"
 }
 
-# Colors only on a terminal, and never with NO_COLOR set.
-if [[ -t 1 && -z "${NO_COLOR:-}" ]]; then
-    accent=$'\e[1;'"${SPINNER_COLOR}m" dim=$'\e[2m' green=$'\e[32m' yellow=$'\e[33m' red=$'\e[31m' reset=$'\e[0m'
-else
-    accent='' dim='' green='' yellow='' red='' reset=''
-fi
-line() { printf "  $1%s$reset %s\n" "$2" "$3"; }
+line() { ui_mark "$@"; }
 
 hash="$(git -C "$DIR" rev-parse --short HEAD)"
 subject="$(git --no-pager -C "$DIR" log -1 --format=%s HEAD)"
 width="$(tput cols 2>/dev/null || echo 80)"
 room=$(( width - ${#hash} - 4 ))
 (( ${#subject} <= room )) || subject="${subject:0:room-1}…"
-printf "${accent}●$reset ${accent}%s$reset %s\n" "$hash" "$subject"
-printf "  ${dim}%s$reset\n" "committed $(ago "$(git --no-pager -C "$DIR" log -1 --format=%ct HEAD)")"
+printf "${UI_BOLD}●$UI_RESET ${UI_BOLD}%s$UI_RESET %s\n" "$hash" "$subject"
+printf "  ${UI_DIM}%s$UI_RESET\n" "committed $(ago "$(git --no-pager -C "$DIR" log -1 --format=%ct HEAD)")"
 
 if ! git -C "$DIR" rev-parse --verify --quiet "$upstream" >/dev/null; then
-    line "$red" ✗ "$upstream not found"
+    line "$UI_RED" ✗ "$upstream not found"
     exit 1
 fi
 
 read -r ahead behind < <(git -C "$DIR" rev-list --left-right --count "HEAD...$upstream")
 
 if (( ahead == 0 && behind == 0 )); then
-    line "$green" ✓ "up to date with $upstream"
+    line "$UI_GREEN" ✓ "up to date with $upstream"
 elif (( ahead == 0 )); then
-    line "$yellow" ↓ "$(plural "$behind" commit) behind $upstream ${dim}(dot pull)$reset"
+    line "$UI_YELLOW" ↓ "$(plural "$behind" commit) behind $upstream ${UI_DIM}(dot pull)$UI_RESET"
 elif (( behind == 0 )); then
-    line "$yellow" ↑ "$(plural "$ahead" commit) ahead of $upstream ${dim}(dot push)$reset"
+    line "$UI_YELLOW" ↑ "$(plural "$ahead" commit) ahead of $upstream ${UI_DIM}(dot push)$UI_RESET"
 else
-    line "$yellow" ↕ "$(plural "$behind" commit) behind, $ahead ahead of $upstream"
+    line "$UI_YELLOW" ↕ "$(plural "$behind" commit) behind, $ahead ahead of $upstream"
 fi
-(( fetched )) || line "$red" ! "could not fetch; as of the last fetch"
+if (( show_log && ahead + behind == 0 )); then
+    commit_lines "$DIR" -n 10 HEAD
+elif (( show_log )); then
+    base="$(git -C "$DIR" merge-base HEAD "$upstream")"
+    label() { (( ahead > 0 && behind > 0 )) && printf '  %s%s%s\n' "$UI_DIM" "$1" "$UI_RESET"; return 0; }
+    if (( behind > 0 )); then label incoming; changelog "$DIR" "$base" "$upstream"; fi
+    if (( ahead > 0 )); then label unpushed; changelog "$DIR" "$base" HEAD; fi
+fi
+(( fetched )) || line "$UI_RED" ! "could not fetch; as of the last fetch"
 
 changes="$(git -C "$DIR" status --porcelain | wc -l | tr -d ' ')"
-(( changes == 0 )) || line "$yellow" ± "$(plural "$changes" "uncommitted change")"
+(( changes == 0 )) || line "$UI_YELLOW" ± "$(plural "$changes" "uncommitted change")"

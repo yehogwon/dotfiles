@@ -4,9 +4,9 @@
 UI_ACCENT='38;5;74'
 
 if [[ -t 1 && -z "${NO_COLOR:-}" ]]; then
-    UI_BOLD=$'\e[1;'"${UI_ACCENT}m" UI_DIM=$'\e[2m' UI_GREEN=$'\e[32m' UI_YELLOW=$'\e[33m' UI_RED=$'\e[31m' UI_RESET=$'\e[0m'
+    UI_BOLD=$'\e[1;'"${UI_ACCENT}m" UI_AREA=$'\e['"${UI_ACCENT}m" UI_ITALIC=$'\e[3m' UI_DIM=$'\e[2m' UI_GREEN=$'\e[32m' UI_YELLOW=$'\e[33m' UI_RED=$'\e[31m' UI_RESET=$'\e[0m'
 else
-    UI_BOLD='' UI_DIM='' UI_GREEN='' UI_YELLOW='' UI_RED='' UI_RESET=''
+    UI_BOLD='' UI_AREA='' UI_ITALIC='' UI_DIM='' UI_GREEN='' UI_YELLOW='' UI_RED='' UI_RESET=''
 fi
 if [[ -t 2 && -z "${NO_COLOR:-}" ]]; then
     UI_ERR_RED=$'\e[31m' UI_ERR_RESET=$'\e[0m'
@@ -63,7 +63,7 @@ CHANGELOG_MAX=20
 
 # What a pull brought in: files and lines changed, then "hash subject" per commit, newest first.
 changelog() {
-    local dir="$1" range="$2..$3" n stat line
+    local dir="$1" range="$2..$3" n stat
 
     stat="$(git -C "$dir" diff --shortstat "$2" "$3" | awk '{
         a = 0; d = 0
@@ -72,10 +72,30 @@ changelog() {
     }')"
     [[ -z "$stat" ]] || note "$stat"
     n="$(git -C "$dir" rev-list --count --no-merges "$range")"
-    while IFS= read -r line; do
-        note "$line"
-    done < <(git --no-pager -C "$dir" log --no-merges --format='%h %s' -n "$CHANGELOG_MAX" "$range")
+    commit_lines "$dir" -n "$CHANGELOG_MAX" "$range"
     (( n <= CHANGELOG_MAX )) || note "… and $(( n - CHANGELOG_MAX )) more"
+}
+
+# "hash area: subject" per commit of git log in $1 (the rest are git log arguments), subjects aligned
+# past the longest area. A subject with no "area: " prefix gets an italic "unknown:".
+commit_lines() {
+    local dir="$1" hash subject area w=0 i re='^([A-Za-z0-9._/-]+(, [A-Za-z0-9._/-]+)*): (.*)$'
+    local -a hashes=() areas=() subjects=()
+    shift
+    while IFS=$'\t' read -r hash subject; do
+        if [[ "$subject" =~ $re ]]; then
+            area="${BASH_REMATCH[1]}:" subject="${BASH_REMATCH[3]}"
+        else
+            area="unknown:"
+        fi
+        hashes+=("$hash") areas+=("$area") subjects+=("$subject")
+        (( ${#area} <= w )) || w=${#area}
+    done < <(git --no-pager -C "$dir" log --no-merges --format='%h%x09%s' "$@")
+    (( ${#hashes[@]} > 0 )) || return 0
+    for i in "${!hashes[@]}"; do
+        printf '    %s%s%s %s%-*s%s %s\n' "$UI_DIM" "${hashes[i]}" "$UI_RESET" \
+            "$([[ "${areas[i]}" == unknown: ]] && echo "$UI_ITALIC" || echo "$UI_AREA")" "$w" "${areas[i]}" "$UI_RESET" "${subjects[i]}"
+    done
 }
 
 # git push in $1 (extra arguments go to git push), as one line.

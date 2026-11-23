@@ -12,9 +12,10 @@ source ~/.bashrc  # (or ~/.zshrc)
 ## Usage
 
 ```sh
-dot pull    # pull, update submodules and reapply permissions
-dot push    # push committed changes upstream (commit them yourself first)
-dot version # show the checked-out commit and how far it is from upstream main (fetches first)
+dot pull           # pull, update submodules and reapply permissions
+dot push           # push committed changes upstream (commit them yourself first)
+dot version        # show the checked-out commit and how far it is from upstream main (fetches first)
+dot version --log  # also list the commits a pull would bring in and those not yet pushed (the last 10 when up to date)
 ```
 
 ## Uninstallation
