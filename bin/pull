@@ -34,6 +34,29 @@ resolve_dotfiles_home() {
     fi
 }
 
+# "path hash" for each submodule's checked-out commit
+submodule_heads() {
+    git -C "$DOTFILES_HOME" submodule status --recursive 2>/dev/null | awk '{sub(/^[ +U-]/, ""); print $2, substr($1, 1, 7)}'
+}
+
+# One line for the submodules, then one per submodule the pull moved.
+submodule_summary() {
+    local before="$1" path hash old total=0 moved=0 lines=()
+
+    while read -r path hash; do
+        total=$((total + 1))
+        old="$(awk -v p="$path" '$1 == p {print $2}' <<< "$before")"
+        [[ "$old" != "$hash" ]] || continue
+        moved=$((moved + 1))
+        lines+=("$path ${old:-new} → $hash")
+    done < <(submodule_heads)
+    (( total )) || return 0
+    ok "submodules: $total checked out, $moved moved"
+    for path in ${lines[@]+"${lines[@]}"}; do
+        note "$path"
+    done
+}
+
 header "dot pull"
 
 if ! command -v git >/dev/null 2>&1; then
@@ -43,6 +66,7 @@ fi
 
 resolve_dotfiles_home
 
+subs_before="$(submodule_heads)"
 git_pull_line "$DOTFILES_HOME" || exit 1
 
 if ! out="$(git -C "$DOTFILES_HOME" submodule update --init --recursive --quiet 2>&1)"; then
@@ -50,6 +74,7 @@ if ! out="$(git -C "$DOTFILES_HOME" submodule update --init --recursive --quiet 
     err_output "$out"
     exit 1
 fi
+submodule_summary "$subs_before"
 
 enforce_permissions_manifest "$DOTFILES_HOME" "$PERMISSIONS_MANIFEST_NAME"
 

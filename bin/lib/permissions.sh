@@ -45,6 +45,8 @@ enforce_permissions_manifest() {
     local extra
     local target_path
     local target_path_real
+    local checked=0
+    local fixed=0
 
     if [[ ! -f "$manifest_path" ]]; then
         skip "permissions manifest not found at $manifest_path"
@@ -98,9 +100,13 @@ enforce_permissions_manifest() {
             exit 1
         fi
 
+        checked=$((checked + 1))
         if (( 8#$(file_mode "$target_path") != 8#$entry_mode )); then
             chmod "$entry_mode" "$target_path"
             ok "set $entry_mode on $entry_path"
+            fixed=$((fixed + 1))
         fi
     done < "$manifest_path"
+
+    ok "permissions: $(plural "$checked" path) checked, $fixed fixed"
 }

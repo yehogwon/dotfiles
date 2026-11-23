@@ -55,7 +55,27 @@ git_pull_line() {
         ok "up to date with $upstream"
     else
         ok "pulled $(plural "$(git -C "$dir" rev-list --count "$before..$after")" commit)  $UI_DIM$before → $after$UI_RESET"
+        changelog "$dir" "$before" "$after"
     fi
+}
+
+CHANGELOG_MAX=20
+
+# What a pull brought in: files and lines changed, then "hash subject" per commit, newest first.
+changelog() {
+    local dir="$1" range="$2..$3" n stat line
+
+    stat="$(git -C "$dir" diff --shortstat "$2" "$3" | awk '{
+        a = 0; d = 0
+        for (i = 2; i <= NF; i++) { if ($i ~ /^insertion/) a = $(i - 1); if ($i ~ /^deletion/) d = $(i - 1) }
+        printf "%d file%s changed, +%d −%d", $1, ($1 == 1 ? "" : "s"), a, d
+    }')"
+    [[ -z "$stat" ]] || note "$stat"
+    n="$(git -C "$dir" rev-list --count --no-merges "$range")"
+    while IFS= read -r line; do
+        note "$line"
+    done < <(git --no-pager -C "$dir" log --no-merges --format='%h %s' -n "$CHANGELOG_MAX" "$range")
+    (( n <= CHANGELOG_MAX )) || note "… and $(( n - CHANGELOG_MAX )) more"
 }
 
 # git push in $1 (extra arguments go to git push), as one line.
