@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 # pull: pull the latest checkout, update submodules and reapply permissions
+# After the git pull, the freshly pulled bin/pull runs the rest as `pull --pulled-from <commit before the pull>`.
+# Keep accepting --pulled-from: older checkouts exec the new bin/pull with it.
 
 set -euo pipefail
 
@@ -57,18 +59,22 @@ submodule_summary() {
     done
 }
 
-header "dot pull"
-
-if ! command -v git >/dev/null 2>&1; then
-    err "git is required"
-    exit 1
+if [[ "${1:-}" != --pulled-from ]]; then
+    header "dot pull"
+    if ! command -v git >/dev/null 2>&1; then
+        err "git is required"
+        exit 1
+    fi
+    resolve_dotfiles_home
+    before="$(git -C "$DOTFILES_HOME" rev-parse HEAD)"
+    git_pull "$DOTFILES_HOME" || exit 1
+    exec "$DOTFILES_HOME/bin/pull" --pulled-from "$before"
 fi
 
 resolve_dotfiles_home
+pull_summary "$DOTFILES_HOME" "${2:?--pulled-from needs a commit}"
 
 subs_before="$(submodule_heads)"
-git_pull_line "$DOTFILES_HOME" || exit 1
-
 if ! out="$(git -C "$DOTFILES_HOME" submodule update --init --recursive --quiet 2>&1)"; then
     err "could not update submodules"
     err_output "$out"

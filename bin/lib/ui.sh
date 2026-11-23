@@ -38,17 +38,24 @@ err_output() {
 # "1 commit", "3 commits"
 plural() { (( $1 == 1 )) && echo "1 $2" || echo "$1 $2s"; }
 
-# git pull in $1 (extra arguments go to git pull), as one line: commits pulled with old → new hash, or up to date.
-git_pull_line() {
-    local dir="$1" before after out upstream
+# git pull in $1, quietly (extra arguments go to git pull); on failure, an error with git's output.
+git_pull() {
+    local dir="$1" out
     shift
 
-    before="$(git -C "$dir" rev-parse --short HEAD)"
     if ! out="$(GIT_TERMINAL_PROMPT=0 git -C "$dir" pull --quiet "$@" 2>&1 < /dev/null)"; then
         err "git pull failed"
         err_output "$out"
         return 1
     fi
+}
+
+# What a pull in $1 from commit $2 to HEAD brought in, as one line: commits pulled with old → new hash,
+# or up to date. Then the changelog.
+pull_summary() {
+    local dir="$1" before after upstream
+
+    before="$(git -C "$dir" rev-parse --short "$2")"
     after="$(git -C "$dir" rev-parse --short HEAD)"
     upstream="$(git -C "$dir" rev-parse --abbrev-ref '@{u}' 2>/dev/null || echo upstream)"
     if [[ "$before" == "$after" ]]; then
