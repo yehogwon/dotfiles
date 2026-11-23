@@ -85,9 +85,8 @@ install_theme() {
     local tmp_dir
     local output
 
-    # Run from install or pull (UI_NESTED), the expected cases stay quiet.
     if [[ "$(uname -s)" != "Darwin" ]]; then
-        [[ -n "${UI_NESTED:-}" ]] || skip "VS Code theme is installed on macOS only"
+        skip "VS Code theme is installed on macOS only"
         return 0
     fi
 
@@ -97,7 +96,7 @@ install_theme() {
     fi
 
     if is_current "$code_cli"; then
-        [[ -n "${UI_NESTED:-}" ]] || ok "VS Code theme is up to date"
+        ok "VS Code theme is up to date"
         return 0
     fi
 
