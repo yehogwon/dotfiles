@@ -6,6 +6,15 @@ vim.opt.tabstop = 4
 vim.opt.expandtab = true
 vim.opt.signcolumn = "yes" -- keep the gitsigns column so text doesn't shift
 
+-- ssh config: Enter and o/O don't continue a # comment, and Enter doesn't re-indent the line it leaves
+vim.api.nvim_create_autocmd("FileType", {
+    pattern = "sshconfig",
+    callback = function()
+        vim.opt_local.formatoptions:remove({ "r", "o" })
+        vim.opt_local.indentkeys:remove("*<Return>")
+    end,
+})
+
 -- Plugins: vim.pack (built into nvim 0.12) downloads them on first launch; versions aren't pinned
 vim.pack.add({ "https://github.com/lewis6991/gitsigns.nvim" })
 
