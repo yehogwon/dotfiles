@@ -298,8 +298,8 @@ append_block() {
     mkdir -p "$(dirname "$file")"
     touch "$file"
 
-    begin_count="$(grep -Fxc "$begin_marker" "$file" || true)"
-    end_count="$(grep -Fxc "$end_marker" "$file" || true)"
+    begin_count="$(grep -Fxc -e "$begin_marker" "$file" || true)"
+    end_count="$(grep -Fxc -e "$end_marker" "$file" || true)"
 
     if [[ "$begin_count" -ne "$end_count" ]]; then
         warn "$label has mismatched markers; skipped"
@@ -336,8 +336,8 @@ insert_block() {
     mkdir -p "$(dirname "$file")"
     touch "$file"
 
-    begin_count="$(grep -Fxc "$begin_marker" "$file" || true)"
-    end_count="$(grep -Fxc "$end_marker" "$file" || true)"
+    begin_count="$(grep -Fxc -e "$begin_marker" "$file" || true)"
+    end_count="$(grep -Fxc -e "$end_marker" "$file" || true)"
 
     if [[ "$begin_count" -ne "$end_count" ]]; then
         warn "$label has mismatched markers; skipped"
@@ -380,6 +380,8 @@ SHELL_BEGIN="# >>> dotfiles >>>"
 SHELL_END="# <<< dotfiles <<<"
 VIM_BEGIN="\" >>> dotfiles >>>"
 VIM_END="\" <<< dotfiles <<<"
+LUA_BEGIN="-- >>> dotfiles >>>"
+LUA_END="-- <<< dotfiles <<<"
 GIT_BEGIN="; >>> dotfiles >>>"
 GIT_END="; <<< dotfiles <<<"
 
@@ -405,6 +407,19 @@ append_block "$HOME/.zshenv" "$SHELL_BEGIN" "$SHELL_END" "[ -f \"$DOTFILES_DIR/s
 
 # vim
 append_block "$HOME/.vimrc" "$VIM_BEGIN" "$VIM_END" "if filereadable(expand(\"$DOTFILES_DIR/vim/vimrc\")) | execute \"source \" . fnameescape(expand(\"$DOTFILES_DIR/vim/vimrc\")) | endif" "~/.vimrc"
+
+# neovim (its own config in nvim/, independent of vim/vimrc); nvim refuses to start with both init.vim and init.lua
+nvim_dir="${XDG_CONFIG_HOME:-$HOME/.config}/nvim"
+if [[ -f "$nvim_dir/init.vim" ]]; then
+    warn "$nvim_dir/init.vim exists; move it aside and rerun to hook up the neovim config"
+else
+    nvim_payload="local dotfiles_nvim = \"$DOTFILES_DIR/nvim\"
+if vim.uv.fs_stat(dotfiles_nvim .. \"/init.lua\") then
+    vim.opt.runtimepath:prepend(dotfiles_nvim)
+    dofile(dotfiles_nvim .. \"/init.lua\")
+end"
+    append_block "$nvim_dir/init.lua" "$LUA_BEGIN" "$LUA_END" "$nvim_payload" "neovim init.lua"
+fi
 
 # git
 git_payload="[include]

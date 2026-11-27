@@ -117,8 +117,8 @@ remove_block() {
 
     local begin_count
     local end_count
-    begin_count="$(grep -Fxc "$begin_marker" "$file" || true)"
-    end_count="$(grep -Fxc "$end_marker" "$file" || true)"
+    begin_count="$(grep -Fxc -e "$begin_marker" "$file" || true)"
+    end_count="$(grep -Fxc -e "$end_marker" "$file" || true)"
 
     if [[ "$begin_count" -eq 0 && "$end_count" -eq 0 ]]; then
         return 0
@@ -228,6 +228,8 @@ SHELL_BEGIN="# >>> dotfiles >>>"
 SHELL_END="# <<< dotfiles <<<"
 VIM_BEGIN="\" >>> dotfiles >>>"
 VIM_END="\" <<< dotfiles <<<"
+LUA_BEGIN="-- >>> dotfiles >>>"
+LUA_END="-- <<< dotfiles <<<"
 GIT_BEGIN="; >>> dotfiles >>>"
 GIT_END="; <<< dotfiles <<<"
 
@@ -244,6 +246,7 @@ remove_block "$HOME/.zlogout" "$SHELL_BEGIN" "$SHELL_END" "~/.zlogout"
 remove_block "$HOME/.zshenv" "$SHELL_BEGIN" "$SHELL_END" "~/.zshenv"
 
 remove_block "$HOME/.vimrc" "$VIM_BEGIN" "$VIM_END" "~/.vimrc"
+remove_block "${XDG_CONFIG_HOME:-$HOME/.config}/nvim/init.lua" "$LUA_BEGIN" "$LUA_END" "neovim init.lua"
 remove_block "$HOME/.gitconfig" "$GIT_BEGIN" "$GIT_END" "~/.gitconfig"
 remove_block "$HOME/.ssh/config" "$SHELL_BEGIN" "$SHELL_END" "~/.ssh/config"
 remove_block "$HOME/.tmux.conf" "$SHELL_BEGIN" "$SHELL_END" "~/.tmux.conf"
