@@ -3,3 +3,8 @@ set ai
 set si
 set tabstop=4
 set expandtab
+
+" vim-gitgutter (submodule in modules/): +/~/- signs for lines changed since the last commit
+execute 'set runtimepath+=' . fnameescape(expand('<sfile>:p:h:h') . '/modules/vim-gitgutter')
+set updatetime=100
+set signcolumn=yes
